@@ -16,7 +16,7 @@ dp-observation-importer
 | KAFKA_ADDRESS              | "http://localhost:9092"  | The address of the Kafka instance
 | OBSERVATION_CONSUMER_GROUP | "observation-extracted"  | The Kafka consumer group to consume observation extracted events from
 | OBSERVATION_CONSUMER_TOPIC | "observation-extracted"  | The Kafka topic to consume observation extracted events from
-| DATABASE_ADDRESS           | ""                       | The address of the database
+| DATABASE_ADDRESS           | "bolt://localhost:7687"  | The address of the database
 | IMPORT_API_URL             | "http://localhost:21800" | The URL of the import API
 
 ### Contributing
