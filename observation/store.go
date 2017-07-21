@@ -116,7 +116,7 @@ func buildInsertObservationQuery(instanceID string, dimensionIDs dimension.IDs) 
 
 	for dimensionName := range dimensionIDs {
 
-		if index == 0 {
+		if index != 0 {
 			match += ", "
 			where += " AND "
 			create += ", "
