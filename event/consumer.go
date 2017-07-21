@@ -1,13 +1,13 @@
 package event
 
 import (
-	"github.com/ONSdigital/dp-observation-importer/kafka"
 	"time"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/dp-observation-importer/errors"
+	"github.com/ONSdigital/go-ns/kafka"
 )
 
-// MessageConsumer provides a generic interface for consuming []byte messages
+// MessageConsumer provides a generic interface for consuming []byte messages (from Kafka)
 type MessageConsumer interface {
 	Incoming() chan kafka.Message
 	Closer() chan bool
@@ -51,6 +51,7 @@ func Consume(messageConsumer MessageConsumer,
 	}
 }
 
+// AddMessageToBatch will attempt to add the message to the batch and determine if it should be processed.
 func AddMessageToBatch(batch *Batch, msg kafka.Message, handler Handler, exit chan struct{})  {
 	batch.Add(msg)
 	if batch.IsFull() {
@@ -59,6 +60,7 @@ func AddMessageToBatch(batch *Batch, msg kafka.Message, handler Handler, exit ch
 	}
 }
 
+// ProcessBatch will attempt to handle and commit the batch, or shutdown if something goes horribly wrong.
 func ProcessBatch(handler Handler, batch *Batch, exit chan struct{}) {
 
 	err := handler.Handle(batch.Events())

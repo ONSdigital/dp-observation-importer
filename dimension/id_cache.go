@@ -7,7 +7,7 @@ type IDCache struct {
 
 // IDStore represents the data store for dimension id's
 type IDStore interface {
-	GetIDs(instanceID string) ([]*Dimension, error)
+	GetIDs(instanceID string) (IDs, error)
 }
 
 // NewIDCache returns a new cache instance that uses the given data store.
@@ -18,7 +18,7 @@ func NewIDCache(idStore IDStore) *IDCache {
 }
 
 // GetIDs returns all dimensions for a given instanceID
-func (cache *IDCache) GetIDs(instanceID string) ([]*Dimension, error) {
+func (cache *IDCache) GetIDs(instanceID string) (IDs, error) {
 
 	// todo: implement in memory cache
 

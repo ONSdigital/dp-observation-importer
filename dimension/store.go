@@ -21,21 +21,16 @@ func (store *Store) GetOrder(instanceID string) ([]string, error) {
 }
 
 // GetIDs returns all dimensions for a given instanceID
-func (store *Store) GetIDs(instanceID string) ([]*Dimension, error) {
+func (store *Store) GetIDs(instanceID string) (IDs, error) {
 
 	//todo call import API for dimension database ID's
 
 	return nil, nil
 }
 
-// Dimension represents a single dimension with all of its values.
-type Dimension struct {
-	Name   string
-	Values []*Option
-}
 
-// Option represents a single dimension option, including its database ID.
-type Option struct {
-	Name string
-	ID   int
-}
+// IDs a map from the dimension name to its options
+type IDs map[string]OptionIDs
+
+// OptionIDs represents a single dimension option, including its database ID.
+type OptionIDs map[string]string

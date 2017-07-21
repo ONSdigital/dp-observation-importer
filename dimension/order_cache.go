@@ -17,10 +17,10 @@ func NewOrderCache(orderStore OrderStore) *OrderCache {
 	}
 }
 
-// Get returns list of dimension names in the order they are stored in the input file.
-func (store *OrderCache) GetOrder(instanceID string) ([]string, error) {
+// GetOrder returns list of dimension names in the order they are stored in the input file.
+func (cache *OrderCache) GetOrder(instanceID string) ([]string, error) {
 
 	// todo: implement an in memory cache for the store response.
 
-	return store.GetOrder(instanceID)
+	return cache.orderStore.GetOrder(instanceID)
 }

@@ -6,14 +6,15 @@ import (
 	"github.com/ONSdigital/dp-observation-importer/event/eventtest"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/schema"
+	"github.com/ONSdigital/go-ns/kafka/kafkatest"
 )
 
 func TestIsEmpty(t *testing.T) {
 
 	Convey("Given a batch that is not empty", t, func() {
 
-		expectedEvent := event.ObservationExtracted{ InstanceID:"123", Row:"the,row,content" }
-		message := &eventtest.Message{Data: []byte(Marshal(expectedEvent))}
+		expectedEvent := getExampleEvent()
+		message := kafkatest.NewMessage([]byte(Marshal(*expectedEvent)))
 
 		batchSize := 1
 		errorHandler := eventtest.ErrorHandler{}
@@ -41,8 +42,8 @@ func TestAdd(t *testing.T) {
 
 	Convey("Given a batch", t, func() {
 
-		expectedEvent := event.ObservationExtracted{ InstanceID:"123", Row:"the,row,content" }
-		message := &eventtest.Message{Data: []byte(Marshal(expectedEvent))}
+		expectedEvent := getExampleEvent()
+		message := kafkatest.NewMessage([]byte(Marshal(*expectedEvent)))
 
 		batchSize := 1
 		errorHandler := eventtest.ErrorHandler{}
@@ -68,8 +69,8 @@ func TestCommit(t *testing.T) {
 
 		expectedEvent := event.ObservationExtracted{ InstanceID:"123", Row:"the,row,content" }
 		expectedLastEvent := event.ObservationExtracted{ InstanceID:"123", Row:"last,row,content" }
-		message := &eventtest.Message{Data: []byte(Marshal(expectedEvent))}
-		lastMessage := &eventtest.Message{Data: []byte(Marshal(expectedLastEvent))}
+		message := kafkatest.NewMessage([]byte(Marshal(expectedEvent)))
+		lastMessage := kafkatest.NewMessage([]byte(Marshal(expectedLastEvent)))
 
 		batchSize := 2
 		errorHandler := eventtest.ErrorHandler{}
@@ -124,8 +125,8 @@ func TestSize(t *testing.T) {
 
 	Convey("Given a batch", t, func() {
 
-		expectedEvent := event.ObservationExtracted{ InstanceID:"123", Row:"the,row,content" }
-		message := &eventtest.Message{Data: []byte(Marshal(expectedEvent))}
+		expectedEvent := getExampleEvent()
+		message := kafkatest.NewMessage([]byte(Marshal(*expectedEvent)))
 
 		batchSize := 1
 		errorHandler := eventtest.ErrorHandler{}
@@ -151,8 +152,8 @@ func TestIsFull(t *testing.T) {
 
 	Convey("Given a batch with a size of 2", t, func() {
 
-		expectedEvent := event.ObservationExtracted{ InstanceID:"123", Row:"the,row,content" }
-		message := &eventtest.Message{Data: []byte(Marshal(expectedEvent))}
+		expectedEvent := getExampleEvent()
+		message := kafkatest.NewMessage([]byte(Marshal(*expectedEvent)))
 
 		batchSize := 2
 		errorHandler := eventtest.ErrorHandler{}
@@ -179,7 +180,7 @@ func TestToEvent(t *testing.T) {
 	Convey("Given a event schema encoded using avro", t, func() {
 
 		expectedEvent := getExampleEvent()
-		message := &eventtest.Message{Data: Marshal(*expectedEvent)}
+		message := kafkatest.NewMessage([]byte(Marshal(*expectedEvent)))
 
 		Convey("When the expectedEvent is unmarshalled", func() {
 

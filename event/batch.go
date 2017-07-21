@@ -69,7 +69,7 @@ func (batch *Batch) Commit() {
 	batch.Clear()
 }
 
-// Commit is called when the batch has been processed.
+// Clear will reset to batch to contain no events.
 func (batch *Batch) Clear() {
 	batch.events = batch.events[0:0]
 }

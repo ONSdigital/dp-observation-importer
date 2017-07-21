@@ -3,11 +3,12 @@ package event_test
 import (
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/event/eventtest"
-	"github.com/ONSdigital/dp-observation-importer/kafka"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
 	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/go-ns/kafka"
+	"github.com/ONSdigital/go-ns/kafka/kafkatest"
 )
 
 func TestConsume(t *testing.T) {
@@ -75,7 +76,7 @@ func TestConsume_DelayedMessages(t *testing.T) {
 
 		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content" }
 		messages := make(chan kafka.Message, 3)
-		messageConsumer := eventtest.NewMessageConsumer(messages)
+		messageConsumer := kafkatest.NewMessageConsumer(messages)
 
 		batchSize := 3
 		errorHandler := eventtest.ErrorHandler{}
@@ -84,7 +85,7 @@ func TestConsume_DelayedMessages(t *testing.T) {
 		exit := make(chan struct{}, 1)
 
 		messageDelay := time.Millisecond * 25
-		message := &eventtest.Message{Data: []byte(Marshal(expectedEvent))}
+		message := kafkatest.NewMessage([]byte(Marshal(expectedEvent)))
 
 		SendMessagesWithDelay(messages, message, messageDelay, 3)
 
@@ -97,7 +98,7 @@ func TestConsume_DelayedMessages(t *testing.T) {
 			Convey("The expected events are sent to the handler in one batch - i.e. the timeout is not hit", func() {
 				So(len(eventHandler.Events), ShouldEqual, 3)
 
-				event := eventHandler.Events[3]
+				event := eventHandler.Events[2]
 				So(event.InstanceID, ShouldEqual, expectedEvent.InstanceID)
 				So(event.Row, ShouldEqual, expectedEvent.Row)
 			})
@@ -105,7 +106,7 @@ func TestConsume_DelayedMessages(t *testing.T) {
 
 	})
 }
-func SendMessagesWithDelay(messages chan kafka.Message, message *eventtest.Message, messageDelay time.Duration, numberOfMessages int) {
+func SendMessagesWithDelay(messages chan kafka.Message, message kafka.Message, messageDelay time.Duration, numberOfMessages int) {
 	go func() {
 		for i := 0; i < numberOfMessages; i++ {
 			time.Sleep(messageDelay)
@@ -114,11 +115,11 @@ func SendMessagesWithDelay(messages chan kafka.Message, message *eventtest.Messa
 	}()
 }
 
-func newMockConsumer(expectedEvent event.ObservationExtracted) (*eventtest.MessageConsumer) {
+func newMockConsumer(expectedEvent event.ObservationExtracted) (event.MessageConsumer) {
 
 	messages := make(chan kafka.Message, 1)
-	messageConsumer := eventtest.NewMessageConsumer(messages)
-	message := &eventtest.Message{Data: []byte(Marshal(expectedEvent))}
+	messageConsumer := kafkatest.NewMessageConsumer(messages)
+	message := kafkatest.NewMessage([]byte(Marshal(expectedEvent)))
 	messages <- message
 	return messageConsumer
 
