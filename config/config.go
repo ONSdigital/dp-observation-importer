@@ -12,6 +12,8 @@ type Config struct {
 	ObservationConsumerTopic string `env:"OBSERVATION_CONSUMER_TOPIC" flag:"observation-consumer-topic" flagDesc:"The Kafka topic to consume observation messages from"`
 	DatabaseAddress          string `env:"DATABASE_ADDRESS" flag:"database-address" flagDesc:"The address of the database to store observations"`
 	ImportAPIURL             string `env:"IMPORT_API_URL" flag:"import-api-url" flagDesc:"The URL of the import API"`
+	BatchSize                int `env:"BATCH_SIZE" flag:"batch-size" flagDesc:"The number of messages to process in each batch"`
+	BatchWaitTimeMS          int `env:"BATCH_WAIT_TIME_MS" flag:"batch-wait-time-ms" flagDesc:"The number of MS to wait before processing a partially full batch of messages"`
 }
 
 // Get the configuration values from the environment or provide the defaults.
@@ -24,6 +26,8 @@ func Get() (*Config, error) {
 		ObservationConsumerTopic: "observation-extracted",
 		DatabaseAddress:          "bolt://localhost:7687",
 		ImportAPIURL:             "http://localhost:21800",
+		BatchSize:                1000,
+		BatchWaitTimeMS:          200,
 	}
 
 	err := gofigure.Gofigure(&cfg)

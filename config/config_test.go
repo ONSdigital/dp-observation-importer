@@ -1,9 +1,9 @@
 package config_test
 
 import (
+	"github.com/ONSdigital/dp-observation-importer/config"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
-	"github.com/ONSdigital/dp-observation-importer/config"
 )
 
 func TestSpec(t *testing.T) {
@@ -25,6 +25,8 @@ func TestSpec(t *testing.T) {
 				So(cfg.ObservationConsumerTopic, ShouldEqual, "observation-extracted")
 				So(cfg.DatabaseAddress, ShouldEqual, "bolt://localhost:7687")
 				So(cfg.ImportAPIURL, ShouldEqual, "http://localhost:21800")
+				So(cfg.BatchSize, ShouldEqual, 1000)
+				So(cfg.BatchWaitTimeMS, ShouldEqual, 200)
 			})
 		})
 	})
