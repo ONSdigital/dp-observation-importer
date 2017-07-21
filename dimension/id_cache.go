@@ -18,7 +18,7 @@ func NewIDCache(idStore IDStore) *IDCache {
 }
 
 // GetIDs returns all dimensions for a given instanceID
-func (cache *IDCache) Get(instanceID string) ([]*Dimension, error) {
+func (cache *IDCache) GetIDs(instanceID string) ([]*Dimension, error) {
 
 	// todo: implement in memory cache
 
