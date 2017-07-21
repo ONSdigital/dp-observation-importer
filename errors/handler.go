@@ -16,6 +16,13 @@ type KafkaHandler struct {
 	messageProducer MessageProducer
 }
 
+// NewKafkaHandler returns a new KafkaHadler that sends error messages to the given messageProducer.
+func NewKafkaHandler(messageProducer MessageProducer) *KafkaHandler {
+	return &KafkaHandler{
+		messageProducer:messageProducer,
+	}
+}
+
 // MessageProducer dependency that writes messages
 type MessageProducer interface {
 	Output() chan []byte
