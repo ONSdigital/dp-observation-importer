@@ -19,7 +19,11 @@ func NewMapper(dimensionOrderCache DimensionOrderCache) *Mapper {
 
 // Map the given CSV row to an observation instance.
 func (mapper *Mapper) Map(row string, instanceID string) (*Observation, error) {
-	// get the CSV header from the cache and store it against the instance ID
+
+	_, err := mapper.dimensionOrderCache.GetOrder(instanceID)
+	if err != nil {
+		return nil, err
+	}
 
 	// convert csv row to observation including dimension data and instanceID
 
