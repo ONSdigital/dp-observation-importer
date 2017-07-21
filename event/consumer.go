@@ -2,8 +2,9 @@ package event
 
 import (
 	"github.com/ONSdigital/dp-observation-importer/kafka"
-	"github.com/ONSdigital/dp-observation-importer/schema"
+	"time"
 	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/dp-observation-importer/errors"
 )
 
 // MessageConsumer provides a generic interface for consuming []byte messages
@@ -12,38 +13,59 @@ type MessageConsumer interface {
 	Closer() chan bool
 }
 
-// Handler represents a handler for processing a single event.
+// Handler represents a handler for processing a batch of events.
 type Handler interface {
-	Handle(event *ObservationExtracted) error
+	Handle(events []*ObservationExtracted) (error)
 }
 
 // Consume convert them to event instances, and pass the event to the provided handler.
-func Consume(messageConsumer MessageConsumer, handler Handler) {
-	for message := range messageConsumer.Incoming() {
+func Consume(messageConsumer MessageConsumer,
+	batchSize int,
+	errorHandler errors.Handler,
+	handler Handler,
+	batchWaitTime time.Duration,
+	exit chan struct{}) {
 
-		event, err := Unmarshal(message)
-		if err != nil {
-			log.Error(err, log.Data{"message": "failed to unmarshal event"})
-			continue
+	batch := NewBatch(batchSize, errorHandler)
+
+	// Wait a batch full of messages.
+	// If we do not get any messages for a time, just process the messages already in the batch.
+	for {
+		select {
+		case msg := <-messageConsumer.Incoming():
+
+			AddMessageToBatch(batch, msg, handler, exit)
+
+		case <-time.After(batchWaitTime):
+
+			if batch.IsEmpty() {
+				continue
+			}
+
+			log.Debug("batch wait time reached. proceeding with batch", log.Data{"batchsize": batch.Size() })
+			ProcessBatch(handler, batch, exit)
+
+		case <-exit:
+			return
 		}
-
-		log.Debug("event received", log.Data{"event": event})
-
-		err = handler.Handle(event)
-		if err != nil {
-			log.Error(err, log.Data{"message": "failed to handle event"})
-			continue
-		}
-
-		log.Debug("event processed - committing message", log.Data{"event": event})
-		message.Commit()
-		log.Debug("message committed", log.Data{"event": event})
 	}
 }
 
-// Unmarshal converts an event instance to []byte.
-func Unmarshal(message kafka.Message) (*ObservationExtracted, error) {
-	var event ObservationExtracted
-	err := schema.ObservationExtractedEvent.Unmarshal(message.GetData(), &event)
-	return &event, err
+func AddMessageToBatch(batch *Batch, msg kafka.Message, handler Handler, exit chan struct{})  {
+	batch.Add(msg)
+	if batch.IsFull() {
+		log.Debug("batch is full - processing batch", log.Data{"batchsize": batch.Size() })
+		ProcessBatch(handler, batch, exit)
+	}
+}
+
+func ProcessBatch(handler Handler, batch *Batch, exit chan struct{}) {
+
+	err := handler.Handle(batch.Events())
+	if err != nil {
+		close(exit)
+		return
+	}
+
+	batch.Commit()
 }

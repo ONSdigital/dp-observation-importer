@@ -13,16 +13,16 @@ type Message struct {
 }
 
 // GetData returns the data that was added to the struct.
-func (m *Message) GetData() []byte {
+func (m Message) GetData() []byte {
 	return m.Data
 }
 
 // Commit captures the fact that the method was called.
-func (m *Message) Commit() {
+func (m Message) Commit() {
 	m.committed = true
 }
 
 // Committed returns true if commit was called on this message.
-func (m *Message) Committed() bool {
+func (m Message) Committed() bool {
 	return m.committed
 }

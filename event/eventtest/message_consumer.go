@@ -1,8 +1,8 @@
 package eventtest
 
 import (
-	"github.com/ONSdigital/dp-observation-importer/kafka"
 	"github.com/ONSdigital/dp-observation-importer/event"
+	"github.com/ONSdigital/dp-observation-importer/kafka"
 )
 
 var _ event.MessageConsumer = (*MessageConsumer)(nil)

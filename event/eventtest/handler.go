@@ -2,6 +2,7 @@ package eventtest
 
 import (
 	"github.com/ONSdigital/dp-observation-importer/event"
+	"github.com/ONSdigital/go-ns/log"
 )
 
 var _ event.Handler = (*EventHandler)(nil)
@@ -9,7 +10,7 @@ var _ event.Handler = (*EventHandler)(nil)
 // NewEventHandler returns a new mock event handler to capture event
 func NewEventHandler() *EventHandler {
 
-	events := make([]event.ObservationExtracted, 0)
+	events := make([]*event.ObservationExtracted, 0)
 
 	return &EventHandler{
 		Events: events,
@@ -18,12 +19,14 @@ func NewEventHandler() *EventHandler {
 
 // EventHandler provides a mock implementation that captures events to check.
 type EventHandler struct {
-	Events []event.ObservationExtracted
+	Events []*event.ObservationExtracted
 	Error  error
 }
 
 // Handle captures the given event and stores it for later assertions
-func (handler *EventHandler) Handle(event *event.ObservationExtracted) error {
-	handler.Events = append(handler.Events, *event)
+func (handler *EventHandler) Handle(events []*event.ObservationExtracted) error {
+
+	log.Debug("Handle called", nil)
+	handler.Events = events
 	return handler.Error
 }

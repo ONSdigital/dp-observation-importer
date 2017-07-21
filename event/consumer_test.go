@@ -1,107 +1,146 @@
 package event_test
 
 import (
+	"github.com/ONSdigital/dp-observation-importer/event"
+	"github.com/ONSdigital/dp-observation-importer/event/eventtest"
+	"github.com/ONSdigital/dp-observation-importer/kafka"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
-	"github.com/ONSdigital/dp-observation-importer/kafka"
-	"github.com/ONSdigital/dp-observation-importer/event/eventtest"
-	"github.com/ONSdigital/dp-observation-importer/event"
-	"github.com/ONSdigital/dp-observation-importer/schema"
+	"time"
+	"github.com/ONSdigital/go-ns/log"
 )
-
-func TestConsume_UnmarshallError(t *testing.T) {
-	Convey("Given an event consumer with an invalid schema and a valid schema", t, func() {
-
-		messages := make(chan kafka.Message, 2)
-		messageConsumer := eventtest.NewMessageConsumer(messages)
-		handler := eventtest.NewEventHandler()
-
-		expectedEvent := getExampleEvent()
-
-		messages <- &eventtest.Message{Data: []byte("invalid schema")}
-		messages <- &eventtest.Message{Data: Marshal(*expectedEvent)}
-		close(messages)
-
-		Convey("When consume messages is called", func() {
-
-			event.Consume(messageConsumer, handler)
-
-			Convey("Only the valid event is sent to the handler ", func() {
-				So(len(handler.Events), ShouldEqual, 1)
-
-				event := handler.Events[0]
-				So(event.Row, ShouldEqual, expectedEvent.Row)
-				So(event.InstanceID, ShouldEqual, expectedEvent.InstanceID)
-			})
-		})
-	})
-}
 
 func TestConsume(t *testing.T) {
 
-	Convey("Given an event consumer with a valid schema", t, func() {
+	Convey("Given a mocked message producer with an expected message", t, func() {
 
-		messages := make(chan kafka.Message, 1)
-		messageConsumer := eventtest.NewMessageConsumer(messages)
-		handler := eventtest.NewEventHandler()
-
-		expectedEvent := getExampleEvent()
-
-		message := &eventtest.Message{Data: Marshal(*expectedEvent)}
-
-		messages <- message
-		close(messages)
+		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content" }
+		messageConsumer := newMockConsumer(expectedEvent)
+		batchSize := 1
+		errorHandler := eventtest.ErrorHandler{}
+		eventHandler := eventtest.NewEventHandler()
+		batchWaitTime := time.Second * 1
+		exit := make(chan struct{}, 1)
 
 		Convey("When consume is called", func() {
 
-			event.Consume(messageConsumer, handler)
+			go event.Consume(messageConsumer, batchSize, errorHandler, eventHandler, batchWaitTime, exit)
 
-			Convey("A event is sent to the handler ", func() {
-				So(len(handler.Events), ShouldEqual, 1)
+			waitForEventsToBeSentToHandler(eventHandler, exit)
 
-				event := handler.Events[0]
-				So(event.Row, ShouldEqual, expectedEvent.Row)
+			Convey("The expected event is sent to the handler", func() {
+				So(len(eventHandler.Events), ShouldEqual, 1)
+
+				event := eventHandler.Events[0]
 				So(event.InstanceID, ShouldEqual, expectedEvent.InstanceID)
-			})
-
-			Convey("The message is committed", func() {
-				So(message.Committed(), ShouldEqual, true)
+				So(event.Row, ShouldEqual, expectedEvent.Row)
 			})
 		})
 	})
 }
 
-func TestToEvent(t *testing.T) {
+func TestConsume_Timeout(t *testing.T) {
 
-	Convey("Given a event schema encoded using avro", t, func() {
+	Convey("Given a mocked message producer with an expected message", t, func() {
 
-		expectedEvent := getExampleEvent()
-		message := &eventtest.Message{Data: Marshal(*expectedEvent)}
+		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content" }
+		messageConsumer := newMockConsumer(expectedEvent)
+		batchSize := 2
+		errorHandler := eventtest.ErrorHandler{}
+		eventHandler := eventtest.NewEventHandler()
+		batchWaitTime := time.Millisecond * 50
+		exit := make(chan struct{}, 1)
 
-		Convey("When the expectedEvent is unmarshalled", func() {
+		Convey("When consume is called with a batch size of 2, and no other messages are consumed", func() {
 
-			event, err := event.Unmarshal(message)
+			go event.Consume(messageConsumer, batchSize, errorHandler, eventHandler, batchWaitTime, exit)
 
-			Convey("The expectedEvent has the expected values", func() {
-				So(err, ShouldBeNil)
-				So(event.Row, ShouldEqual, expectedEvent.Row)
+			waitForEventsToBeSentToHandler(eventHandler, exit)
+
+			Convey("The consumer timeout is hit and the single event is sent to the handler anyway", func() {
+				So(len(eventHandler.Events), ShouldEqual, 1)
+
+				event := eventHandler.Events[0]
 				So(event.InstanceID, ShouldEqual, expectedEvent.InstanceID)
+				So(event.Row, ShouldEqual, expectedEvent.Row)
 			})
 		})
+
 	})
 }
 
-// Marshal helper method to marshal a event into a []byte
-func Marshal(event event.ObservationExtracted) []byte {
-	bytes, err := schema.ObservationExtractedEvent.Marshal(event)
-	So(err, ShouldBeNil)
-	return bytes
+func TestConsume_DelayedMessages(t *testing.T) {
+
+	Convey("Given a mocked message producer that produces messages every 20ms", t, func() {
+
+		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content" }
+		messages := make(chan kafka.Message, 3)
+		messageConsumer := eventtest.NewMessageConsumer(messages)
+
+		batchSize := 3
+		errorHandler := eventtest.ErrorHandler{}
+		eventHandler := eventtest.NewEventHandler()
+		batchWaitTime := time.Millisecond * 50
+		exit := make(chan struct{}, 1)
+
+		messageDelay := time.Millisecond * 25
+		message := &eventtest.Message{Data: []byte(Marshal(expectedEvent))}
+
+		SendMessagesWithDelay(messages, message, messageDelay, 3)
+
+		Convey("When consume is called", func() {
+
+			go event.Consume(messageConsumer, batchSize, errorHandler, eventHandler, batchWaitTime, exit)
+
+			waitForEventsToBeSentToHandler(eventHandler, exit)
+
+			Convey("The expected events are sent to the handler in one batch - i.e. the timeout is not hit", func() {
+				So(len(eventHandler.Events), ShouldEqual, 3)
+
+				event := eventHandler.Events[3]
+				So(event.InstanceID, ShouldEqual, expectedEvent.InstanceID)
+				So(event.Row, ShouldEqual, expectedEvent.Row)
+			})
+		})
+
+	})
+}
+func SendMessagesWithDelay(messages chan kafka.Message, message *eventtest.Message, messageDelay time.Duration, numberOfMessages int) {
+	go func() {
+		for i := 0; i < numberOfMessages; i++ {
+			time.Sleep(messageDelay)
+			messages <- message
+		}
+	}()
 }
 
-func getExampleEvent() *event.ObservationExtracted {
-	expectedEvent := &event.ObservationExtracted{
-		InstanceID: "1234",
-		Row:    "some,row,content",
+func newMockConsumer(expectedEvent event.ObservationExtracted) (*eventtest.MessageConsumer) {
+
+	messages := make(chan kafka.Message, 1)
+	messageConsumer := eventtest.NewMessageConsumer(messages)
+	message := &eventtest.Message{Data: []byte(Marshal(expectedEvent))}
+	messages <- message
+	return messageConsumer
+
+}
+
+func waitForEventsToBeSentToHandler(eventHandler *eventtest.EventHandler, exit chan struct{}) {
+
+	start := time.Now()
+	timeout := start.Add(time.Millisecond * 500)
+	for {
+		if len(eventHandler.Events) > 0 {
+			log.Debug("events have been sent to the handler", nil)
+			close(exit)
+			break
+		}
+
+		if time.Now().After(timeout) {
+			log.Debug("timeout hit", nil)
+			close(exit)
+			break
+		}
+
+		time.Sleep(time.Millisecond * 10)
 	}
-	return expectedEvent
 }
