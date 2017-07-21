@@ -6,19 +6,21 @@ import (
 	"github.com/ONSdigital/dp-observation-importer/errors"
 )
 
-
-
+// Batch handles adding raw messages to a batch of ObservationExtracted events.
 type Batch struct {
 	maxSize int
 	events []*ObservationExtracted
 	errorHandler errors.Handler
+	lastMessageInBatch Message
 }
 
+// Message represents a single message to be added to the batch.
 type Message interface {
 	GetData() []byte
 	Commit()
 }
 
+// NewBatch returns a new batch instance of the given size.
 func NewBatch(batchSize int, errorHandler errors.Handler) *Batch {
 	events := make([]*ObservationExtracted, 0, batchSize)
 
@@ -28,6 +30,7 @@ func NewBatch(batchSize int, errorHandler errors.Handler) *Batch {
 	}
 }
 
+// Add a message to the batch.
 func (batch *Batch) Add(message Message) {
 
 	event, err := Unmarshal(message)
@@ -35,28 +38,42 @@ func (batch *Batch) Add(message Message) {
 		batch.errorHandler.Handle(err, log.Data{"message": "failed to unmarshal event"})
 	}
 
+	batch.lastMessageInBatch = message
 	batch.events = append(batch.events, event)
+
 }
 
+// Size returns the number of events currently in the batch.
 func (batch *Batch) Size() int {
 	return len(batch.events)
 }
 
+// IsFull returns true if the batch is full based on the configured maxSize.
 func (batch *Batch) IsFull() bool {
 	return len(batch.events) == batch.maxSize
 }
 
+// Events returns the events currenty in the batch.
 func (batch *Batch) Events() []*ObservationExtracted {
 	return batch.events
 }
 
+// IsEmpty returns true if the batch has no events in it.
 func (batch *Batch) IsEmpty() bool {
 	return len(batch.events) == 0
 }
 
-func (batch *Batch) Commit() error {
-	return nil
+// Commit is called when the batch has been processed.
+func (batch *Batch) Commit() {
+	batch.lastMessageInBatch.Commit()
+	batch.Clear()
 }
+
+// Commit is called when the batch has been processed.
+func (batch *Batch) Clear() {
+	batch.events = batch.events[0:0]
+}
+
 
 // Unmarshal converts an event instance to []byte.
 func Unmarshal(message Message) (*ObservationExtracted, error) {

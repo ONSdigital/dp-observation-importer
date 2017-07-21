@@ -62,6 +62,64 @@ func TestAdd(t *testing.T) {
 	})
 }
 
+func TestCommit(t *testing.T) {
+
+	Convey("Given a batch with two valid messages", t, func() {
+
+		expectedEvent := event.ObservationExtracted{ InstanceID:"123", Row:"the,row,content" }
+		expectedLastEvent := event.ObservationExtracted{ InstanceID:"123", Row:"last,row,content" }
+		message := &eventtest.Message{Data: []byte(Marshal(expectedEvent))}
+		lastMessage := &eventtest.Message{Data: []byte(Marshal(expectedLastEvent))}
+
+		batchSize := 2
+		errorHandler := eventtest.ErrorHandler{}
+
+		batch := event.NewBatch(batchSize, errorHandler)
+
+		batch.Add(message)
+		batch.Add(lastMessage)
+
+		batch.Commit()
+
+		Convey("When commit is called", func() {
+
+			Convey("The last message in the batch is committed", func() {
+				So(message.Committed(), ShouldBeFalse)
+				So(lastMessage.Committed(), ShouldBeTrue)
+			})
+
+			Convey("The batch is emptied.", func() {
+				So(len(batch.Events()), ShouldEqual, 0)
+				So(batch.IsEmpty(), ShouldBeTrue)
+				So(batch.IsFull(), ShouldBeFalse)
+				So(batch.Size(), ShouldEqual, 0)
+			})
+
+			Convey("The batch can be reused", func() {
+				batch.Add(lastMessage)
+
+				So(len(batch.Events()), ShouldEqual, 1)
+				So(batch.IsEmpty(), ShouldBeFalse)
+				So(batch.IsFull(), ShouldBeFalse)
+				So(batch.Size(), ShouldEqual, 1)
+
+				So(batch.Events()[0].Row, ShouldEqual, expectedLastEvent.Row)
+				So(batch.Events()[0].InstanceID, ShouldEqual, expectedLastEvent.InstanceID)
+
+				batch.Add(message)
+
+				So(len(batch.Events()), ShouldEqual, 2)
+				So(batch.IsEmpty(), ShouldBeFalse)
+				So(batch.IsFull(), ShouldBeTrue)
+				So(batch.Size(), ShouldEqual, 2)
+
+				So(batch.Events()[1].Row, ShouldEqual, expectedEvent.Row)
+				So(batch.Events()[1].InstanceID, ShouldEqual, expectedEvent.InstanceID)
+			})
+		})
+	})
+}
+
 func TestSize(t *testing.T) {
 
 	Convey("Given a batch", t, func() {
