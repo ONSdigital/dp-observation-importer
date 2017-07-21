@@ -27,6 +27,7 @@ func TestSpec(t *testing.T) {
 				So(cfg.ImportAPIURL, ShouldEqual, "http://localhost:21800")
 				So(cfg.BatchSize, ShouldEqual, 1000)
 				So(cfg.BatchWaitTimeMS, ShouldEqual, 200)
+				So(cfg.ErrorProducerTopic, ShouldEqual, "import-error")
 			})
 		})
 	})

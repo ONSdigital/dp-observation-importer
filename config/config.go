@@ -14,6 +14,7 @@ type Config struct {
 	ImportAPIURL             string `env:"IMPORT_API_URL" flag:"import-api-url" flagDesc:"The URL of the import API"`
 	BatchSize                int `env:"BATCH_SIZE" flag:"batch-size" flagDesc:"The number of messages to process in each batch"`
 	BatchWaitTimeMS          int `env:"BATCH_WAIT_TIME_MS" flag:"batch-wait-time-ms" flagDesc:"The number of MS to wait before processing a partially full batch of messages"`
+	ErrorProducerTopic       string `env:"ERROR_PRODUCER_TOPIC" flag:"error-producer-topic" flagDesc:"The Kafka topic to send the error messages to"`
 }
 
 // Get the configuration values from the environment or provide the defaults.
@@ -28,6 +29,7 @@ func Get() (*Config, error) {
 		ImportAPIURL:             "http://localhost:21800",
 		BatchSize:                1000,
 		BatchWaitTimeMS:          200,
+		ErrorProducerTopic:       "import-error",
 	}
 
 	err := gofigure.Gofigure(&cfg)
