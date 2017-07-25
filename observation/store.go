@@ -1,7 +1,6 @@
 package observation
 
 import (
-	"github.com/ONSdigital/dp-observation-importer/dimension"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	"fmt"
 	"github.com/ONSdigital/go-ns/log"
@@ -15,7 +14,7 @@ type Store struct {
 
 // DimensionIDCache provides database ID's of dimensions when inserting observations.
 type DimensionIDCache interface {
-	GetIDs(instanceID string) (dimension.IDs, error)
+	GetNodeIDs(instanceID string) (map[string]string, error)
 }
 
 // DBConnection provides a connection to the database.
@@ -42,15 +41,11 @@ func (store *Store) SaveAll(observations []*Observation) error {
 
 	for instanceID := range instanceObservations {
 
-		dimensions, err := store.dimensionIDCache.GetIDs(instanceID)
-		if err != nil {
-			return err
-		}
 
-		query := buildInsertObservationQuery(instanceID, dimensions)
+		query := buildInsertObservationQuery(instanceID, instanceObservations[instanceID])
 		queries = append(queries, query)
 
-		params := createParams(instanceObservations[instanceID], dimensions)
+		params := createParams(instanceObservations[instanceID])
 		pipelineParams = append(pipelineParams, params)
 
 	}
@@ -79,7 +74,7 @@ func (store *Store) SaveAll(observations []*Observation) error {
 }
 
 // createParams creates parameters to inject into an insert query for each observation.
-func createParams(observations []*Observation, dimensionIDs dimension.IDs) map[string]interface{} {
+func createParams(observations []*Observation) map[string]interface{} {
 
 	rows := make([]interface{}, 0)
 
@@ -89,12 +84,10 @@ func createParams(observations []*Observation, dimensionIDs dimension.IDs) map[s
 			"v": observation.Row,
 		}
 
-		for _, dimensionOption := range observation.DimensionOptions {
 
-			optionIDs := dimensionIDs[dimensionOption.DimensionName]
-			optionID := optionIDs[dimensionOption.Name]
+		for _, dimension := range observation.DimensionOptions {
 
-			row[dimensionOption.DimensionName] = optionID
+			row[dimension.DimensionName] = dimension.NodeID
 		}
 
 		rows = append(rows, row)
@@ -104,7 +97,7 @@ func createParams(observations []*Observation, dimensionIDs dimension.IDs) map[s
 }
 
 // buildInsertObservationQuery creates an instance specific insert query.
-func buildInsertObservationQuery(instanceID string, dimensionIDs dimension.IDs) string {
+func buildInsertObservationQuery(instanceID string, observations []*Observation) string {
 
 	query := "UNWIND $rows AS row"
 
@@ -114,7 +107,7 @@ func buildInsertObservationQuery(instanceID string, dimensionIDs dimension.IDs) 
 
 	index := 0
 
-	for dimensionName := range dimensionIDs {
+	for _, dimension := range observations[0].DimensionOptions {
 
 		if index != 0 {
 			match += ", "
@@ -122,9 +115,9 @@ func buildInsertObservationQuery(instanceID string, dimensionIDs dimension.IDs) 
 			create += ", "
 		}
 
-		match += fmt.Sprintf("(%s:_%s_%s)", dimensionName, instanceID, dimensionName)
-		where += fmt.Sprintf("id(%s) = row.%s", dimensionName, dimensionName)
-		create += fmt.Sprintf("(o)-[:isValueOf]->(%s)", dimensionName)
+		match += fmt.Sprintf("(%s:%s)", dimension.NodeAlias, dimension.DimensionName)
+		where += fmt.Sprintf("id(%s) = toInt(row.%s)", dimension.NodeAlias, dimension.DimensionName)
+		create += fmt.Sprintf("(o)-[:isValueOf]->(%s)", dimension.NodeAlias)
 		index++
 	}
 

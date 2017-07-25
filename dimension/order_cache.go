@@ -1,8 +1,9 @@
 package dimension
 
 // OrderCache is cache the for order of dimensions in the input file
-type OrderCache struct {
+type HeaderCache struct {
 	orderStore OrderStore
+	memoryCache map[string][]string
 }
 
 // OrderStore represents the data store for dimension order
@@ -11,16 +12,27 @@ type OrderStore interface {
 }
 
 // NewOrderCache returns a new instance of the order cache that uses the given OrderStore.
-func NewOrderCache(orderStore OrderStore) *OrderCache {
-	return &OrderCache{
+func NewOrderCache(orderStore OrderStore) *HeaderCache {
+	return &HeaderCache{
 		orderStore:orderStore,
+		memoryCache: make(map[string] []string),
 	}
 }
 
 // GetOrder returns list of dimension names in the order they are stored in the input file.
-func (cache *OrderCache) GetOrder(instanceID string) ([]string, error) {
+func (cache *HeaderCache) GetOrder(instanceID string) ([]string, error) {
+	headers, ok := cache.memoryCache[instanceID]
 
-	// todo: implement an in memory cache for the store response.
+	if ok {
+		return headers, nil
+	}
 
-	return cache.orderStore.GetOrder(instanceID)
+	newHeaders, storeError := cache.orderStore.GetOrder(instanceID)
+	if storeError != nil {
+		return nil, storeError
+	}
+	// TODO Time to live on cached items
+	cache.memoryCache[instanceID] = newHeaders
+
+	return newHeaders, nil
 }

@@ -1,8 +1,14 @@
 package observation
 
+import (
+	"strings"
+	"fmt"
+)
+
 // Mapper interprets a CSV line and returns an observation instance.
 type Mapper struct {
-	dimensionOrderCache DimensionOrderCache
+	dimensionCache DimensionOrderCache
+	dimensionNodeIdStore DimensionNodeIdStore
 }
 
 // DimensionOrderCache provides the an array of dimension names to define the order of dimensions
@@ -10,22 +16,51 @@ type DimensionOrderCache interface {
 	GetOrder(instanceID string) ([]string, error)
 }
 
+type DimensionNodeIdStore interface {
+	GetNodeIDs(instanceID string) (map[string]string, error)
+}
+
 // NewMapper returns a new Mapper instance
-func NewMapper(dimensionOrderCache DimensionOrderCache) *Mapper {
+func NewMapper(dimensionOrderCache DimensionOrderCache, dimensionNodeIdStore DimensionNodeIdStore) *Mapper {
 	return &Mapper{
-		dimensionOrderCache:dimensionOrderCache,
+		dimensionCache:dimensionOrderCache,
+		dimensionNodeIdStore:dimensionNodeIdStore,
 	}
 }
 
 // Map the given CSV row to an observation instance.
 func (mapper *Mapper) Map(row string, instanceID string) (*Observation, error) {
-
-	_, err := mapper.dimensionOrderCache.GetOrder(instanceID)
+	header, err := mapper.dimensionCache.GetOrder(instanceID)
+	nodeIdCache, err := mapper.dimensionNodeIdStore.GetNodeIDs(instanceID)
 	if err != nil {
+		fmt.Println(err.Error())
 		return nil, err
 	}
+	var dimensions []DimensionOption
+	csvRow := strings.Split(row, ",")
+    offset := 2 // skip observation value / data markings
+	for i := offset; i < len(header); i+=2 {
+		codeListName := header[i]
+		labelName := header[i+1]
+		codeListValue := csvRow[i]
+		labelValue := csvRow[i+1]
+		var dimensionName string
+		if labelValue != "" && codeListValue != "" {
+			dimensionName = "_" + instanceID + "_" + codeListValue + "_" + labelValue
+		} else if codeListValue != "" {
+			dimensionName = instanceID + "-" + codeListName
+		} else {
+			dimensionName = instanceID + "-" + labelName
+		}
+		nodeID, ok := nodeIdCache[dimensionName]
+		if ! ok {
+			return nil, fmt.Errorf("No nodeId found for %s", dimensionName)
+		}
+		dimensions = append(dimensions,
+			DimensionOption{DimensionName:dimensionName, NodeID:nodeID, NodeAlias:codeListName})
 
-	// convert csv row to observation including dimension data and instanceID
+	}
 
-	return nil, nil
+    o := Observation{Row:row, InstanceID:instanceID, DimensionOptions:dimensions}
+	return &o, nil
 }

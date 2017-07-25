@@ -2,17 +2,18 @@ package main
 
 import (
 	"github.com/ONSdigital/dp-observation-importer/config"
+	"github.com/ONSdigital/dp-observation-importer/dimension"
+	"github.com/ONSdigital/dp-observation-importer/errors"
+	"github.com/ONSdigital/dp-observation-importer/event"
+	"github.com/ONSdigital/dp-observation-importer/observation"
+	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
+	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
-	"github.com/ONSdigital/dp-observation-importer/event"
 	"time"
-	"github.com/ONSdigital/dp-observation-importer/errors"
-	"github.com/ONSdigital/go-ns/kafka"
-	"github.com/ONSdigital/dp-observation-importer/observation"
-	"github.com/ONSdigital/dp-observation-importer/dimension"
-	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
 
 func main() {
@@ -23,7 +24,13 @@ func main() {
 		log.Error(err, nil)
 		os.Exit(1)
 	}
-	log.Debug("loaded config", log.Data{"config": config})
+	// Avoid logging the neo4j URL as it may contain a password
+	log.Debug("loaded config", log.Data{
+		"topics":     []string{config.ObservationConsumerTopic, config.ErrorProducerTopic},
+		"brokers":    config.KafkaAddr,
+		"bind_addr":  config.BindAddr,
+		"batch_size": config.BatchSize,
+		"batch_time": config.BatchWaitTimeMS})
 
 	kafkaBrokers := []string{config.KafkaAddr}
 	kafkaConsumer, err := kafka.NewConsumerGroup(
@@ -39,8 +46,7 @@ func main() {
 
 	kafkaErrorProducer := kafka.NewProducer(kafkaBrokers, config.ErrorProducerTopic, 0)
 
-	driver := bolt.NewDriver()
-	dbConnection, err := driver.OpenNeo("bolt://localhost:7687")
+	dbConnection, err := bolt.NewDriver().OpenNeo(config.BoltDriverURL)
 
 	if err != nil {
 		log.Error(err, log.Data{"message": "failed to create connection to Neo4j"})
@@ -68,13 +74,15 @@ func main() {
 	// How long do we wait for a batch to be full before just processing a partially full batch.
 	batchWaitTime := time.Millisecond * time.Duration(config.BatchWaitTimeMS)
 
+	httpClient := http.Client{Timeout: time.Second * 15}
+
 	// objects to get dimension data - via the import API + cached locally in memory.
-	dimensionStore := dimension.NewStore(config.ImportAPIURL)
+	dimensionStore := dimension.NewStore(config.ImportAPIURL, &httpClient)
 	dimensionOrderCache := dimension.NewOrderCache(dimensionStore)
 	dimensionIDCache := dimension.NewIDCache(dimensionStore)
 
 	// maps from CSV row to observation data.
-	observationMapper := observation.NewMapper(dimensionOrderCache)
+	observationMapper := observation.NewMapper(dimensionOrderCache, dimensionIDCache)
 
 	// stores observations in the DB.
 	observationStore := observation.NewStore(dimensionIDCache, dbConnection)

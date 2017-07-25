@@ -1,8 +1,9 @@
 package dimension
 
 // IDCache is an in memory cache of dimensions with database id's.
-type IDCache struct {
+type DimensionMemoryCache struct {
 	idStore IDStore
+	memoryCache map[string]map[string]string // instanceID > dimensionName > nodeId
 }
 
 // IDStore represents the data store for dimension id's
@@ -11,16 +12,29 @@ type IDStore interface {
 }
 
 // NewIDCache returns a new cache instance that uses the given data store.
-func NewIDCache(idStore IDStore) *IDCache {
-	return &IDCache{
+func NewIDCache(idStore IDStore) *DimensionMemoryCache {
+	return &DimensionMemoryCache{
 		idStore:idStore,
+		memoryCache: make(map[string]map[string]string),
 	}
 }
 
 // GetIDs returns all dimensions for a given instanceID
-func (cache *IDCache) GetIDs(instanceID string) (IDs, error) {
+func (cache *DimensionMemoryCache) GetNodeIDs(instanceID string) (map[string]string, error) {
 
-	// todo: implement in memory cache
+	dimensions, ok := cache.memoryCache[instanceID]
 
-	return cache.idStore.GetIDs(instanceID)
+	if ok {
+
+		return dimensions, nil
+	}
+
+	newDimensions, storeError := cache.idStore.GetIDs(instanceID)
+	if storeError != nil {
+		return nil, storeError
+	}
+
+	cache.memoryCache[instanceID] = newDimensions
+
+	return newDimensions, nil
 }

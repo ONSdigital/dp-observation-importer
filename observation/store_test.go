@@ -15,19 +15,15 @@ func TestSpec(t *testing.T) {
 		inputObservation := &observation.Observation{
 			InstanceID: "123",
 			Row:        "the,row,content",
-			DimensionOptions: []*observation.DimensionOption{
-				{DimensionName: "Sex", Name: "Male" },
-				{DimensionName: "Age", Name: "Old" },
+			DimensionOptions: []observation.DimensionOption{
+				{DimensionName: "_123_Sex", NodeID: "333", NodeAlias: "Sex" },
+				{DimensionName: "_123_Age", NodeID: "444", NodeAlias: "Age" },
 			},
 		}
 
 		ids := dimension.IDs{
-			"Sex": {
-				"Male": "333",
-			},
-			"Age": {
-				"Old": "444",
-			},
+			//dimension.Dimension{"Sex", "Male", "333"},
+			//dimension.Dimension{"Age", "Old", "444"},
 		}
 
 		idCache := &observationtest.DimensionIDCache{IDs: ids }
@@ -44,7 +40,7 @@ func TestSpec(t *testing.T) {
 				So(len(dbConnection.Params), ShouldEqual, 1)
 
 				query := dbConnection.Queries[0]
-				So(query, ShouldEqual, "UNWIND $rows AS row MATCH (Sex:_123_Sex), (Age:_123_Age) WHERE id(Sex) = row.Sex AND id(Age) = row.Age CREATE (o:_123_observation { value:row.v }), (o)-[:isValueOf]->(Sex), (o)-[:isValueOf]->(Age)")
+				So(query, ShouldEqual, "UNWIND $rows AS row MATCH (Sex:_123_Sex), (Age:_123_Age) WHERE id(Sex) = toInt(row._123_Sex) AND id(Age) = toInt(row._123_Age) CREATE (o:_123_observation { value:row.v }), (o)-[:isValueOf]->(Sex), (o)-[:isValueOf]->(Age)")
 
 				//params := dbConnection.Params[0]
 				//rows := params["rows"]

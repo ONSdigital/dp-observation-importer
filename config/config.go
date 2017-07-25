@@ -15,6 +15,7 @@ type Config struct {
 	BatchSize                int `env:"BATCH_SIZE" flag:"batch-size" flagDesc:"The number of messages to process in each batch"`
 	BatchWaitTimeMS          int `env:"BATCH_WAIT_TIME_MS" flag:"batch-wait-time-ms" flagDesc:"The number of MS to wait before processing a partially full batch of messages"`
 	ErrorProducerTopic       string `env:"ERROR_PRODUCER_TOPIC" flag:"error-producer-topic" flagDesc:"The Kafka topic to send the error messages to"`
+	BoltDriverURL			 string `env:"BOLT_DRIVER" flag:"bolt-driver" flagDesc:"The URL to a neo4j database"`
 }
 
 // Get the configuration values from the environment or provide the defaults.
@@ -22,14 +23,15 @@ func Get() (*Config, error) {
 
 	cfg := Config{
 		BindAddr:                 ":21700",
-		KafkaAddr:                "http://localhost:9092",
+		KafkaAddr:                "localhost:9092",
 		ObservationConsumerGroup: "observation-extracted",
 		ObservationConsumerTopic: "observation-extracted",
 		DatabaseAddress:          "bolt://localhost:7687",
-		ImportAPIURL:             "http://localhost:21800",
+		ImportAPIURL:             "localhost:21800",
 		BatchSize:                1000,
 		BatchWaitTimeMS:          200,
 		ErrorProducerTopic:       "import-error",
+		BoltDriverURL:            "bolt://localhost:7687",
 	}
 
 	err := gofigure.Gofigure(&cfg)

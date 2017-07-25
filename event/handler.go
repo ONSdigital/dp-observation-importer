@@ -1,6 +1,8 @@
 package event
 
-import "github.com/ONSdigital/dp-observation-importer/observation"
+import (
+	"github.com/ONSdigital/dp-observation-importer/observation"
+)
 
 var _ Handler = (*BatchHandler)(nil)
 
@@ -30,7 +32,6 @@ func NewBatchHandler(observationMapper ObservationMapper, observationStore Obser
 
 // Handle the given slice of ObservationExtracted events.
 func (handler BatchHandler) Handle(events []*ObservationExtracted) error {
-
 	observations := make([]*observation.Observation, 0, len(events))
 
 	for _, event := range events {

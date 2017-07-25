@@ -62,7 +62,6 @@ func AddMessageToBatch(batch *Batch, msg kafka.Message, handler Handler, exit ch
 
 // ProcessBatch will attempt to handle and commit the batch, or shutdown if something goes horribly wrong.
 func ProcessBatch(handler Handler, batch *Batch, exit chan struct{}) {
-
 	err := handler.Handle(batch.Events())
 	if err != nil {
 		close(exit)
