@@ -30,8 +30,15 @@ func NewStore(dimensionIDCache DimensionIDCache, dBConnection DBConnection) *Sto
 	}
 }
 
+type Result struct {
+	InstanceID string
+	ObservationsInserted int
+}
+
 // SaveAll the observations against the provided dimension options and instanceID.
-func (store *Store) SaveAll(observations []*Observation) error {
+func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
+
+	results := make([]*Result, 0)
 
 	// handle the inserts separately for each instance in the batch.
 	instanceObservations := mapObservationsToInstances(observations)
@@ -53,29 +60,45 @@ func (store *Store) SaveAll(observations []*Observation) error {
 		params, err := createParams(instanceObservations[instanceID], dimensionIds)
 		pipelineParams = append(pipelineParams, params)
 
+		// create a result placeholder with the instance ID
+		results = append(results, &Result{ InstanceID: instanceID} )
 	}
 
-	results, err := store.dBConnection.ExecPipeline(queries, pipelineParams...)
+	pipelineResults, err := store.dBConnection.ExecPipeline(queries, pipelineParams...)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	for _, result := range results {
+	results = processResults(pipelineResults, results, instanceObservations)
+
+	return results, nil
+}
+
+func processResults(pipelineResults []bolt.Result, results []*Result, instanceObservations map[string][]*Observation) []*Result {
+
+	resultIndex := 0
+
+	for _, result := range pipelineResults {
 
 		rowsAffected, err := result.RowsAffected()
 		if err != nil {
-			log.Error(err,log.Data{"message": "Error running observation insert statement"})
+			log.Error(err, log.Data{"message": "Error running observation insert statement"})
 		}
 
 		log.Debug("Save result",
 			log.Data{"rows affected": rowsAffected, "metadata": result.Metadata()})
 
-		// todo: check for error results
+		// todo: check for error pipelineResults
 		// handle constraint violation - retry
 		// exponential back off
+
+		// if there are no errors then populate the observationsInserted number in the result.
+		instanceID := results[resultIndex].InstanceID
+		results[resultIndex].ObservationsInserted = len(instanceObservations[instanceID])
+		resultIndex++
 	}
 
-	return nil
+	return results
 }
 
 // createParams creates parameters to inject into an insert query for each observation.

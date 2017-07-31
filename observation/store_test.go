@@ -5,6 +5,7 @@ import (
 	"testing"
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-observation-importer/observation/observationtest"
+	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
 
 func TestSpec(t *testing.T) {
@@ -26,12 +27,13 @@ func TestSpec(t *testing.T) {
 		}
 		idCache := &observationtest.DimensionIDCache{IDs: ids }
 
-		dbConnection := &observationtest.DBConnection{}
+		dbConnection := &observationtest.DBConnection{ Results:
+			[]bolt.Result { observationtest.NewDBResult(1,1,nil, nil) }}
 		store := observation.NewStore(idCache, dbConnection)
 
 		Convey("When save all is called", func() {
 
-			store.SaveAll([]*observation.Observation{inputObservation })
+			results, err := store.SaveAll([]*observation.Observation{inputObservation })
 
 			Convey("Then the DB is called with the expected query and parameters", func() {
 
@@ -50,6 +52,15 @@ func TestSpec(t *testing.T) {
 				So(rowMap["v"], ShouldEqual, "the,row,content")
 				So(rowMap["Sex"], ShouldEqual, "333")
 				So(rowMap["Age"], ShouldEqual, "666")
+			})
+
+			Convey("The results have the expected values", func() {
+
+				So(err, ShouldBeNil)
+				So(results, ShouldNotBeNil)
+				So(len(results), ShouldEqual, 1)
+				So(results[0].InstanceID, ShouldEqual, inputObservation.InstanceID)
+				So(results[0].ObservationsInserted, ShouldEqual, 1)
 			})
 		})
 	})
