@@ -8,7 +8,7 @@ type DimensionMemoryCache struct {
 
 // IDStore represents the data store for dimension id's
 type IDStore interface {
-	GetIDs(instanceID string) (IDs, error)
+	GetIDs(instanceID string) (map[string]string, error)
 }
 
 // NewIDCache returns a new cache instance that uses the given data store.
