@@ -1,12 +1,11 @@
 package main
 
 import (
-	"time"
-	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/schema"
+	"github.com/ONSdigital/go-ns/kafka"
+	"time"
 )
-
 
 func main() {
 	var brokers []string
@@ -14,10 +13,10 @@ func main() {
 
 	producer := kafka.NewProducer(brokers, "observation-extracted", int(2000000))
 
-	event1 := event.ObservationExtracted{InstanceID:"7", Row:"5,,sex,male,age,30"}
+	event1 := event.ObservationExtracted{InstanceID: "7", Row: "5,,sex,male,age,30"}
 	sendEvent(producer, event1)
 	//time.Sleep(time.Duration(5000 * time.Millisecond))
-	event2 := event.ObservationExtracted{InstanceID:"7", Row:"5,,sex,female,age,20"}
+	event2 := event.ObservationExtracted{InstanceID: "7", Row: "5,,sex,female,age,20"}
 	sendEvent(producer, event2)
 	time.Sleep(time.Duration(5000 * time.Millisecond))
 	producer.Closer() <- true

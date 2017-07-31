@@ -1,12 +1,12 @@
 package event_test
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
-	"testing"
-	"github.com/ONSdigital/dp-observation-importer/event/eventtest"
 	"github.com/ONSdigital/dp-observation-importer/event"
+	"github.com/ONSdigital/dp-observation-importer/event/eventtest"
 	"github.com/ONSdigital/dp-observation-importer/schema"
 	"github.com/ONSdigital/go-ns/kafka/kafkatest"
+	. "github.com/smartystreets/goconvey/convey"
+	"testing"
 )
 
 func TestIsEmpty(t *testing.T) {
@@ -67,8 +67,8 @@ func TestCommit(t *testing.T) {
 
 	Convey("Given a batch with two valid messages", t, func() {
 
-		expectedEvent := event.ObservationExtracted{ InstanceID:"123", Row:"the,row,content" }
-		expectedLastEvent := event.ObservationExtracted{ InstanceID:"123", Row:"last,row,content" }
+		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content"}
+		expectedLastEvent := event.ObservationExtracted{InstanceID: "123", Row: "last,row,content"}
 		message := kafkatest.NewMessage([]byte(Marshal(expectedEvent)))
 		lastMessage := kafkatest.NewMessage([]byte(Marshal(expectedLastEvent)))
 

@@ -7,7 +7,7 @@ import (
 
 // MemoryCache is an in memory cache of dimensions with database id's.
 type MemoryCache struct {
-	store     IDStore
+	store       IDStore
 	memoryCache *cache.Cache // instanceID > dimensionName > nodeId
 }
 
@@ -19,7 +19,7 @@ type IDStore interface {
 // NewIDCache returns a new cache instance that uses the given data store.
 func NewIDCache(idStore IDStore, cacheTTL time.Duration) *MemoryCache {
 	return &MemoryCache{
-		store:     idStore,
+		store:       idStore,
 		memoryCache: cache.New(cacheTTL, 15*time.Minute),
 	}
 }

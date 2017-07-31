@@ -1,8 +1,8 @@
 package eventtest
 
 import (
-	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/dp-observation-importer/errors"
+	"github.com/ONSdigital/go-ns/log"
 )
 
 var _ errors.Handler = (*ErrorHandler)(nil)
@@ -14,6 +14,3 @@ type ErrorHandler struct {
 // Handle the error
 func (handler ErrorHandler) Handle(err error, data log.Data) {
 }
-
-
-

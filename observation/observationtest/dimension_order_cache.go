@@ -12,7 +12,7 @@ type DimensionHeaderCache struct {
 	Error          error
 }
 
-// GetHeader returns the stored mock response.
+// GetOrder returns the stored mock response.
 func (cache DimensionHeaderCache) GetOrder(instanceID string) ([]string, error) {
 	return cache.DimensionOrder, cache.Error
 }

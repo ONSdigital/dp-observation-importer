@@ -1,11 +1,11 @@
 package observation_test
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-observation-importer/observation/observationtest"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	. "github.com/smartystreets/goconvey/convey"
+	"testing"
 )
 
 func TestSpec(t *testing.T) {
@@ -16,8 +16,8 @@ func TestSpec(t *testing.T) {
 			InstanceID: "123",
 			Row:        "the,row,content",
 			DimensionOptions: []observation.DimensionOption{
-				{DimensionName: "Sex", Name: "Male" },
-				{DimensionName: "Age", Name: "45" },
+				{DimensionName: "Sex", Name: "Male"},
+				{DimensionName: "Age", Name: "45"},
 			},
 		}
 
@@ -25,15 +25,14 @@ func TestSpec(t *testing.T) {
 			"123_Sex_Male": "333",
 			"123_Age_45":   "666",
 		}
-		idCache := &observationtest.DimensionIDCache{IDs: ids }
+		idCache := &observationtest.DimensionIDCache{IDs: ids}
 
-		dbConnection := &observationtest.DBConnection{ Results:
-			[]bolt.Result { observationtest.NewDBResult(1,1,nil, nil) }}
+		dbConnection := &observationtest.DBConnection{Results: []bolt.Result{observationtest.NewDBResult(1, 1, nil, nil)}}
 		store := observation.NewStore(idCache, dbConnection)
 
 		Convey("When save all is called", func() {
 
-			results, err := store.SaveAll([]*observation.Observation{inputObservation })
+			results, err := store.SaveAll([]*observation.Observation{inputObservation})
 
 			Convey("Then the DB is called with the expected query and parameters", func() {
 

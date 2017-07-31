@@ -1,11 +1,11 @@
 package observation_test
 
 import (
-	. "github.com/smartystreets/goconvey/convey"
-	"testing"
-	"strings"
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-observation-importer/observation/observationtest"
+	. "github.com/smartystreets/goconvey/convey"
+	"strings"
+	"testing"
 )
 
 func TestMapper_Map(t *testing.T) {
@@ -13,7 +13,7 @@ func TestMapper_Map(t *testing.T) {
 	Convey("Given a mapper with a mock header cache", t, func() {
 
 		csvHeader := strings.Split("V4_1,some other header,Time_codelist,Time,Geography_codelist,Geography,Aggregate_codelist,Aggregate", ",")
-		mockOrderCache := observationtest.DimensionHeaderCache{DimensionOrder: csvHeader, Error: nil }
+		mockOrderCache := observationtest.DimensionHeaderCache{DimensionOrder: csvHeader, Error: nil}
 		mapper := observation.NewMapper(mockOrderCache)
 
 		Convey("When map is called with an example csv line", func() {

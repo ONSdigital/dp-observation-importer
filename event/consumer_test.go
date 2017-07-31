@@ -3,19 +3,19 @@ package event_test
 import (
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/event/eventtest"
+	"github.com/ONSdigital/go-ns/kafka"
+	"github.com/ONSdigital/go-ns/kafka/kafkatest"
+	"github.com/ONSdigital/go-ns/log"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
-	"github.com/ONSdigital/go-ns/log"
-	"github.com/ONSdigital/go-ns/kafka"
-	"github.com/ONSdigital/go-ns/kafka/kafkatest"
 )
 
 func TestConsume(t *testing.T) {
 
 	Convey("Given a mocked message producer with an expected message", t, func() {
 
-		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content" }
+		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content"}
 		messageConsumer := newMockConsumer(expectedEvent)
 		batchSize := 1
 		errorHandler := eventtest.ErrorHandler{}
@@ -44,7 +44,7 @@ func TestConsume_Timeout(t *testing.T) {
 
 	Convey("Given a mocked message producer with an expected message", t, func() {
 
-		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content" }
+		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content"}
 		messageConsumer := newMockConsumer(expectedEvent)
 		batchSize := 2
 		errorHandler := eventtest.ErrorHandler{}
@@ -74,7 +74,7 @@ func TestConsume_DelayedMessages(t *testing.T) {
 
 	Convey("Given a mocked message producer that produces messages every 20ms", t, func() {
 
-		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content" }
+		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content"}
 		messages := make(chan kafka.Message, 3)
 		messageConsumer := kafkatest.NewMessageConsumer(messages)
 
@@ -115,7 +115,7 @@ func SendMessagesWithDelay(messages chan kafka.Message, message kafka.Message, m
 	}()
 }
 
-func newMockConsumer(expectedEvent event.ObservationExtracted) (event.MessageConsumer) {
+func newMockConsumer(expectedEvent event.ObservationExtracted) event.MessageConsumer {
 
 	messages := make(chan kafka.Message, 1)
 	messageConsumer := kafkatest.NewMessageConsumer(messages)

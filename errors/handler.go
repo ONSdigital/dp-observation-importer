@@ -19,7 +19,7 @@ type KafkaHandler struct {
 // NewKafkaHandler returns a new KafkaHadler that sends error messages to the given messageProducer.
 func NewKafkaHandler(messageProducer MessageProducer) *KafkaHandler {
 	return &KafkaHandler{
-		messageProducer:messageProducer,
+		messageProducer: messageProducer,
 	}
 }
 

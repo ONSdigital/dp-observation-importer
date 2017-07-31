@@ -1,8 +1,8 @@
 package observation
 
 import (
-	"strings"
 	"encoding/csv"
+	"strings"
 )
 
 // Mapper interprets a CSV line and returns an observation instance.
@@ -46,8 +46,8 @@ func (mapper *Mapper) Map(row string, instanceID string) (*Observation, error) {
 
 		var dimensionName, dimensionOption string
 
-		if i == timeDimensionOffset{
-			dimensionOption = csvRow[i + 1] // code list value
+		if i == timeDimensionOffset {
+			dimensionOption = csvRow[i+1] // code list value
 		} else {
 
 			dimensionOption = csvRow[i] // code list value

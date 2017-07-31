@@ -25,8 +25,8 @@ type ObservationStore interface {
 // NewBatchHandler returns a new BatchHandler to use the given observation mapper / store.
 func NewBatchHandler(observationMapper ObservationMapper, observationStore ObservationStore) *BatchHandler {
 	return &BatchHandler{
-		observationMapper:observationMapper,
-		observationStore:observationStore,
+		observationMapper: observationMapper,
+		observationStore:  observationStore,
 	}
 }
 

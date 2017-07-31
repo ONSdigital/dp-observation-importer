@@ -1,10 +1,10 @@
 package event
 
 import (
-	"time"
-	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/dp-observation-importer/errors"
 	"github.com/ONSdigital/go-ns/kafka"
+	"github.com/ONSdigital/go-ns/log"
+	"time"
 )
 
 // MessageConsumer provides a generic interface for consuming []byte messages (from Kafka)
@@ -15,7 +15,7 @@ type MessageConsumer interface {
 
 // Handler represents a handler for processing a batch of events.
 type Handler interface {
-	Handle(events []*ObservationExtracted) (error)
+	Handle(events []*ObservationExtracted) error
 }
 
 // Consume convert them to event instances, and pass the event to the provided handler.
@@ -42,7 +42,7 @@ func Consume(messageConsumer MessageConsumer,
 				continue
 			}
 
-			log.Debug("batch wait time reached. proceeding with batch", log.Data{"batchsize": batch.Size() })
+			log.Debug("batch wait time reached. proceeding with batch", log.Data{"batchsize": batch.Size()})
 			ProcessBatch(handler, batch, exit)
 
 		case <-exit:
@@ -52,10 +52,10 @@ func Consume(messageConsumer MessageConsumer,
 }
 
 // AddMessageToBatch will attempt to add the message to the batch and determine if it should be processed.
-func AddMessageToBatch(batch *Batch, msg kafka.Message, handler Handler, exit chan struct{})  {
+func AddMessageToBatch(batch *Batch, msg kafka.Message, handler Handler, exit chan struct{}) {
 	batch.Add(msg)
 	if batch.IsFull() {
-		log.Debug("batch is full - processing batch", log.Data{"batchsize": batch.Size() })
+		log.Debug("batch is full - processing batch", log.Data{"batchsize": batch.Size()})
 		ProcessBatch(handler, batch, exit)
 	}
 }

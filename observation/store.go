@@ -1,9 +1,9 @@
 package observation
 
 import (
-	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	"fmt"
 	"github.com/ONSdigital/go-ns/log"
+	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
 
 // Store provides persistence for observations.
@@ -30,8 +30,9 @@ func NewStore(dimensionIDCache DimensionIDCache, dBConnection DBConnection) *Sto
 	}
 }
 
+// Result holds a single
 type Result struct {
-	InstanceID string
+	InstanceID           string
 	ObservationsInserted int
 }
 
@@ -50,7 +51,7 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 
 		dimensionIds, err := store.dimensionIDCache.GetNodeIDs(instanceID)
 		if err != nil {
-			log.Error(err,log.Data{"message": "Failed to get dimension node ID's", "instance":instanceID})
+			log.Error(err, log.Data{"message": "Failed to get dimension node ID's", "instance": instanceID})
 			continue
 		}
 
@@ -58,10 +59,15 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 		queries = append(queries, query)
 
 		params, err := createParams(instanceObservations[instanceID], dimensionIds)
+		if err != nil {
+			log.Error(err, log.Data{"message": "Failed create params for batch query", "instance": instanceID})
+			continue
+		}
+
 		pipelineParams = append(pipelineParams, params)
 
 		// create a result placeholder with the instance ID
-		results = append(results, &Result{ InstanceID: instanceID} )
+		results = append(results, &Result{InstanceID: instanceID})
 	}
 
 	pipelineResults, err := store.dBConnection.ExecPipeline(queries, pipelineParams...)
@@ -117,7 +123,7 @@ func createParams(observations []*Observation, dimensionIDs map[string]string) (
 			dimensionLookUp := observation.InstanceID + "_" + option.DimensionName + "_" + option.Name
 
 			nodeID, ok := dimensionIDs[dimensionLookUp]
-			if ! ok {
+			if !ok {
 				return nil, fmt.Errorf("No nodeId found for %s", dimensionLookUp)
 			}
 

@@ -2,15 +2,15 @@ package event
 
 import "github.com/ONSdigital/go-ns/log"
 import (
-	"github.com/ONSdigital/dp-observation-importer/schema"
 	"github.com/ONSdigital/dp-observation-importer/errors"
+	"github.com/ONSdigital/dp-observation-importer/schema"
 )
 
 // Batch handles adding raw messages to a batch of ObservationExtracted events.
 type Batch struct {
-	maxSize int
-	events []*ObservationExtracted
-	errorHandler errors.Handler
+	maxSize            int
+	events             []*ObservationExtracted
+	errorHandler       errors.Handler
 	lastMessageInBatch Message
 }
 
@@ -25,8 +25,8 @@ func NewBatch(batchSize int, errorHandler errors.Handler) *Batch {
 	events := make([]*ObservationExtracted, 0, batchSize)
 
 	return &Batch{
-		maxSize:batchSize,
-		events: events,
+		maxSize: batchSize,
+		events:  events,
 	}
 }
 
@@ -73,7 +73,6 @@ func (batch *Batch) Commit() {
 func (batch *Batch) Clear() {
 	batch.events = batch.events[0:0]
 }
-
 
 // Unmarshal converts an event instance to []byte.
 func Unmarshal(message Message) (*ObservationExtracted, error) {
