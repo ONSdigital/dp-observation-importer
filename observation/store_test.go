@@ -16,13 +16,17 @@ func TestSpec(t *testing.T) {
 			InstanceID: "123",
 			Row:        "the,row,content",
 			DimensionOptions: []observation.DimensionOption{
-				{DimensionName: "Sex", NodeID: "333", Name: "Male" },
-				{DimensionName: "Age", NodeID: "444", Name: "45" },
+				{DimensionName: "Sex", Name: "Male" },
+				{DimensionName: "Age", Name: "45" },
 			},
 		}
 
-		ids := dimension.IDs{}
+		ids := dimension.IDs{
+			"123_Sex_Male": "333",
+			"123_Age_45": "666",
+		}
 		idCache := &observationtest.DimensionIDCache{IDs: ids }
+
 		dbConnection := &observationtest.DBConnection{}
 		store := observation.NewStore(idCache, dbConnection)
 
@@ -38,12 +42,15 @@ func TestSpec(t *testing.T) {
 				query := dbConnection.Queries[0]
 				So(query, ShouldEqual, "UNWIND $rows AS row MATCH (Sex:_123_Sex), (Age:_123_Age) WHERE id(Sex) = toInt(row.Sex) AND id(Age) = toInt(row.Age) CREATE (o:_123_observation { value:row.v }), (o)-[:isValueOf]->(Sex), (o)-[:isValueOf]->(Age)")
 
-				//params := dbConnection.Params[0]
-				//rows := params["rows"]
-				//rowsMap, _ := rows.(map[string]interface{})
-				//So(rowsMap["v"], ShouldEqual, "the,row,content")
-				//So(rowsMap["Sex"], ShouldEqual, "333")
-				//So(rowsMap["Age"], ShouldEqual, "666")
+				//var params map[string]interface{}
+				params := dbConnection.Params[0]
+
+				rows := params["rows"]
+				row := rows.([]interface{})[0]
+				rowMap, _ := row.(map[string]interface{})
+				So(rowMap["v"], ShouldEqual, "the,row,content")
+				So(rowMap["Sex"], ShouldEqual, "333")
+				So(rowMap["Age"], ShouldEqual, "666")
 			})
 		})
 	})

@@ -41,11 +41,16 @@ func (store *Store) SaveAll(observations []*Observation) error {
 
 	for instanceID := range instanceObservations {
 
+		dimensionIds, err := store.dimensionIDCache.GetNodeIDs(instanceID)
+		if err != nil {
+			log.Error(err,log.Data{"message": "Failed to get dimension node ID's", "instance":instanceID})
+			continue
+		}
 
 		query := buildInsertObservationQuery(instanceID, instanceObservations[instanceID])
 		queries = append(queries, query)
 
-		params := createParams(instanceObservations[instanceID])
+		params, err := createParams(instanceObservations[instanceID], dimensionIds)
 		pipelineParams = append(pipelineParams, params)
 
 	}
@@ -59,7 +64,7 @@ func (store *Store) SaveAll(observations []*Observation) error {
 
 		rowsAffected, err := result.RowsAffected()
 		if err != nil {
-			log.Error(err,log.Data{"messge": "Error running observation insert statement"})
+			log.Error(err,log.Data{"message": "Error running observation insert statement"})
 		}
 
 		log.Debug("Save result",
@@ -74,7 +79,7 @@ func (store *Store) SaveAll(observations []*Observation) error {
 }
 
 // createParams creates parameters to inject into an insert query for each observation.
-func createParams(observations []*Observation) map[string]interface{} {
+func createParams(observations []*Observation, dimensionIDs map[string]string) (map[string]interface{}, error) {
 
 	rows := make([]interface{}, 0)
 
@@ -84,17 +89,23 @@ func createParams(observations []*Observation) map[string]interface{} {
 			"v": observation.Row,
 		}
 
-
 		for _, option := range observation.DimensionOptions {
 
+			dimensionLookUp := observation.InstanceID + "_" + option.DimensionName + "_" + option.Name
+
+			nodeID, ok := dimensionIDs[dimensionLookUp]
+			if ! ok {
+				return nil, fmt.Errorf("No nodeId found for %s", dimensionLookUp)
+			}
+
 			//row["name"] = option
-			row[option.Name] = option.NodeID
+			row[option.DimensionName] = nodeID
 		}
 
 		rows = append(rows, row)
 	}
 
-	return map[string]interface{}{"rows": rows}
+	return map[string]interface{}{"rows": rows}, nil
 }
 
 // buildInsertObservationQuery creates an instance specific insert query.

@@ -11,5 +11,4 @@ type Observation struct {
 type DimensionOption struct {
 	DimensionName string
 	Name          string
-	NodeID        string
 }
