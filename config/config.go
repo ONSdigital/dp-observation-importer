@@ -29,7 +29,7 @@ func Get() (*Config, error) {
 		DatabaseAddress:          "bolt://localhost:7687",
 		ImportAPIURL:             "http://localhost:21800",
 		BatchSize:                1000,
-		BatchWaitTimeMS:          2000,
+		BatchWaitTimeMS:          200,
 		ErrorProducerTopic:       "import-error",
 		BoltDriverURL:            "bolt://localhost:7687",
 	}
