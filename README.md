@@ -7,8 +7,13 @@ dp-observation-importer
 
 ### Getting started
 
-### Configuration
+* Run ```brew install kafka```
+* Run ```brew install neo4j```
+* Configure neo4j, edit /usr/local/Cellar/neo4j/3.2.0/libexec/conf/neo4j.conf
+  * Set dbms.security.auth_enabled=false
+* Run ```brew services restart neo4j```
 
+### Configuration
 
 | Environment variable       | Default                  | Description
 | ---------------------------| -----------------------  | ----------------------------------------------------
@@ -18,6 +23,12 @@ dp-observation-importer
 | OBSERVATION_CONSUMER_TOPIC | "observation-extracted"  | The Kafka topic to consume observation extracted events from
 | DATABASE_ADDRESS           | "bolt://localhost:7687"  | The address of the database
 | IMPORT_API_URL             | "http://localhost:21800" | The URL of the import API
+| BATCH_SIZE                 | 1000                     | The number of messages to process in each batch if the time out has not been reached
+| BATCH_WAIT_TIME_MS         | 200                      | The number of MS to wait before processing a partially full batch of messages
+| ERROR_PRODUCER_TOPIC       | "import-error"           | The Kafka topic to send the error messages to
+| BOLT_DRIVER                | "bolt://localhost:7687"  | The URL to a neo4j database
+| CACHE_TTL                  | 60 (minutes)             | The amount of time to wait before clearing the cache (In minutes)
+
 
 ### Contributing
 
