@@ -4,11 +4,12 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"github.com/ONSdigital/dp-observation-importer/dimension/dimensiontest"
+	"time"
 )
 
 func TestDimensionMemoryCache_GetNodeIDs(t *testing.T) {
 
-	cache := NewIDCache(dimensiontest.MockIDStore{})
+	cache := NewIDCache(dimensiontest.MockIDStore{}, time.Minute)
 
 	Convey("Given a valid instanceId", t, func() {
 
@@ -24,7 +25,7 @@ func TestDimensionMemoryCache_GetNodeIDs(t *testing.T) {
 
 func TestDimensionMemoryCache_GetNodeIDsReturnsError(t *testing.T) {
 
-	cache := NewIDCache(dimensiontest.MockIDStore{ReturnError:true})
+	cache := NewIDCache(dimensiontest.MockIDStore{ReturnError:true}, time.Minute)
 
 	Convey("Given a invalid instanceId", t, func() {
 

@@ -4,6 +4,7 @@ import (
 	"github.com/ONSdigital/dp-observation-importer/config"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+	"time"
 )
 
 func TestSpec(t *testing.T) {
@@ -28,6 +29,7 @@ func TestSpec(t *testing.T) {
 				So(cfg.BatchSize, ShouldEqual, 1000)
 				So(cfg.BatchWaitTimeMS, ShouldEqual, 200)
 				So(cfg.ErrorProducerTopic, ShouldEqual, "import-error")
+				So(cfg.CacheTTL, ShouldEqual, time.Minute * 60)
 			})
 		})
 	})

@@ -4,11 +4,12 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"github.com/ONSdigital/dp-observation-importer/dimension/dimensiontest"
+	"time"
 )
 
 func TestHeaderCache_GetOrder(t *testing.T) {
 
-	cache := NewOrderCache(dimensiontest.MockOrderStore{})
+	cache := NewOrderCache(dimensiontest.MockOrderStore{}, time.Minute)
 
 	Convey("Given a valid instanceId", t, func() {
 
@@ -26,7 +27,7 @@ func TestHeaderCache_GetOrder(t *testing.T) {
 
 func TestHeaderCache_GetOrder_ReturnErrors(t *testing.T) {
 
-	cache := NewOrderCache(dimensiontest.MockOrderStore{ReturnError:true})
+	cache := NewOrderCache(dimensiontest.MockOrderStore{ReturnError:true}, time.Minute)
 
 	Convey("Given a invalid instanceId", t, func() {
 

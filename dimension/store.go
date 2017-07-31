@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
 )
 
 type ImportAPIClient interface {
@@ -42,7 +43,7 @@ func (store *Store) GetOrder(instanceID string) ([]string, error) {
 	if requestErr != nil {
 		return nil, requestErr
 	}
-	bytes, err := store.processRequest(request)
+	bytes, err := store.processRequest(request, instanceID)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to http body into bytes")
 	}
@@ -55,14 +56,15 @@ func (store *Store) GetOrder(instanceID string) ([]string, error) {
 }
 
 // GetIDs returns all dimensions for a given instanceID
-func (store *Store) GetIDs(instanceID string) (IDs, error) {
+func (store *Store) GetIDs(instanceID string) (map[string]string, error) {
 
 	url := store.importAPIURL + "/instances/" + instanceID + "/dimensions"
 	request, requestErr := http.NewRequest("GET", url, nil)
 	if requestErr != nil {
 		return nil, requestErr
 	}
-	bytes, err := store.processRequest(request)
+
+	bytes, err := store.processRequest(request, instanceID)
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read http body into bytes")
 	}
@@ -79,10 +81,16 @@ func (store *Store) GetIDs(instanceID string) (IDs, error) {
 	return cache, nil
 }
 
-func (store *Store) processRequest(r *http.Request) ([]byte, error) {
+func (store *Store) processRequest(r *http.Request, instanceId string) ([]byte, error) {
 	response, responseError := store.importAPIClient.Do(r)
 	if responseError != nil {
 		return nil, responseError
+	}
+	switch response.StatusCode {
+	case http.StatusNotFound:
+		return nil, errors.New("Failed to find instanceId : " + instanceId)
+	case http.StatusInternalServerError:
+		return nil, errors.New("Internal error from the import api")
 	}
 	bytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
@@ -91,8 +99,3 @@ func (store *Store) processRequest(r *http.Request) ([]byte, error) {
 	return bytes, nil
 }
 
-// IDs a map from the dimension name to its options
-type IDs map[string]string
-
-// OptionIDs represents a single dimension option, including its database ID.
-type OptionIDs map[string]string

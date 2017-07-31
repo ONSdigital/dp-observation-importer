@@ -78,11 +78,11 @@ func main() {
 
 	// objects to get dimension data - via the import API + cached locally in memory.
 	dimensionStore := dimension.NewStore(config.ImportAPIURL, &httpClient)
-	dimensionOrderCache := dimension.NewOrderCache(dimensionStore)
-	dimensionIDCache := dimension.NewIDCache(dimensionStore)
+	dimensionOrderCache := dimension.NewOrderCache(dimensionStore, config.CacheTTL)
+	dimensionIDCache := dimension.NewIDCache(dimensionStore, config.CacheTTL)
 
 	// maps from CSV row to observation data.
-	observationMapper := observation.NewMapper(dimensionOrderCache, dimensionIDCache)
+	observationMapper := observation.NewMapper(dimensionOrderCache)
 
 	// stores observations in the DB.
 	observationStore := observation.NewStore(dimensionIDCache, dbConnection)
