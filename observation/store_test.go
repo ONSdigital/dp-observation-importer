@@ -5,7 +5,6 @@ import (
 	"testing"
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-observation-importer/observation/observationtest"
-	"github.com/ONSdigital/dp-observation-importer/dimension"
 )
 
 func TestSpec(t *testing.T) {
@@ -21,9 +20,9 @@ func TestSpec(t *testing.T) {
 			},
 		}
 
-		ids := dimension.IDs{
+		ids := map[string]string{
 			"123_Sex_Male": "333",
-			"123_Age_45": "666",
+			"123_Age_45":   "666",
 		}
 		idCache := &observationtest.DimensionIDCache{IDs: ids }
 
