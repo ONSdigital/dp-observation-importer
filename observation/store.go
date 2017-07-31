@@ -85,10 +85,10 @@ func createParams(observations []*Observation) map[string]interface{} {
 		}
 
 
-		for _, dimension := range observation.DimensionOptions {
+		for _, option := range observation.DimensionOptions {
 
-			//row["name"] = dimension
-			row[dimension.NodeAlias] = dimension.NodeID
+			//row["name"] = option
+			row[option.Name] = option.NodeID
 		}
 
 		rows = append(rows, row)
@@ -108,7 +108,7 @@ func buildInsertObservationQuery(instanceID string, observations []*Observation)
 
 	index := 0
 
-	for _, dimension := range observations[0].DimensionOptions {
+	for _, option := range observations[0].DimensionOptions {
 
 		if index != 0 {
 			match += ", "
@@ -116,9 +116,9 @@ func buildInsertObservationQuery(instanceID string, observations []*Observation)
 			create += ", "
 		}
 
-		match += fmt.Sprintf("(%s:_%s)", dimension.NodeAlias, dimension.DimensionName)
-		where += fmt.Sprintf("id(%s) = toInt(row.%s)", dimension.NodeAlias, dimension.NodeAlias)
-		create += fmt.Sprintf("(o)-[:isValueOf]->(%s)", dimension.NodeAlias)
+		match += fmt.Sprintf("(%s:_%s_%s)", option.DimensionName, instanceID, option.DimensionName)
+		where += fmt.Sprintf("id(%s) = toInt(row.%s)", option.DimensionName, option.DimensionName)
+		create += fmt.Sprintf("(o)-[:isValueOf]->(%s)", option.DimensionName)
 		index++
 	}
 

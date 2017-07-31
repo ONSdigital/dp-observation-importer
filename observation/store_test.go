@@ -16,8 +16,8 @@ func TestSpec(t *testing.T) {
 			InstanceID: "123",
 			Row:        "the,row,content",
 			DimensionOptions: []observation.DimensionOption{
-				{DimensionName: "123_Sex", NodeID: "333", NodeAlias: "Sex" },
-				{DimensionName: "_23_Age", NodeID: "444", NodeAlias: "Age" },
+				{DimensionName: "Sex", NodeID: "333", Name: "Male" },
+				{DimensionName: "Age", NodeID: "444", Name: "45" },
 			},
 		}
 
@@ -36,7 +36,7 @@ func TestSpec(t *testing.T) {
 				So(len(dbConnection.Params), ShouldEqual, 1)
 
 				query := dbConnection.Queries[0]
-				So(query, ShouldEqual, "UNWIND $rows AS row MATCH (Sex:_123_Sex), (Age:__23_Age) WHERE id(Sex) = toInt(row.Sex) AND id(Age) = toInt(row.Age) CREATE (o:_123_observation { value:row.v }), (o)-[:isValueOf]->(Sex), (o)-[:isValueOf]->(Age)")
+				So(query, ShouldEqual, "UNWIND $rows AS row MATCH (Sex:_123_Sex), (Age:_123_Age) WHERE id(Sex) = toInt(row.Sex) AND id(Age) = toInt(row.Age) CREATE (o:_123_observation { value:row.v }), (o)-[:isValueOf]->(Sex), (o)-[:isValueOf]->(Age)")
 
 				//params := dbConnection.Params[0]
 				//rows := params["rows"]

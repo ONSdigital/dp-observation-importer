@@ -39,17 +39,21 @@ func (mapper *Mapper) Map(row string, instanceID string) (*Observation, error) {
 	csvRow := strings.Split(row, ",")
     offset := 2 // skip observation value / data markings
 	for i := offset; i < len(header); i+=2 {
-		codeListName := header[i]
-		codeListValue := csvRow[i]
-		labelValue := csvRow[i+1]
-		dimensionLookUp := instanceID + "_" + codeListValue + "_" + labelValue
+		dimensionName := header[i + 1] // Sex
+		dimensionOption := csvRow[i] // codelist value
+
+		if len(dimensionOption) == 0 {
+			dimensionOption = csvRow[i + 1] // dimension option value
+		}
+
+		dimensionLookUp := instanceID + "_" + dimensionName + "_" + dimensionOption
 
 		nodeID, ok := nodeIdCache[dimensionLookUp]
 		if ! ok {
 			return nil, fmt.Errorf("No nodeId found for %s", dimensionLookUp)
 		}
 		dimensions = append(dimensions,
-			DimensionOption{DimensionName:instanceID + "_" + codeListValue, NodeID:nodeID, NodeAlias:codeListName})
+			DimensionOption{DimensionName: dimensionName, Name: dimensionOption, NodeID: nodeID})
 
 	}
 
