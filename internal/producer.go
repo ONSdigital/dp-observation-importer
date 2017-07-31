@@ -13,13 +13,13 @@ func main() {
 	brokers = append(brokers, "localhost:9092")
 
 	producer := kafka.NewProducer(brokers, "observation-extracted", int(2000000))
-	//inputFileAvailableProducer := kafka.NewProducer(brokers, "input-test-file", int(2000000))
 
-	//event1 := event.ObservationExtracted{InstanceID:"7", Row:"5,,sex,male,age,30"}
-	//sendEvent(producer, event1)
+	event1 := event.ObservationExtracted{InstanceID:"7", Row:"5,,sex,male,age,30"}
+	sendEvent(producer, event1)
+	//time.Sleep(time.Duration(5000 * time.Millisecond))
 	event2 := event.ObservationExtracted{InstanceID:"7", Row:"5,,sex,female,age,20"}
 	sendEvent(producer, event2)
-	time.Sleep(time.Duration(1000 * time.Millisecond))
+	time.Sleep(time.Duration(5000 * time.Millisecond))
 	producer.Closer() <- true
 }
 

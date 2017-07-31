@@ -27,9 +27,9 @@ func Get() (*Config, error) {
 		ObservationConsumerGroup: "observation-extracted",
 		ObservationConsumerTopic: "observation-extracted",
 		DatabaseAddress:          "bolt://localhost:7687",
-		ImportAPIURL:             "localhost:21800",
+		ImportAPIURL:             "http://localhost:21800",
 		BatchSize:                1000,
-		BatchWaitTimeMS:          200,
+		BatchWaitTimeMS:          2000,
 		ErrorProducerTopic:       "import-error",
 		BoltDriverURL:            "bolt://localhost:7687",
 	}

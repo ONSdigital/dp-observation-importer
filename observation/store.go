@@ -87,7 +87,8 @@ func createParams(observations []*Observation) map[string]interface{} {
 
 		for _, dimension := range observation.DimensionOptions {
 
-			row[dimension.DimensionName] = dimension.NodeID
+			//row["name"] = dimension
+			row[dimension.NodeAlias] = dimension.NodeID
 		}
 
 		rows = append(rows, row)
@@ -115,8 +116,8 @@ func buildInsertObservationQuery(instanceID string, observations []*Observation)
 			create += ", "
 		}
 
-		match += fmt.Sprintf("(%s:%s)", dimension.NodeAlias, dimension.DimensionName)
-		where += fmt.Sprintf("id(%s) = toInt(row.%s)", dimension.NodeAlias, dimension.DimensionName)
+		match += fmt.Sprintf("(%s:_%s)", dimension.NodeAlias, dimension.DimensionName)
+		where += fmt.Sprintf("id(%s) = toInt(row.%s)", dimension.NodeAlias, dimension.NodeAlias)
 		create += fmt.Sprintf("(o)-[:isValueOf]->(%s)", dimension.NodeAlias)
 		index++
 	}

@@ -16,7 +16,7 @@ type csvHeaders struct {
 }
 
 type Dimension struct {
-	DimensionName string `json:"dimension_name"`
+	DimensionName string `json:"dimension_id"`
 	Value         string `json:"value"`
 	NodeId        string `json:"node_id"`
 }
@@ -74,7 +74,7 @@ func (store *Store) GetIDs(instanceID string) (IDs, error) {
 	}
 	cache := make(map[string]string)
 	for _, dimension := range dimensions {
-		cache[dimension.DimensionName] = dimension.NodeId
+		cache[(dimension.DimensionName + "_" + dimension.Value)] = dimension.NodeId
 	}
 	return cache, nil
 }

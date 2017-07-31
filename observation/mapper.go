@@ -33,7 +33,6 @@ func (mapper *Mapper) Map(row string, instanceID string) (*Observation, error) {
 	header, err := mapper.dimensionCache.GetOrder(instanceID)
 	nodeIdCache, err := mapper.dimensionNodeIdStore.GetNodeIDs(instanceID)
 	if err != nil {
-		fmt.Println(err.Error())
 		return nil, err
 	}
 	var dimensions []DimensionOption
@@ -41,23 +40,16 @@ func (mapper *Mapper) Map(row string, instanceID string) (*Observation, error) {
     offset := 2 // skip observation value / data markings
 	for i := offset; i < len(header); i+=2 {
 		codeListName := header[i]
-		labelName := header[i+1]
 		codeListValue := csvRow[i]
 		labelValue := csvRow[i+1]
-		var dimensionName string
-		if labelValue != "" && codeListValue != "" {
-			dimensionName = "_" + instanceID + "_" + codeListValue + "_" + labelValue
-		} else if codeListValue != "" {
-			dimensionName = instanceID + "-" + codeListName
-		} else {
-			dimensionName = instanceID + "-" + labelName
-		}
-		nodeID, ok := nodeIdCache[dimensionName]
+		dimensionLookUp := instanceID + "_" + codeListValue + "_" + labelValue
+
+		nodeID, ok := nodeIdCache[dimensionLookUp]
 		if ! ok {
-			return nil, fmt.Errorf("No nodeId found for %s", dimensionName)
+			return nil, fmt.Errorf("No nodeId found for %s", dimensionLookUp)
 		}
 		dimensions = append(dimensions,
-			DimensionOption{DimensionName:dimensionName, NodeID:nodeID, NodeAlias:codeListName})
+			DimensionOption{DimensionName:instanceID + "_" + codeListValue, NodeID:nodeID, NodeAlias:codeListName})
 
 	}
 

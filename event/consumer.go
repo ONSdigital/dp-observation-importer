@@ -64,6 +64,7 @@ func AddMessageToBatch(batch *Batch, msg kafka.Message, handler Handler, exit ch
 func ProcessBatch(handler Handler, batch *Batch, exit chan struct{}) {
 	err := handler.Handle(batch.Events())
 	if err != nil {
+		log.Error(err, log.Data{})
 		close(exit)
 		return
 	}

@@ -52,7 +52,7 @@ func TestIDCache_GetIDs(t *testing.T) {
 			Convey("A list of dimensions are returned", func() {
 				dimensions, error := dataStore.GetIDs("1")
 				So(error, ShouldBeNil)
-				So(dimensions["6_Year_1997"], ShouldEqual, "123")
+				So(dimensions["_1997"], ShouldEqual, "123")
 			})
 		})
 	})
