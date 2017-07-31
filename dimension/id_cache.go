@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-// IDCache is an in memory cache of dimensions with database id's.
-type DimensionMemoryCache struct {
-	idStore IDStore
+// MemoryCache is an in memory cache of dimensions with database id's.
+type MemoryCache struct {
+	store     IDStore
 	memoryCache *cache.Cache // instanceID > dimensionName > nodeId
 }
 
@@ -17,29 +17,31 @@ type IDStore interface {
 }
 
 // NewIDCache returns a new cache instance that uses the given data store.
-func NewIDCache(idStore IDStore, cacheTTL time.Duration) *DimensionMemoryCache {
-	return &DimensionMemoryCache{
-		idStore:idStore,
-		memoryCache: cache.New(cacheTTL, 15 * time.Minute),
+func NewIDCache(idStore IDStore, cacheTTL time.Duration) *MemoryCache {
+	return &MemoryCache{
+		store:     idStore,
+		memoryCache: cache.New(cacheTTL, 15*time.Minute),
 	}
 }
 
-// GetIDs returns all dimensions for a given instanceID
-func (dmc *DimensionMemoryCache) GetNodeIDs(instanceID string) (map[string]string, error) {
+// GetNodeIDs returns all dimensions for a given instanceID
+func (mc *MemoryCache) GetNodeIDs(instanceID string) (map[string]string, error) {
 
-	dimensions, ok := dmc.memoryCache.Get(instanceID)
+	dimensions, ok := mc.memoryCache.Get(instanceID)
 
 	if ok {
-
 		return dimensions.(map[string]string), nil
 	}
 
-	newDimensions, storeError := dmc.idStore.GetIDs(instanceID)
-	if storeError != nil {
-		return nil, storeError
+	newDimensions, err := mc.store.GetIDs(instanceID)
+	if err != nil {
+		return nil, err
 	}
 
-	dmc.memoryCache.Add(instanceID, newDimensions, cache.DefaultExpiration)
+	err = mc.memoryCache.Add(instanceID, newDimensions, cache.DefaultExpiration)
+	if err != nil {
+		return map[string]string{}, err
+	}
 
 	return newDimensions, nil
 }

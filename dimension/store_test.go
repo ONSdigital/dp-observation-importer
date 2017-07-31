@@ -1,15 +1,15 @@
 package dimension
 
 import (
+	"github.com/ONSdigital/dp-observation-importer/dimension/dimensiontest"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
-	"github.com/ONSdigital/dp-observation-importer/dimension/dimensiontest"
 )
 
 func TestStore_GetOrder(t *testing.T) {
 
 	data := "{\"headers\": [\"V4_1\",\"Data_Marking\",\"Time_codelist\"]}"
-	dataStore := NewStore("http://localhost:288100", dimensiontest.MockImportApi{Data:data})
+	dataStore := NewStore("http://localhost:288100", dimensiontest.MockImportApi{Data: data})
 
 	Convey("Given a valid instanceId", t, func() {
 
@@ -27,7 +27,7 @@ func TestStore_GetOrder(t *testing.T) {
 
 func TestStore_GetOrderReturnAnError(t *testing.T) {
 
-	dataStore := NewStore("http://unknown-url:288100", dimensiontest.MockImportApi{FailRequest:true})
+	dataStore := NewStore("http://unknown-url:288100", dimensiontest.MockImportApi{FailRequest: true})
 
 	Convey("Given a invalid URL", t, func() {
 
@@ -43,7 +43,7 @@ func TestStore_GetOrderReturnAnError(t *testing.T) {
 
 func TestIDCache_GetIDs(t *testing.T) {
 	data := "[{ \"dimension_name\": \"6_Year_1997\",\"value\": \"1997\",\"node_id\": \"123\"}]"
-	dataStore := NewStore("http://localhost:288100", dimensiontest.MockImportApi{Data:data})
+	dataStore := NewStore("http://localhost:288100", dimensiontest.MockImportApi{Data: data})
 	Convey("Given a valid instance id", t, func() {
 		Convey("When the client api is called ", func() {
 			Convey("A list of dimensions are returned", func() {
@@ -54,5 +54,3 @@ func TestIDCache_GetIDs(t *testing.T) {
 		})
 	})
 }
-
-

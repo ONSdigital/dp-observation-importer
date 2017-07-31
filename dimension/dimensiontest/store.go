@@ -1,8 +1,9 @@
 package dimensiontest
 
 import (
-   "errors"
+	"errors"
 )
+
 type MockOrderStore struct {
 	ReturnError bool
 }
@@ -28,5 +29,3 @@ func (mis MockIDStore) GetIDs(instanceID string) (map[string]string, error) {
 
 	return cache, nil
 }
-
-

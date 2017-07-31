@@ -5,9 +5,9 @@ import (
 	"time"
 )
 
-// OrderCache is cache the for order of dimensions in the input file
+// HeaderCache is cache the for order of dimensions in the input file
 type HeaderCache struct {
-	orderStore OrderStore
+	orderStore  OrderStore
 	memoryCache *cache.Cache
 }
 
@@ -19,8 +19,8 @@ type OrderStore interface {
 // NewOrderCache returns a new instance of the order cache that uses the given OrderStore.
 func NewOrderCache(orderStore OrderStore, cacheTTL time.Duration) *HeaderCache {
 	return &HeaderCache{
-		orderStore:orderStore,
-		memoryCache: cache.New(cacheTTL, 15 * time.Minute),
+		orderStore:  orderStore,
+		memoryCache: cache.New(cacheTTL, 15*time.Minute),
 	}
 }
 
@@ -30,10 +30,13 @@ func (hc *HeaderCache) GetOrder(instanceID string) ([]string, error) {
 	if ok {
 		return item.([]string), nil
 	}
-	newHeaders, storeError := hc.orderStore.GetOrder(instanceID)
-	if storeError != nil {
-		return nil, storeError
+	newHeaders, err := hc.orderStore.GetOrder(instanceID)
+	if err != nil {
+		return nil, err
 	}
-	hc.memoryCache.Add(instanceID, newHeaders, cache.DefaultExpiration)
+	err = hc.memoryCache.Add(instanceID, newHeaders, cache.DefaultExpiration)
+	if err != nil {
+		return []string{}, err
+	}
 	return newHeaders, nil
 }

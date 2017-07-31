@@ -3,11 +3,12 @@ package dimension
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
 	"io/ioutil"
 	"net/http"
-	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
 )
 
+// ImportAPIClient an interface used to access the import api
 type ImportAPIClient interface {
 	Do(req *http.Request) (*http.Response, error)
 }
@@ -16,10 +17,11 @@ type csvHeaders struct {
 	Headers []string `json:"headers"`
 }
 
+// Dimension which has been cached from the import api
 type Dimension struct {
 	DimensionName string `json:"dimension_id"`
 	Value         string `json:"value"`
-	NodeId        string `json:"node_id"`
+	NodeID        string `json:"node_id"`
 }
 
 // Store represents the storage of dimension data.
@@ -76,19 +78,19 @@ func (store *Store) GetIDs(instanceID string) (map[string]string, error) {
 	}
 	cache := make(map[string]string)
 	for _, dimension := range dimensions {
-		cache[(dimension.DimensionName + "_" + dimension.Value)] = dimension.NodeId
+		cache[(dimension.DimensionName + "_" + dimension.Value)] = dimension.NodeID
 	}
 	return cache, nil
 }
 
-func (store *Store) processRequest(r *http.Request, instanceId string) ([]byte, error) {
+func (store *Store) processRequest(r *http.Request, instanceID string) ([]byte, error) {
 	response, responseError := store.importAPIClient.Do(r)
 	if responseError != nil {
 		return nil, responseError
 	}
 	switch response.StatusCode {
 	case http.StatusNotFound:
-		return nil, errors.New("Failed to find instanceId : " + instanceId)
+		return nil, errors.New("Failed to find instanceId : " + instanceID)
 	case http.StatusInternalServerError:
 		return nil, errors.New("Internal error from the import api")
 	}
@@ -98,4 +100,3 @@ func (store *Store) processRequest(r *http.Request, instanceId string) ([]byte, 
 	}
 	return bytes, nil
 }
-

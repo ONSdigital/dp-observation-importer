@@ -1,16 +1,15 @@
 package dimensiontest
 
 import (
-	"net/http"
 	"fmt"
-	"strings"
 	"io"
+	"net/http"
+	"strings"
 )
 
 type MockImportApi struct {
 	FailRequest bool
-	Data string
-
+	Data        string
 }
 
 func (i MockImportApi) Do(req *http.Request) (*http.Response, error) {
@@ -18,7 +17,7 @@ func (i MockImportApi) Do(req *http.Request) (*http.Response, error) {
 		return nil, fmt.Errorf("Failed to process the request")
 	}
 	body := strings.NewReader(i.Data)
-	response := http.Response{StatusCode: http.StatusOK, Body:IOReadCloser{body}}
+	response := http.Response{StatusCode: http.StatusOK, Body: IOReadCloser{body}}
 	return &response, nil
 }
 
