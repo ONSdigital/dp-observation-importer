@@ -24,13 +24,17 @@ func main() {
 		log.Error(err, nil)
 		os.Exit(1)
 	}
+
 	// Avoid logging the neo4j URL as it may contain a password
 	log.Debug("loaded config", log.Data{
-		"topics":     []string{config.ObservationConsumerTopic, config.ErrorProducerTopic},
-		"brokers":    config.KafkaAddr,
-		"bind_addr":  config.BindAddr,
-		"batch_size": config.BatchSize,
-		"batch_time": config.BatchWaitTimeMS})
+		"topics":                     []string{config.ObservationConsumerTopic, config.ErrorProducerTopic, config.ResultProducerTopic},
+		"brokers":                    config.KafkaAddr,
+		"bind_addr":                  config.BindAddr,
+		"import_api_url":             config.ImportAPIURL,
+		"observation_consumer_group": config.ObservationConsumerGroup,
+		"cache_ttl":                  config.CacheTTL,
+		"batch_size":                 config.BatchSize,
+		"batch_time":                 config.BatchWaitTime})
 
 	kafkaBrokers := []string{config.KafkaAddr}
 	kafkaConsumer, err := kafka.NewConsumerGroup(
@@ -47,7 +51,7 @@ func main() {
 	kafkaErrorProducer := kafka.NewProducer(kafkaBrokers, config.ErrorProducerTopic, 0)
 	kafkaResultProducer := kafka.NewProducer(kafkaBrokers, config.ResultProducerTopic, 0)
 
-	dbConnection, err := bolt.NewDriver().OpenNeo(config.BoltDriverURL)
+	dbConnection, err := bolt.NewDriver().OpenNeo(config.DatabaseAddress)
 
 	if err != nil {
 		log.Error(err, log.Data{"message": "failed to create connection to Neo4j"})
@@ -74,9 +78,6 @@ func main() {
 		os.Exit(0)
 	}()
 
-	// How long do we wait for a batch to be full before just processing a partially full batch.
-	batchWaitTime := time.Millisecond * time.Duration(config.BatchWaitTimeMS)
-
 	httpClient := http.Client{Timeout: time.Second * 15}
 
 	// objects to get dimension data - via the import API + cached locally in memory.
@@ -100,5 +101,5 @@ func main() {
 	errorHandler := errors.NewKafkaHandler(kafkaErrorProducer)
 
 	// Start listening for event messages.
-	event.Consume(kafkaConsumer, config.BatchSize, errorHandler, batchHandler, batchWaitTime, exit)
+	event.Consume(kafkaConsumer, config.BatchSize, errorHandler, batchHandler, config.BatchWaitTime, exit)
 }

@@ -27,7 +27,7 @@ func TestSpec(t *testing.T) {
 				So(cfg.DatabaseAddress, ShouldEqual, "bolt://localhost:7687")
 				So(cfg.ImportAPIURL, ShouldEqual, "http://localhost:21800")
 				So(cfg.BatchSize, ShouldEqual, 1000)
-				So(cfg.BatchWaitTimeMS, ShouldEqual, 200)
+				So(cfg.BatchWaitTime, ShouldEqual, time.Millisecond*200)
 				So(cfg.ErrorProducerTopic, ShouldEqual, "import-error")
 				So(cfg.ResultProducerTopic, ShouldEqual, "import-observations-inserted")
 				So(cfg.CacheTTL, ShouldEqual, time.Minute*60)
