@@ -15,20 +15,19 @@ dp-observation-importer
 
 ### Configuration
 
-| Environment variable       | Default                  | Description
-| ---------------------------| -----------------------  | ----------------------------------------------------
-| BIND_ADDR                  | ":21700"                 | The port to bind to
-| KAFKA_ADDRESS              | "http://localhost:9092"  | The address of the Kafka instance
-| OBSERVATION_CONSUMER_GROUP | "observation-extracted"  | The Kafka consumer group to consume observation extracted events from
-| OBSERVATION_CONSUMER_TOPIC | "observation-extracted"  | The Kafka topic to consume observation extracted events from
-| DATABASE_ADDRESS           | "bolt://localhost:7687"  | The address of the database
-| IMPORT_API_URL             | "http://localhost:21800" | The URL of the import API
-| BATCH_SIZE                 | 1000                     | The number of messages to process in each batch if the time out has not been reached
-| BATCH_WAIT_TIME_MS         | 200                      | The number of MS to wait before processing a partially full batch of messages
-| ERROR_PRODUCER_TOPIC       | "import-error"           | The Kafka topic to send the error messages to
-| BOLT_DRIVER                | "bolt://localhost:7687"  | The URL to a neo4j database
-| CACHE_TTL                  | 60 (minutes)             | The amount of time to wait before clearing the cache (In minutes)
-
+| Environment variable       | Default                          | Description
+| ---------------------------|--------------------------------- |-----------------------------------------------------
+| BIND_ADDR                  | ":21700"                         | The port to bind to
+| KAFKA_ADDRESS              | "http://localhost:9092"          | The address of the Kafka instance
+| OBSERVATION_CONSUMER_GROUP | "observation-extracted"          | The Kafka consumer group to consume observation extracted events from
+| OBSERVATION_CONSUMER_TOPIC | "observation-extracted"          | The Kafka topic to consume observation extracted events from
+| DATABASE_ADDRESS           | "bolt://localhost:7687"          | The address of the database
+| IMPORT_API_URL             | "http://localhost:21800"         | The URL of the import API
+| BATCH_SIZE                 | 1000                             | The number of messages to process in each batch if the time out has not been reached
+| BATCH_WAIT_TIME            | 200ms                            | The duration to wait before processing a partially full batch of messages
+| ERROR_PRODUCER_TOPIC       | "import-error"                   | The Kafka topic to send the error messages to
+| RESULT_PRODUCER_TOPIC      | "import-observations-inserted"   | The Kafka topic to send the observations inserted messages to
+| CACHE_TTL                  | 60m                              | The amount of time to wait before clearing the cache (In minutes)
 
 ### Contributing
 
