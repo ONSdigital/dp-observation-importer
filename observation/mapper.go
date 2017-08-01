@@ -2,6 +2,7 @@ package observation
 
 import (
 	"encoding/csv"
+	inputcsv "github.com/ONSdigital/dp-observation-importer/csv"
 	"strings"
 )
 
@@ -25,7 +26,13 @@ func NewMapper(dimensionOrderCache DimensionHeaderCache) *Mapper {
 // Map the given CSV row to an observation instance.
 func (mapper *Mapper) Map(row string, instanceID string) (*Observation, error) {
 
-	header, err := mapper.dimensionCache.GetOrder(instanceID)
+	headerRow, err := mapper.dimensionCache.GetOrder(instanceID)
+	if err != nil {
+		return nil, err
+	}
+
+	header := inputcsv.NewHeader(headerRow)
+	dimensionOffset, err := header.DimensionOffset()
 	if err != nil {
 		return nil, err
 	}
@@ -39,10 +46,9 @@ func (mapper *Mapper) Map(row string, instanceID string) (*Observation, error) {
 
 	// if we want to support time being in any column we need to look at the header to see what column time is in.
 	// as it
-	timeDimensionOffset := 2 // Assume time is always first
+	timeDimensionOffset := dimensionOffset // Assume time is always first
 
-	offset := 2 // skip observation value / data markings
-	for i := offset; i < len(header); i += 2 {
+	for i := dimensionOffset; i < len(headerRow); i += 2 {
 
 		var dimensionName, dimensionOption string
 
@@ -58,7 +64,7 @@ func (mapper *Mapper) Map(row string, instanceID string) (*Observation, error) {
 			}
 		}
 
-		dimensionName = header[i+1] // Sex
+		dimensionName = headerRow[i+1] // Sex
 
 		dimensions = append(dimensions,
 			&DimensionOption{DimensionName: dimensionName, Name: dimensionOption})
