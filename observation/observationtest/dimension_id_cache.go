@@ -14,7 +14,7 @@ type DimensionIDCache struct {
 }
 
 // GetNodeIDs captures the given parameters and returns the stored mock response.
-func (cache DimensionIDCache) GetNodeIDs(instanceID string) (map[string]string, error) {
+func (cache *DimensionIDCache) GetNodeIDs(instanceID string) (map[string]string, error) {
 	cache.InstanceID = instanceID
 	return cache.IDs, cache.Error
 }

@@ -30,7 +30,7 @@ func (mapper *Mapper) Map(row string, instanceID string) (*Observation, error) {
 		return nil, err
 	}
 
-	var dimensions []DimensionOption
+	var dimensions []*DimensionOption
 	csv := csv.NewReader(strings.NewReader(row))
 	csvRow, err := csv.Read()
 	if err != nil {
@@ -61,7 +61,7 @@ func (mapper *Mapper) Map(row string, instanceID string) (*Observation, error) {
 		dimensionName = header[i+1] // Sex
 
 		dimensions = append(dimensions,
-			DimensionOption{DimensionName: dimensionName, Name: dimensionOption})
+			&DimensionOption{DimensionName: dimensionName, Name: dimensionOption})
 	}
 
 	o := Observation{Row: row, InstanceID: instanceID, DimensionOptions: dimensions}

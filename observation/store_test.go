@@ -15,7 +15,7 @@ func TestSpec(t *testing.T) {
 		inputObservation := &observation.Observation{
 			InstanceID: "123",
 			Row:        "the,row,content",
-			DimensionOptions: []observation.DimensionOption{
+			DimensionOptions: []*observation.DimensionOption{
 				{DimensionName: "Sex", Name: "Male"},
 				{DimensionName: "Age", Name: "45"},
 			},
