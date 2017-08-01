@@ -56,9 +56,7 @@ func TestBatchHandler_Handle(t *testing.T) {
 		}
 
 		mockResultWriter := &eventtest.ResultWriterMock{
-			WriteFunc: func(in1 []*observation.Result) error {
-				return nil
-			},
+			WriteFunc: func(results []*observation.Result) {},
 		}
 
 		handler := event.NewBatchHandler(mockObservationMapper, mockObservationStore, mockResultWriter)
@@ -131,42 +129,6 @@ func TestBatchHandler_Handle_StoreError(t *testing.T) {
 			err := handler.Handle([]*event.ObservationExtracted{expectedEvent})
 
 			Convey("The error returned from the store is returned", func() {
-				So(err, ShouldNotBeNil)
-				So(err, ShouldEqual, mockError)
-			})
-		})
-	})
-}
-
-func TestBatchHandler_Handle_ResultWriterError(t *testing.T) {
-
-	Convey("Given a handler configured with a mock result writer that returns an error", t, func() {
-
-		mockObservationMapper := &eventtest.ObservationMapperMock{
-			MapFunc: func(row string, instanceID string) (*observation.Observation, error) {
-				return expectedObservation, nil
-			},
-		}
-
-		mockObservationStore := &eventtest.ObservationStoreMock{
-			SaveAllFunc: func(observations []*observation.Observation) ([]*observation.Result, error) {
-				return []*observation.Result{expectedResult}, nil
-			},
-		}
-
-		mockResultWriter := &eventtest.ResultWriterMock{
-			WriteFunc: func(in1 []*observation.Result) error {
-				return mockError
-			},
-		}
-
-		handler := event.NewBatchHandler(mockObservationMapper, mockObservationStore, mockResultWriter)
-
-		Convey("When handle is called", func() {
-
-			err := handler.Handle([]*event.ObservationExtracted{expectedEvent})
-
-			Convey("The error returned from the result writer is returned", func() {
 				So(err, ShouldNotBeNil)
 				So(err, ShouldEqual, mockError)
 			})

@@ -29,7 +29,7 @@ type ObservationStore interface {
 
 // ResultWriter dependency that outputs results
 type ResultWriter interface {
-	Write(results []*observation.Result) error
+	Write(results []*observation.Result)
 }
 
 // NewBatchHandler returns a new BatchHandler to use the given observation mapper / store.
@@ -59,5 +59,7 @@ func (handler BatchHandler) Handle(events []*ObservationExtracted) error {
 		return err
 	}
 
-	return handler.resultWriter.Write(results)
+	handler.resultWriter.Write(results)
+
+	return nil
 }
