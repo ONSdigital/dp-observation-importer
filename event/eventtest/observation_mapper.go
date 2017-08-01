@@ -4,12 +4,12 @@
 package eventtest
 
 import (
-	"sync"
 	"github.com/ONSdigital/dp-observation-importer/observation"
+	"sync"
 )
 
 var (
-	lockObservationMapperMockMap	sync.RWMutex
+	lockObservationMapperMockMap sync.RWMutex
 )
 
 // ObservationMapperMock is a mock implementation of ObservationMapper.
@@ -17,7 +17,7 @@ var (
 //     func TestSomethingThatUsesObservationMapper(t *testing.T) {
 //
 //         // make and configure a mocked ObservationMapper
-//         mockedObservationMapper := &ObservationMapperMock{ 
+//         mockedObservationMapper := &ObservationMapperMock{
 //             MapFunc: func(row string, instanceID string) (*observation.Observation, error) {
 // 	               panic("TODO: mock out the Map method")
 //             },
@@ -25,7 +25,7 @@ var (
 //
 //         // TODO: use mockedObservationMapper in code that requires ObservationMapper
 //         //       and then make assertions.
-// 
+//
 //     }
 type ObservationMapperMock struct {
 	// MapFunc mocks the Map method.
@@ -49,10 +49,10 @@ func (mock *ObservationMapperMock) Map(row string, instanceID string) (*observat
 		panic("moq: ObservationMapperMock.MapFunc is nil but ObservationMapper.Map was just called")
 	}
 	callInfo := struct {
-		Row string
+		Row        string
 		InstanceID string
 	}{
-		Row: row,
+		Row:        row,
 		InstanceID: instanceID,
 	}
 	lockObservationMapperMockMap.Lock()
@@ -65,11 +65,11 @@ func (mock *ObservationMapperMock) Map(row string, instanceID string) (*observat
 // Check the length with:
 //     len(mockedObservationMapper.MapCalls())
 func (mock *ObservationMapperMock) MapCalls() []struct {
-		Row string
-		InstanceID string
-	} {
+	Row        string
+	InstanceID string
+} {
 	var calls []struct {
-		Row string
+		Row        string
 		InstanceID string
 	}
 	lockObservationMapperMockMap.RLock()

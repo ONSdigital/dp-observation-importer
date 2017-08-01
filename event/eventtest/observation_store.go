@@ -4,12 +4,12 @@
 package eventtest
 
 import (
-	"sync"
 	"github.com/ONSdigital/dp-observation-importer/observation"
+	"sync"
 )
 
 var (
-	lockObservationStoreMockSaveAll	sync.RWMutex
+	lockObservationStoreMockSaveAll sync.RWMutex
 )
 
 // ObservationStoreMock is a mock implementation of ObservationStore.
@@ -17,7 +17,7 @@ var (
 //     func TestSomethingThatUsesObservationStore(t *testing.T) {
 //
 //         // make and configure a mocked ObservationStore
-//         mockedObservationStore := &ObservationStoreMock{ 
+//         mockedObservationStore := &ObservationStoreMock{
 //             SaveAllFunc: func(observations []*observation.Observation) ([]*observation.Result, error) {
 // 	               panic("TODO: mock out the SaveAll method")
 //             },
@@ -25,7 +25,7 @@ var (
 //
 //         // TODO: use mockedObservationStore in code that requires ObservationStore
 //         //       and then make assertions.
-// 
+//
 //     }
 type ObservationStoreMock struct {
 	// SaveAllFunc mocks the SaveAll method.
@@ -61,8 +61,8 @@ func (mock *ObservationStoreMock) SaveAll(observations []*observation.Observatio
 // Check the length with:
 //     len(mockedObservationStore.SaveAllCalls())
 func (mock *ObservationStoreMock) SaveAllCalls() []struct {
-		Observations []*observation.Observation
-	} {
+	Observations []*observation.Observation
+} {
 	var calls []struct {
 		Observations []*observation.Observation
 	}

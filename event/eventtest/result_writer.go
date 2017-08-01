@@ -4,12 +4,12 @@
 package eventtest
 
 import (
-	"sync"
 	"github.com/ONSdigital/dp-observation-importer/observation"
+	"sync"
 )
 
 var (
-	lockResultWriterMockWrite	sync.RWMutex
+	lockResultWriterMockWrite sync.RWMutex
 )
 
 // ResultWriterMock is a mock implementation of ResultWriter.
@@ -17,7 +17,7 @@ var (
 //     func TestSomethingThatUsesResultWriter(t *testing.T) {
 //
 //         // make and configure a mocked ResultWriter
-//         mockedResultWriter := &ResultWriterMock{ 
+//         mockedResultWriter := &ResultWriterMock{
 //             WriteFunc: func(results []*observation.Result) error {
 // 	               panic("TODO: mock out the Write method")
 //             },
@@ -25,7 +25,7 @@ var (
 //
 //         // TODO: use mockedResultWriter in code that requires ResultWriter
 //         //       and then make assertions.
-// 
+//
 //     }
 type ResultWriterMock struct {
 	// WriteFunc mocks the Write method.
@@ -61,8 +61,8 @@ func (mock *ResultWriterMock) Write(results []*observation.Result) error {
 // Check the length with:
 //     len(mockedResultWriter.WriteCalls())
 func (mock *ResultWriterMock) WriteCalls() []struct {
-		Results []*observation.Result
-	} {
+	Results []*observation.Result
+} {
 	var calls []struct {
 		Results []*observation.Result
 	}
