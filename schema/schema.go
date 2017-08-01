@@ -17,3 +17,17 @@ var observationExtractedEvent = `{
 var ObservationExtractedEvent *avro.Schema = &avro.Schema{
 	Definition: observationExtractedEvent,
 }
+
+var observationsInsertedEvent = `{
+  "type": "record",
+  "name": "import-observations-inserted",
+  "fields": [
+    {"name": "instance_id", "type": "string"},
+    {"name": "observations_inserted", "type": "int"}
+  ]
+}`
+
+// ObservationsInsertedEvent is the Avro schema for each observation batch inserted.
+var ObservationsInsertedEvent *avro.Schema = &avro.Schema{
+	Definition: observationsInsertedEvent,
+}
