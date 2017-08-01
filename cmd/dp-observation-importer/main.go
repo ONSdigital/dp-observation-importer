@@ -45,6 +45,7 @@ func main() {
 	}
 
 	kafkaErrorProducer := kafka.NewProducer(kafkaBrokers, config.ErrorProducerTopic, 0)
+	kafkaResultProducer := kafka.NewProducer(kafkaBrokers, config.ResultProducerTopic, 0)
 
 	dbConnection, err := bolt.NewDriver().OpenNeo(config.BoltDriverURL)
 
@@ -66,6 +67,8 @@ func main() {
 
 		// gracefully dispose resources
 		kafkaConsumer.Closer() <- true
+		kafkaErrorProducer.Closer() <- true
+		kafkaResultProducer.Closer() <- true
 
 		log.Debug("graceful shutdown was successful", nil)
 		os.Exit(0)
@@ -87,8 +90,11 @@ func main() {
 	// stores observations in the DB.
 	observationStore := observation.NewStore(dimensionIDCache, dbConnection)
 
+	// write import results to kafka topic.
+	resultWriter := observation.NewResultWriter(kafkaResultProducer)
+
 	// handle a batch of events.
-	batchHandler := event.NewBatchHandler(observationMapper, observationStore)
+	batchHandler := event.NewBatchHandler(observationMapper, observationStore, resultWriter)
 
 	// when errors occur - we send a message on an error topic.
 	errorHandler := errors.NewKafkaHandler(kafkaErrorProducer)
