@@ -18,7 +18,7 @@ var (
 //
 //         // make and configure a mocked ResultWriter
 //         mockedResultWriter := &ResultWriterMock{
-//             WriteFunc: func(results []*observation.Result) error {
+//             WriteFunc: func(results []*observation.Result)  {
 // 	               panic("TODO: mock out the Write method")
 //             },
 //         }
@@ -29,7 +29,7 @@ var (
 //     }
 type ResultWriterMock struct {
 	// WriteFunc mocks the Write method.
-	WriteFunc func(results []*observation.Result) error
+	WriteFunc func(results []*observation.Result)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -42,7 +42,7 @@ type ResultWriterMock struct {
 }
 
 // Write calls WriteFunc.
-func (mock *ResultWriterMock) Write(results []*observation.Result) error {
+func (mock *ResultWriterMock) Write(results []*observation.Result) {
 	if mock.WriteFunc == nil {
 		panic("moq: ResultWriterMock.WriteFunc is nil but ResultWriter.Write was just called")
 	}
@@ -54,7 +54,7 @@ func (mock *ResultWriterMock) Write(results []*observation.Result) error {
 	lockResultWriterMockWrite.Lock()
 	mock.calls.Write = append(mock.calls.Write, callInfo)
 	lockResultWriterMockWrite.Unlock()
-	return mock.WriteFunc(results)
+	mock.WriteFunc(results)
 }
 
 // WriteCalls gets all the calls that were made to Write.

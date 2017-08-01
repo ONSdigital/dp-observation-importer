@@ -7,22 +7,24 @@ import (
 	"strings"
 )
 
-type MockImportApi struct {
+// MockImportApi provides mock functionality for the import API.
+type MockImportAPI struct {
 	FailRequest bool
 	Data        string
 }
 
-func (i MockImportApi) Do(req *http.Request) (*http.Response, error) {
+// Do returns a mock HTTP response for the given request.
+func (i MockImportAPI) Do(req *http.Request) (*http.Response, error) {
 	if i.FailRequest {
 		return nil, fmt.Errorf("Failed to process the request")
 	}
 	body := strings.NewReader(i.Data)
-	response := http.Response{StatusCode: http.StatusOK, Body: IOReadCloser{body}}
+	response := http.Response{StatusCode: http.StatusOK, Body: iOReadCloser{body}}
 	return &response, nil
 }
 
-type IOReadCloser struct {
+type iOReadCloser struct {
 	io.Reader
 }
 
-func (IOReadCloser) Close() error { return nil }
+func (iOReadCloser) Close() error { return nil }
