@@ -33,7 +33,7 @@ func NewStore(dimensionIDCache DimensionIDCache, dBConnection DBConnection) *Sto
 // Result holds a single
 type Result struct {
 	InstanceID           string
-	ObservationsInserted int
+	ObservationsInserted int32
 }
 
 // SaveAll the observations against the provided dimension options and instanceID.
@@ -100,7 +100,7 @@ func processResults(pipelineResults []bolt.Result, results []*Result, instanceOb
 
 		// if there are no errors then populate the observationsInserted number in the result.
 		instanceID := results[resultIndex].InstanceID
-		results[resultIndex].ObservationsInserted = len(instanceObservations[instanceID])
+		results[resultIndex].ObservationsInserted = int32(len(instanceObservations[instanceID]))
 		resultIndex++
 	}
 
