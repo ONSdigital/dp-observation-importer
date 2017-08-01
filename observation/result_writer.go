@@ -16,7 +16,7 @@ type MessageProducer interface {
 	Closer() chan bool
 }
 
-// NewMessageWriter returns a new observation message writer.
+// NewResultWriter returns a new observation message writer.
 func NewResultWriter(messageProducer MessageProducer) *MessageWriter {
 	return &MessageWriter{
 		messageProducer: messageProducer,

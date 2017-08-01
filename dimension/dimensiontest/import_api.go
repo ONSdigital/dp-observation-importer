@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-// MockImportApi provides mock functionality for the import API.
+// MockImportAPI provides mock functionality for the import API.
 type MockImportAPI struct {
 	FailRequest bool
 	Data        string
