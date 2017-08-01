@@ -18,14 +18,13 @@ func TestConsume(t *testing.T) {
 		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content"}
 		messageConsumer := newMockConsumer(expectedEvent)
 		batchSize := 1
-		errorHandler := eventtest.ErrorHandler{}
 		eventHandler := eventtest.NewEventHandler()
 		batchWaitTime := time.Second * 1
 		exit := make(chan struct{}, 1)
 
 		Convey("When consume is called", func() {
 
-			go event.Consume(messageConsumer, batchSize, errorHandler, eventHandler, batchWaitTime, exit)
+			go event.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
 			waitForEventsToBeSentToHandler(eventHandler, exit)
 
@@ -47,14 +46,13 @@ func TestConsume_Timeout(t *testing.T) {
 		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content"}
 		messageConsumer := newMockConsumer(expectedEvent)
 		batchSize := 2
-		errorHandler := eventtest.ErrorHandler{}
 		eventHandler := eventtest.NewEventHandler()
 		batchWaitTime := time.Millisecond * 50
 		exit := make(chan struct{}, 1)
 
 		Convey("When consume is called with a batch size of 2, and no other messages are consumed", func() {
 
-			go event.Consume(messageConsumer, batchSize, errorHandler, eventHandler, batchWaitTime, exit)
+			go event.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
 			waitForEventsToBeSentToHandler(eventHandler, exit)
 
@@ -79,7 +77,6 @@ func TestConsume_DelayedMessages(t *testing.T) {
 		messageConsumer := kafkatest.NewMessageConsumer(messages)
 
 		batchSize := 3
-		errorHandler := eventtest.ErrorHandler{}
 		eventHandler := eventtest.NewEventHandler()
 		batchWaitTime := time.Millisecond * 50
 		exit := make(chan struct{}, 1)
@@ -91,7 +88,7 @@ func TestConsume_DelayedMessages(t *testing.T) {
 
 		Convey("When consume is called", func() {
 
-			go event.Consume(messageConsumer, batchSize, errorHandler, eventHandler, batchWaitTime, exit)
+			go event.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
 			waitForEventsToBeSentToHandler(eventHandler, exit)
 

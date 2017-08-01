@@ -6,9 +6,11 @@ import (
 
 var _ Handler = (*KafkaHandler)(nil)
 
+//go:generate moq -out errorstest/handler.go -pkg errorstest . Handler
+
 // Handler defines a generic interface for handling errors.
 type Handler interface {
-	Handle(err error, data log.Data)
+	Handle(instanceID string, err error, data log.Data)
 }
 
 // KafkaHandler provides an error handler that writes to a Kafka error topic.
@@ -30,7 +32,9 @@ type MessageProducer interface {
 }
 
 // Handle logs the error and sends is as a Kafka message.
-func (handler *KafkaHandler) Handle(err error, data log.Data) {
+func (handler *KafkaHandler) Handle(instanceID string, err error, data log.Data) {
+
+	data["instance_id"] = instanceID
 	log.Error(err, data)
 
 	// todo - marshsal error + data to avro encoded message and send to handler.messageProducer.Output()

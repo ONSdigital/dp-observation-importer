@@ -1,7 +1,6 @@
 package event
 
 import (
-	"github.com/ONSdigital/dp-observation-importer/errors"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"time"
@@ -21,12 +20,11 @@ type Handler interface {
 // Consume convert them to event instances, and pass the event to the provided handler.
 func Consume(messageConsumer MessageConsumer,
 	batchSize int,
-	errorHandler errors.Handler,
 	handler Handler,
 	batchWaitTime time.Duration,
 	exit chan struct{}) {
 
-	batch := NewBatch(batchSize, errorHandler)
+	batch := NewBatch(batchSize)
 
 	// Wait a batch full of messages.
 	// If we do not get any messages for a time, just process the messages already in the batch.

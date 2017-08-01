@@ -78,9 +78,11 @@ func main() {
 		os.Exit(0)
 	}()
 
-	httpClient := http.Client{Timeout: time.Second * 15}
+	// when errors occur - we send a message on an error topic.
+	errorHandler := errors.NewKafkaHandler(kafkaErrorProducer)
 
 	// objects to get dimension data - via the import API + cached locally in memory.
+	httpClient := http.Client{Timeout: time.Second * 15}
 	dimensionStore := dimension.NewStore(config.ImportAPIURL, &httpClient)
 	dimensionOrderCache := dimension.NewOrderCache(dimensionStore, config.CacheTTL)
 	dimensionIDCache := dimension.NewIDCache(dimensionStore, config.CacheTTL)
@@ -95,11 +97,8 @@ func main() {
 	resultWriter := observation.NewResultWriter(kafkaResultProducer)
 
 	// handle a batch of events.
-	batchHandler := event.NewBatchHandler(observationMapper, observationStore, resultWriter)
-
-	// when errors occur - we send a message on an error topic.
-	errorHandler := errors.NewKafkaHandler(kafkaErrorProducer)
+	batchHandler := event.NewBatchHandler(observationMapper, observationStore, resultWriter, errorHandler)
 
 	// Start listening for event messages.
-	event.Consume(kafkaConsumer, config.BatchSize, errorHandler, batchHandler, config.BatchWaitTime, exit)
+	event.Consume(kafkaConsumer, config.BatchSize, batchHandler, config.BatchWaitTime, exit)
 }

@@ -2,7 +2,6 @@ package event_test
 
 import (
 	"github.com/ONSdigital/dp-observation-importer/event"
-	"github.com/ONSdigital/dp-observation-importer/event/eventtest"
 	"github.com/ONSdigital/dp-observation-importer/schema"
 	"github.com/ONSdigital/go-ns/kafka/kafkatest"
 	. "github.com/smartystreets/goconvey/convey"

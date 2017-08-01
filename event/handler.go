@@ -1,6 +1,7 @@
 package event
 
 import (
+	"github.com/ONSdigital/dp-observation-importer/errors"
 	"github.com/ONSdigital/dp-observation-importer/observation"
 )
 
@@ -15,6 +16,7 @@ type BatchHandler struct {
 	observationMapper ObservationMapper
 	observationStore  ObservationStore
 	resultWriter      ResultWriter
+	errorHandler      errors.Handler
 }
 
 // ObservationMapper handles the conversion from row data to observation instances.
@@ -33,11 +35,17 @@ type ResultWriter interface {
 }
 
 // NewBatchHandler returns a new BatchHandler to use the given observation mapper / store.
-func NewBatchHandler(observationMapper ObservationMapper, observationStore ObservationStore, resultWriter ResultWriter) *BatchHandler {
+func NewBatchHandler(
+	observationMapper ObservationMapper,
+	observationStore ObservationStore,
+	resultWriter ResultWriter,
+	errorHandler errors.Handler) *BatchHandler {
+
 	return &BatchHandler{
 		observationMapper: observationMapper,
 		observationStore:  observationStore,
 		resultWriter:      resultWriter,
+		errorHandler:      errorHandler,
 	}
 }
 
@@ -48,7 +56,8 @@ func (handler BatchHandler) Handle(events []*ObservationExtracted) error {
 	for _, event := range events {
 		observation, err := handler.observationMapper.Map(event.Row, event.InstanceID)
 		if err != nil {
-			return err
+			handler.errorHandler.Handle(event.InstanceID, err, nil)
+			continue // do not add this error'd event to the batch
 		}
 
 		observations = append(observations, observation)
