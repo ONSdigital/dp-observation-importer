@@ -2,6 +2,7 @@ package observation
 
 import (
 	"fmt"
+	"github.com/ONSdigital/dp-observation-importer/errors"
 	"github.com/ONSdigital/go-ns/log"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
@@ -10,6 +11,7 @@ import (
 type Store struct {
 	dimensionIDCache DimensionIDCache
 	dBConnection     DBConnection
+	errorHandler     errors.Handler
 }
 
 // DimensionIDCache provides database ID's of dimensions when inserting observations.
@@ -23,10 +25,11 @@ type DBConnection interface {
 }
 
 // NewStore returns a new Observation store instance that uses the given dimension ID cache and db connection.
-func NewStore(dimensionIDCache DimensionIDCache, dBConnection DBConnection) *Store {
+func NewStore(dimensionIDCache DimensionIDCache, dBConnection DBConnection, errorHandler errors.Handler) *Store {
 	return &Store{
 		dimensionIDCache: dimensionIDCache,
 		dBConnection:     dBConnection,
+		errorHandler:     errorHandler,
 	}
 }
 
@@ -51,7 +54,7 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 
 		dimensionIds, err := store.dimensionIDCache.GetNodeIDs(instanceID)
 		if err != nil {
-			log.Error(err, log.Data{"message": "Failed to get dimension node ID's", "instance": instanceID})
+			store.errorHandler.Handle(instanceID, err, log.Data{"message": "Failed to get dimension node ID's"})
 			continue
 		}
 
@@ -60,7 +63,7 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 
 		params, err := createParams(instanceObservations[instanceID], dimensionIds)
 		if err != nil {
-			log.Error(err, log.Data{"message": "Failed create params for batch query", "instance": instanceID})
+			store.errorHandler.Handle(instanceID, err, log.Data{"message": "Failed create params for batch query"})
 			continue
 		}
 
@@ -75,31 +78,32 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 		return nil, err
 	}
 
-	results = processResults(pipelineResults, results, instanceObservations)
+	results = store.processResults(pipelineResults, results, instanceObservations)
 
 	return results, nil
 }
 
-func processResults(pipelineResults []bolt.Result, results []*Result, instanceObservations map[string][]*Observation) []*Result {
+func (store *Store) processResults(pipelineResults []bolt.Result, results []*Result, instanceObservations map[string][]*Observation) []*Result {
 
+	// we have no context of which result is for which instance ID.
+	// the only way we can align them is to use the same index into the result arrays.
+	// a result array is passed in containing each instance ID, and the update count is injected into it when the
+	// DB result is checked.
 	resultIndex := 0
 
 	for _, result := range pipelineResults {
 
+		instanceID := results[resultIndex].InstanceID
+
 		rowsAffected, err := result.RowsAffected()
 		if err != nil {
-			log.Error(err, log.Data{"message": "Error running observation insert statement"})
+			store.errorHandler.Handle(instanceID, err, log.Data{"message": "Error running observation insert statement"})
+			continue
 		}
 
 		log.Debug("Save result",
 			log.Data{"rows affected": rowsAffected, "metadata": result.Metadata()})
 
-		// todo: check for error pipelineResults
-		// handle constraint violation - retry
-		// exponential back off
-
-		// if there are no errors then populate the observationsInserted number in the result.
-		instanceID := results[resultIndex].InstanceID
 		results[resultIndex].ObservationsInserted = int32(len(instanceObservations[instanceID]))
 		resultIndex++
 	}

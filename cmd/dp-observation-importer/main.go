@@ -91,7 +91,7 @@ func main() {
 	observationMapper := observation.NewMapper(dimensionOrderCache)
 
 	// stores observations in the DB.
-	observationStore := observation.NewStore(dimensionIDCache, dbConnection)
+	observationStore := observation.NewStore(dimensionIDCache, dbConnection, errorHandler)
 
 	// write import results to kafka topic.
 	resultWriter := observation.NewResultWriter(kafkaResultProducer)
