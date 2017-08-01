@@ -15,7 +15,8 @@ type Config struct {
 	ImportAPIURL             string        `env:"IMPORT_API_URL" flag:"import-api-url" flagDesc:"The URL of the import API"`
 	BatchSize                int           `env:"BATCH_SIZE" flag:"batch-size" flagDesc:"The number of messages to process in each batch"`
 	BatchWaitTimeMS          int           `env:"BATCH_WAIT_TIME_MS" flag:"batch-wait-time-ms" flagDesc:"The number of MS to wait before processing a partially full batch of messages"`
-	ErrorProducerTopic       string        `env:"ERROR_PRODUCER_TOPIC" flag:"error-producer-topic" flagDesc:"The Kafka topic to send the error messages to"`
+	ErrorProducerTopic       string        `env:"ERROR_PRODUCER_TOPIC" flag:"error-producer-topic" flagDesc:"The Kafka topic to send error messages to"`
+	ResultProducerTopic      string        `env:"RESULT_PRODUCER_TOPIC" flag:"result-producer-topic" flagDesc:"The Kafka topic to send result messages to"`
 	BoltDriverURL            string        `env:"BOLT_DRIVER" flag:"bolt-driver" flagDesc:"The URL to a neo4j database"`
 	CacheTTL                 time.Duration `env:"CACHE_TTL" flag:"cache-clear-time" flagDesc:"The amount of time to wait before clearing the cache (In minutes)"`
 }
@@ -33,6 +34,7 @@ func Get() (*Config, error) {
 		BatchSize:                1000,
 		BatchWaitTimeMS:          200,
 		ErrorProducerTopic:       "import-error",
+		ResultProducerTopic:      "import-observations-inserted",
 		BoltDriverURL:            "bolt://localhost:7687",
 		CacheTTL:                 time.Minute * 60,
 	}

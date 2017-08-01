@@ -29,6 +29,7 @@ func TestSpec(t *testing.T) {
 				So(cfg.BatchSize, ShouldEqual, 1000)
 				So(cfg.BatchWaitTimeMS, ShouldEqual, 200)
 				So(cfg.ErrorProducerTopic, ShouldEqual, "import-error")
+				So(cfg.ResultProducerTopic, ShouldEqual, "import-observations-inserted")
 				So(cfg.CacheTTL, ShouldEqual, time.Minute*60)
 			})
 		})
