@@ -2,7 +2,6 @@ package event
 
 import "github.com/ONSdigital/go-ns/log"
 import (
-	"github.com/ONSdigital/dp-observation-importer/errors"
 	"github.com/ONSdigital/dp-observation-importer/schema"
 )
 
@@ -10,7 +9,6 @@ import (
 type Batch struct {
 	maxSize            int
 	events             []*ObservationExtracted
-	errorHandler       errors.Handler
 	lastMessageInBatch Message
 }
 
@@ -21,7 +19,7 @@ type Message interface {
 }
 
 // NewBatch returns a new batch instance of the given size.
-func NewBatch(batchSize int, errorHandler errors.Handler) *Batch {
+func NewBatch(batchSize int) *Batch {
 	events := make([]*ObservationExtracted, 0, batchSize)
 
 	return &Batch{
@@ -35,7 +33,8 @@ func (batch *Batch) Add(message Message) {
 
 	event, err := Unmarshal(message)
 	if err != nil {
-		batch.errorHandler.Handle(err, log.Data{"message": "failed to unmarshal event"})
+		log.Error(err, log.Data{"message": "failed to unmarshal event"})
+		return
 	}
 
 	batch.lastMessageInBatch = message

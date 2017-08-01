@@ -17,9 +17,7 @@ func TestIsEmpty(t *testing.T) {
 		message := kafkatest.NewMessage([]byte(Marshal(*expectedEvent)))
 
 		batchSize := 1
-		errorHandler := eventtest.ErrorHandler{}
-
-		batch := event.NewBatch(batchSize, errorHandler)
+		batch := event.NewBatch(batchSize)
 
 		Convey("When the batch has no messages added", func() {
 			Convey("The batch is empty", func() {
@@ -46,9 +44,7 @@ func TestAdd(t *testing.T) {
 		message := kafkatest.NewMessage([]byte(Marshal(*expectedEvent)))
 
 		batchSize := 1
-		errorHandler := eventtest.ErrorHandler{}
-
-		batch := event.NewBatch(batchSize, errorHandler)
+		batch := event.NewBatch(batchSize)
 
 		Convey("When add is called with a valid message", func() {
 
@@ -73,9 +69,7 @@ func TestCommit(t *testing.T) {
 		lastMessage := kafkatest.NewMessage([]byte(Marshal(expectedLastEvent)))
 
 		batchSize := 2
-		errorHandler := eventtest.ErrorHandler{}
-
-		batch := event.NewBatch(batchSize, errorHandler)
+		batch := event.NewBatch(batchSize)
 
 		batch.Add(message)
 		batch.Add(lastMessage)
@@ -129,9 +123,7 @@ func TestSize(t *testing.T) {
 		message := kafkatest.NewMessage([]byte(Marshal(*expectedEvent)))
 
 		batchSize := 1
-		errorHandler := eventtest.ErrorHandler{}
-
-		batch := event.NewBatch(batchSize, errorHandler)
+		batch := event.NewBatch(batchSize)
 
 		So(batch.Size(), ShouldEqual, 0)
 
@@ -156,9 +148,7 @@ func TestIsFull(t *testing.T) {
 		message := kafkatest.NewMessage([]byte(Marshal(*expectedEvent)))
 
 		batchSize := 2
-		errorHandler := eventtest.ErrorHandler{}
-
-		batch := event.NewBatch(batchSize, errorHandler)
+		batch := event.NewBatch(batchSize)
 
 		So(batch.IsFull(), ShouldBeFalse)
 
