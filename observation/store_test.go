@@ -46,7 +46,7 @@ func TestStore_SaveAll(t *testing.T) {
 				So(len(dbConnection.Params), ShouldEqual, 1)
 
 				query := dbConnection.Queries[0]
-				So(query, ShouldEqual, "UNWIND $rows AS row MATCH (Sex:_123_Sex), (Age:_123_Age) WHERE id(Sex) = toInt(row.Sex) AND id(Age) = toInt(row.Age) CREATE (o:_123_observation { value:row.v }), (o)-[:isValueOf]->(Sex), (o)-[:isValueOf]->(Age)")
+				So(query, ShouldEqual, "UNWIND $rows AS row MATCH (Sex:`_123_Sex`), (Age:`_123_Age`) WHERE id(Sex) = toInt(row.Sex) AND id(Age) = toInt(row.Age) CREATE (o:`_123_observation` { value:row.v }), (o)-[:isValueOf]->(Sex), (o)-[:isValueOf]->(Age)")
 
 				//var params map[string]interface{}
 				params := dbConnection.Params[0]

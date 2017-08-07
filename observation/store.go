@@ -131,7 +131,6 @@ func createParams(observations []*Observation, dimensionIDs map[string]string) (
 				return nil, fmt.Errorf("No nodeId found for %s", dimensionLookUp)
 			}
 
-			//row["name"] = option
 			row[option.DimensionName] = nodeID
 		}
 
@@ -148,7 +147,7 @@ func buildInsertObservationQuery(instanceID string, observations []*Observation)
 
 	match := " MATCH "
 	where := " WHERE "
-	create := fmt.Sprintf(" CREATE (o:_%s_observation { value:row.v }), ", instanceID)
+	create := fmt.Sprintf(" CREATE (o:`_%s_observation` { value:row.v }), ", instanceID)
 
 	index := 0
 
@@ -160,7 +159,7 @@ func buildInsertObservationQuery(instanceID string, observations []*Observation)
 			create += ", "
 		}
 
-		match += fmt.Sprintf("(%s:_%s_%s)", option.DimensionName, instanceID, option.DimensionName)
+		match += fmt.Sprintf("(%s:`_%s_%s`)", option.DimensionName, instanceID, option.DimensionName)
 		where += fmt.Sprintf("id(%s) = toInt(row.%s)", option.DimensionName, option.DimensionName)
 		create += fmt.Sprintf("(o)-[:isValueOf]->(%s)", option.DimensionName)
 		index++
