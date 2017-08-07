@@ -2,6 +2,7 @@ package observation
 
 import (
 	"fmt"
+
 	"github.com/ONSdigital/dp-observation-importer/errors"
 	"github.com/ONSdigital/go-ns/log"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
@@ -159,9 +160,9 @@ func buildInsertObservationQuery(instanceID string, observations []*Observation)
 			create += ", "
 		}
 
-		match += fmt.Sprintf("(%s:`_%s_%s`)", option.DimensionName, instanceID, option.DimensionName)
-		where += fmt.Sprintf("id(%s) = toInt(row.%s)", option.DimensionName, option.DimensionName)
-		create += fmt.Sprintf("(o)-[:isValueOf]->(%s)", option.DimensionName)
+		match += fmt.Sprintf("(`%s`:`_%s_%s`)", option.DimensionName, instanceID, option.DimensionName)
+		where += fmt.Sprintf("id(`%s`) = toInt(row.`%s`)", option.DimensionName, option.DimensionName)
+		create += fmt.Sprintf("(o)-[:isValueOf]->(`%s`)", option.DimensionName)
 		index++
 	}
 
