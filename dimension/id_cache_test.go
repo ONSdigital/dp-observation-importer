@@ -33,7 +33,6 @@ func TestDimensionMemoryCache_GetNodeIDsReturnsError(t *testing.T) {
 			_, error := cache.GetNodeIDs("1")
 			Convey("An error is returned", func() {
 				So(error, ShouldNotBeNil)
-
 			})
 		})
 	})

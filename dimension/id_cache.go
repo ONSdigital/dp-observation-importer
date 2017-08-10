@@ -27,9 +27,7 @@ func NewIDCache(idStore IDStore, cacheTTL time.Duration) *MemoryCache {
 // GetNodeIDs returns all dimensions for a given instanceID
 func (mc *MemoryCache) GetNodeIDs(instanceID string) (map[string]string, error) {
 
-	dimensions, ok := mc.memoryCache.Get(instanceID)
-
-	if ok {
+	if dimensions, ok := mc.memoryCache.Get(instanceID); ok {
 		return dimensions.(map[string]string), nil
 	}
 
@@ -40,7 +38,7 @@ func (mc *MemoryCache) GetNodeIDs(instanceID string) (map[string]string, error) 
 
 	err = mc.memoryCache.Add(instanceID, newDimensions, cache.DefaultExpiration)
 	if err != nil {
-		return map[string]string{}, err
+		return nil, err
 	}
 
 	return newDimensions, nil

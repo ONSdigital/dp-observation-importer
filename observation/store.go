@@ -55,7 +55,7 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 
 		dimensionIds, err := store.dimensionIDCache.GetNodeIDs(instanceID)
 		if err != nil {
-			store.errorHandler.Handle(instanceID, err, log.Data{"message": "Failed to get dimension node ID's"})
+			store.errorHandler.Handle(instanceID, err, log.Data{"message": "failed to get dimension node id's"})
 			continue
 		}
 
@@ -64,7 +64,7 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 
 		params, err := createParams(instanceObservations[instanceID], dimensionIds)
 		if err != nil {
-			store.errorHandler.Handle(instanceID, err, log.Data{"message": "Failed create params for batch query"})
+			store.errorHandler.Handle(instanceID, err, log.Data{"message": "failed create params for batch query"})
 			continue
 		}
 
@@ -98,11 +98,11 @@ func (store *Store) processResults(pipelineResults []bolt.Result, results []*Res
 
 		rowsAffected, err := result.RowsAffected()
 		if err != nil {
-			store.errorHandler.Handle(instanceID, err, log.Data{"message": "Error running observation insert statement"})
+			store.errorHandler.Handle(instanceID, err, log.Data{"message": "error running observation insert statement"})
 			continue
 		}
 
-		log.Debug("Save result",
+		log.Debug("save result",
 			log.Data{"rows affected": rowsAffected, "metadata": result.Metadata()})
 
 		results[resultIndex].ObservationsInserted = int32(len(instanceObservations[instanceID]))
@@ -179,7 +179,7 @@ func mapObservationsToInstances(observations []*Observation) map[string][]*Obser
 	for _, observation := range observations {
 
 		// add the instance key and new list if it does not exist.
-		if _, hasKey := instanceObservations[observation.InstanceID]; !hasKey {
+		if _, ok := instanceObservations[observation.InstanceID]; !ok {
 			instanceObservations[observation.InstanceID] = make([]*Observation, 0)
 		}
 

@@ -64,7 +64,7 @@ func (mapper *Mapper) Map(row string, instanceID string) (*Observation, error) {
 			}
 		}
 
-		dimensionName = headerRow[i+1] // Sex
+		dimensionName = headerRow[i+1]
 
 		dimensions = append(dimensions,
 			&DimensionOption{DimensionName: dimensionName, Name: dimensionOption})

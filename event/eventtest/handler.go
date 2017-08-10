@@ -26,7 +26,7 @@ type EventHandler struct {
 // Handle captures the given event and stores it for later assertions
 func (handler *EventHandler) Handle(events []*event.ObservationExtracted) error {
 
-	log.Debug("Handle called", nil)
+	log.Debug("handle called", nil)
 	handler.Events = events
 	return handler.Error
 }

@@ -15,7 +15,6 @@ func main() {
 
 	event1 := event.ObservationExtracted{InstanceID: "7", Row: "5,,sex,male,age,30"}
 	sendEvent(producer, event1)
-	//time.Sleep(time.Duration(5000 * time.Millisecond))
 	event2 := event.ObservationExtracted{InstanceID: "7", Row: "5,,sex,female,age,20"}
 	sendEvent(producer, event2)
 	time.Sleep(time.Duration(5000 * time.Millisecond))

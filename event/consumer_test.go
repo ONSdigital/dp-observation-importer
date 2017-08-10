@@ -82,7 +82,7 @@ func TestConsume_DelayedMessages(t *testing.T) {
 		exit := make(chan struct{}, 1)
 
 		messageDelay := time.Millisecond * 25
-		message := kafkatest.NewMessage([]byte(Marshal(expectedEvent)))
+		message := kafkatest.NewMessage([]byte(marshal(expectedEvent)))
 
 		SendMessagesWithDelay(messages, message, messageDelay, 3)
 
@@ -116,7 +116,7 @@ func newMockConsumer(expectedEvent event.ObservationExtracted) event.MessageCons
 
 	messages := make(chan kafka.Message, 1)
 	messageConsumer := kafkatest.NewMessageConsumer(messages)
-	message := kafkatest.NewMessage([]byte(Marshal(expectedEvent)))
+	message := kafkatest.NewMessage([]byte(marshal(expectedEvent)))
 	messages <- message
 	return messageConsumer
 

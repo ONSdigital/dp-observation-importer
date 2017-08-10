@@ -26,10 +26,10 @@ func NewOrderCache(orderStore OrderStore, cacheTTL time.Duration) *HeaderCache {
 
 // GetOrder returns list of dimension names in the order they are stored in the input file.
 func (hc *HeaderCache) GetOrder(instanceID string) ([]string, error) {
-	item, ok := hc.memoryCache.Get(instanceID)
-	if ok {
+	if item, ok := hc.memoryCache.Get(instanceID); ok {
 		return item.([]string), nil
 	}
+
 	newHeaders, err := hc.orderStore.GetOrder(instanceID)
 	if err != nil {
 		return nil, err
