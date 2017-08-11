@@ -6,6 +6,25 @@ import (
 	"testing"
 )
 
+func TestHeader_NoDimensionOffset(t *testing.T) {
+
+	Convey("Given an example CSV header with a zero offset", t, func() {
+
+		header := csv.NewHeader([]string{"V4"})
+		So(header, ShouldNotBeNil)
+
+		Convey("When DimensionOffset is called", func() {
+
+			offset, err := header.DimensionOffset()
+
+			Convey("0 is returned - accounting for the observation column", func() {
+				So(err, ShouldBeNil)
+				So(offset, ShouldEqual, 0)
+			})
+		})
+	})
+}
+
 func TestHeader_DimensionOffset_0(t *testing.T) {
 
 	Convey("Given an example CSV header with a zero offset", t, func() {

@@ -20,10 +20,15 @@ func NewHeader(header []string) *Header {
 // DimensionOffset returns the number of columns before the start of the dimension columns.
 func (header Header) DimensionOffset() (int, error) {
 	metaData := strings.Split(header.row[0], "_")
-	dimensionColumnOffset, err := strconv.Atoi(metaData[1])
-	if err != nil {
-		return 0, err
+
+	if len(metaData) > 1 {
+		dimensionColumnOffset, err := strconv.Atoi(metaData[1])
+		if err != nil {
+			return 0, err
+		}
+
+		return dimensionColumnOffset + 1, nil
 	}
 
-	return dimensionColumnOffset + 1, nil
+	return 0, nil
 }
