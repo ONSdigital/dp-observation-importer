@@ -67,7 +67,7 @@ func TestBatchHandler_Handle(t *testing.T) {
 
 			err := handler.Handle([]*event.ObservationExtracted{expectedEvent})
 
-			Convey("", func() {
+			Convey("The expected calls to the observation mapper, store, and result writer happen", func() {
 				So(err, ShouldBeNil)
 
 				So(len(mockObservationMapper.MapCalls()), ShouldEqual, 1)

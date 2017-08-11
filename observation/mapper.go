@@ -45,7 +45,8 @@ func (mapper *Mapper) Map(row string, instanceID string) (*Observation, error) {
 	}
 
 	// if we want to support time being in any column we need to look at the header to see what column time is in.
-	// as it
+	// TODO review whether this is safe to assume. If there are a lot of rows it could be a lot of CPU to determine
+	// this for every row.
 	timeDimensionOffset := dimensionOffset // Assume time is always first
 
 	for i := dimensionOffset; i < len(headerRow); i += 2 {
