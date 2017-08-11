@@ -26,7 +26,16 @@ func main() {
 	}
 
 	// Avoid logging the neo4j URL as it may contain a password
-	log.Debug("loaded config", log.Data{"config": config})
+	// Avoid logging the neo4j URL as it may contain a password
+	log.Debug("loaded config", log.Data{
+		"topics":                     []string{config.ObservationConsumerTopic, config.ErrorProducerTopic, config.ResultProducerTopic},
+		"brokers":                    config.KafkaAddr,
+		"bind_addr":                  config.BindAddr,
+		"import_api_url":             config.ImportAPIURL,
+		"observation_consumer_group": config.ObservationConsumerGroup,
+		"cache_ttl":                  config.CacheTTL,
+		"batch_size":                 config.BatchSize,
+		"batch_time":                 config.BatchWaitTime})
 
 	kafkaBrokers := []string{config.KafkaAddr}
 	kafkaConsumer, err := kafka.NewConsumerGroup(
