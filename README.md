@@ -10,7 +10,7 @@ dp-observation-importer
 * Run ```brew install kafka```
 * Run ```brew install neo4j```
 * Configure neo4j, edit /usr/local/Cellar/neo4j/3.2.0/libexec/conf/neo4j.conf
-  * Set dbms.security.auth_enabled=false
+  * Set ```dbms.security.auth_enabled=false```
 * Run ```brew services restart neo4j```
 
 ### Configuration
@@ -19,7 +19,7 @@ dp-observation-importer
 | ---------------------------|--------------------------------- |-----------------------------------------------------
 | BIND_ADDR                  | ":21700"                         | The port to bind to
 | KAFKA_ADDRESS              | "http://localhost:9092"          | The address of the Kafka instance
-| OBSERVATION_CONSUMER_GROUP | "observation-extracted"          | The Kafka consumer group to consume observation extracted events from
+| OBSERVATION_CONSUMER_GROUP | "dp-observation-importer"        | The Kafka consumer group to consume observation extracted events from
 | OBSERVATION_CONSUMER_TOPIC | "observation-extracted"          | The Kafka topic to consume observation extracted events from
 | DATABASE_ADDRESS           | "bolt://localhost:7687"          | The address of the database
 | IMPORT_API_URL             | "http://localhost:21800"         | The URL of the import API

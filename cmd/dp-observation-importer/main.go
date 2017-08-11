@@ -37,7 +37,8 @@ func main() {
 		"batch_size":                 config.BatchSize,
 		"batch_time":                 config.BatchWaitTime})
 
-	kafkaBrokers := []string{config.KafkaAddr}
+	kafkaBrokers := config.KafkaAddr
+
 	kafkaConsumer, err := kafka.NewConsumerGroup(
 		kafkaBrokers,
 		config.ObservationConsumerTopic,
@@ -45,7 +46,7 @@ func main() {
 		kafka.OffsetNewest)
 
 	if err != nil {
-		log.Error(err, log.Data{"message": "failed to create kafka consumer"})
+		log.Error(err, nil)
 		os.Exit(1)
 	}
 
@@ -55,29 +56,16 @@ func main() {
 	dbConnection, err := bolt.NewDriver().OpenNeo(config.DatabaseAddress)
 
 	if err != nil {
-		log.Error(err, log.Data{"message": "failed to create connection to neo4j"})
+		log.Error(err, nil)
 		os.Exit(1)
 	}
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
+	// a channel used to signal a graceful exit.
+	// it can be listened to by multiple consumers as the closing of the channel is the signal.
 	exit := make(chan struct{})
-
-	go func() {
-
-		<-signals
-
-		close(exit)
-
-		// gracefully dispose resources
-		kafkaConsumer.Closer() <- true
-		kafkaErrorProducer.Closer() <- true
-		kafkaResultProducer.Closer() <- true
-
-		log.Debug("graceful shutdown was successful", nil)
-		os.Exit(0)
-	}()
 
 	// when errors occur - we send a message on an error topic.
 	errorHandler := errors.NewKafkaHandler(kafkaErrorProducer)
@@ -101,5 +89,17 @@ func main() {
 	batchHandler := event.NewBatchHandler(observationMapper, observationStore, resultWriter, errorHandler)
 
 	// Start listening for event messages.
-	event.Consume(kafkaConsumer, config.BatchSize, batchHandler, config.BatchWaitTime, exit)
+	go event.Consume(kafkaConsumer, config.BatchSize, batchHandler, config.BatchWaitTime, exit)
+
+	<-signals
+
+	close(exit)
+
+	// gracefully dispose resources
+	kafkaConsumer.Closer() <- true
+	kafkaErrorProducer.Closer() <- true
+	kafkaResultProducer.Closer() <- true
+
+	log.Debug("graceful shutdown was successful", nil)
+	os.Exit(0)
 }

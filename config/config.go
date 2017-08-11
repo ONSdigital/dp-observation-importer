@@ -8,7 +8,7 @@ import (
 // Config values for the application.
 type Config struct {
 	BindAddr                 string        `env:"BIND_ADDR" flag:"bind-addr" flagDesc:"The port to bind to"`
-	KafkaAddr                string        `env:"KAFKA_ADDR" flag:"kafka-addr" flagDesc:"The address of the Kafka instance"`
+	KafkaAddr                []string      `env:"KAFKA_ADDR" flag:"kafka-addr" flagDesc:"The addresses of Kafka instances"`
 	ObservationConsumerGroup string        `env:"OBSERVATION_CONSUMER_GROUP" flag:"observation-consumer-group" flagDesc:"The Kafka consumer group to consume observation messages from"`
 	ObservationConsumerTopic string        `env:"OBSERVATION_CONSUMER_TOPIC" flag:"observation-consumer-topic" flagDesc:"The Kafka topic to consume observation messages from"`
 	DatabaseAddress          string        `env:"DATABASE_ADDRESS" flag:"database-address" flagDesc:"The address of the database to store observations"`
@@ -25,7 +25,7 @@ func Get() (*Config, error) {
 
 	cfg := Config{
 		BindAddr:                 ":21700",
-		KafkaAddr:                "localhost:9092",
+		KafkaAddr:                []string{"localhost:9092"},
 		ObservationConsumerGroup: "observation-extracted",
 		ObservationConsumerTopic: "observation-extracted",
 		DatabaseAddress:          "bolt://localhost:7687",
