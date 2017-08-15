@@ -34,6 +34,10 @@ type MessageProducer interface {
 // Handle logs the error and sends is as a Kafka message.
 func (handler *KafkaHandler) Handle(instanceID string, err error, data log.Data) {
 
+	if data == nil {
+		data = log.Data{}
+	}
+
 	data["instance_id"] = instanceID
 	log.Error(err, data)
 
