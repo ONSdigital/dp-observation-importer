@@ -62,24 +62,28 @@ func TestCommit(t *testing.T) {
 
 	Convey("Given a batch with two valid messages", t, func() {
 
-		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content"}
-		expectedLastEvent := event.ObservationExtracted{InstanceID: "123", Row: "last,row,content"}
-		message := kafkatest.NewMessage([]byte(marshal(expectedEvent)))
-		lastMessage := kafkatest.NewMessage([]byte(marshal(expectedLastEvent)))
+		expectedEvent1 := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content"}
+		expectedEvent2 := event.ObservationExtracted{InstanceID: "123", Row: "the,second,content"}
+		expectedEvent3 := event.ObservationExtracted{InstanceID: "123", Row: "the,third,content"}
+		expectedEvent4 := event.ObservationExtracted{InstanceID: "123", Row: "the,fourth,content"}
+		message1 := kafkatest.NewMessage([]byte(marshal(expectedEvent1)))
+		message2 := kafkatest.NewMessage([]byte(marshal(expectedEvent2)))
+		message3 := kafkatest.NewMessage([]byte(marshal(expectedEvent3)))
+		message4 := kafkatest.NewMessage([]byte(marshal(expectedEvent4)))
 
 		batchSize := 2
 		batch := event.NewBatch(batchSize)
 
-		batch.Add(message)
-		batch.Add(lastMessage)
+		batch.Add(message1)
+		batch.Add(message2)
 
 		batch.Commit()
 
 		Convey("When commit is called", func() {
 
 			Convey("The last message in the batch is committed", func() {
-				So(message.Committed(), ShouldBeFalse)
-				So(lastMessage.Committed(), ShouldBeTrue)
+				So(message1.Committed(), ShouldBeFalse)
+				So(message2.Committed(), ShouldBeTrue)
 			})
 
 			Convey("The batch is emptied.", func() {
@@ -89,23 +93,23 @@ func TestCommit(t *testing.T) {
 			})
 
 			Convey("The batch can be reused", func() {
-				batch.Add(lastMessage)
+				batch.Add(message3)
 
 				So(batch.IsEmpty(), ShouldBeFalse)
 				So(batch.IsFull(), ShouldBeFalse)
 				So(batch.Size(), ShouldEqual, 1)
 
-				So(batch.Events()[0].Row, ShouldEqual, expectedLastEvent.Row)
-				So(batch.Events()[0].InstanceID, ShouldEqual, expectedLastEvent.InstanceID)
+				So(batch.Events()[0].Row, ShouldEqual, expectedEvent3.Row)
+				So(batch.Events()[0].InstanceID, ShouldEqual, expectedEvent3.InstanceID)
 
-				batch.Add(message)
+				batch.Add(message4)
 
 				So(batch.IsEmpty(), ShouldBeFalse)
 				So(batch.IsFull(), ShouldBeTrue)
 				So(batch.Size(), ShouldEqual, 2)
 
-				So(batch.Events()[1].Row, ShouldEqual, expectedEvent.Row)
-				So(batch.Events()[1].InstanceID, ShouldEqual, expectedEvent.InstanceID)
+				So(batch.Events()[1].Row, ShouldEqual, expectedEvent4.Row)
+				So(batch.Events()[1].InstanceID, ShouldEqual, expectedEvent4.InstanceID)
 			})
 		})
 	})
