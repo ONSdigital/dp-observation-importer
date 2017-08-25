@@ -10,21 +10,24 @@ job "dp-observation-importer" {
   }
 
   group "publishing" {
-    count = {{PUBLISHING_TASK_COUNT}}
+    count = "{{PUBLISHING_TASK_COUNT}}"
 
     task "dp-observation-importer" {
       driver = "exec"
 
       artifact {
-        source = "s3::https://s3-eu-west-1.amazonaws.com/ons-dp-deployments/dp-observation-importer/latest.tar.gz"
+        source = "s3::https://s3-eu-west-1.amazonaws.com/{{BUILD_BUCKET}}/dp-observation-importer/{{REVISION}}.tar.gz"
+      }
+
+      artifact {
+        source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-observation-importer/{{REVISION}}.tar.gz"
       }
 
       config {
         command = "${NOMAD_TASK_DIR}/start-task"
-
-         args = [
-                  "${NOMAD_TASK_DIR}/dp-observation-importer",
-                ]
+        args    = [
+          "${NOMAD_TASK_DIR}/dp-observation-importer",
+        ]
       }
 
       service {
