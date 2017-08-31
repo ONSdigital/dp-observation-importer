@@ -2,11 +2,19 @@ package dimension
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
 	"io/ioutil"
 	"net/http"
 )
+
+// ErrParseAPIResponse used when the import API response fails to be parsed.
+var ErrParseAPIResponse = errors.New("failed to parse import api response")
+
+// ErrInstanceNotFound returned when the given instance ID is not found in the import API.
+var ErrInstanceNotFound = errors.New("import api failed to find instance")
+
+// ErrInternalError returned when an unrecognised internal error occurs in the import API.
+var ErrInternalError = errors.New("internal error from the import api")
 
 // ImportAPIClient an interface used to access the import api
 type ImportAPIClient interface {
@@ -47,7 +55,7 @@ func (store *Store) GetOrder(instanceID string) ([]string, error) {
 	}
 	bytes, err := store.processRequest(request, instanceID)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to http body into bytes")
+		return nil, err
 	}
 	var csv csvHeaders
 	JSONErr := json.Unmarshal(bytes, &csv)
@@ -68,7 +76,7 @@ func (store *Store) GetIDs(instanceID string) (map[string]string, error) {
 
 	bytes, err := store.processRequest(request, instanceID)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read http body into bytes")
+		return nil, err
 	}
 
 	var dimensions []Dimension
@@ -90,13 +98,13 @@ func (store *Store) processRequest(r *http.Request, instanceID string) ([]byte, 
 	}
 	switch response.StatusCode {
 	case http.StatusNotFound:
-		return nil, errors.New("Failed to find instanceId : " + instanceID)
+		return nil, ErrInstanceNotFound
 	case http.StatusInternalServerError:
-		return nil, errors.New("Internal error from the import api")
+		return nil, ErrInternalError
 	}
 	bytes, err := ioutil.ReadAll(response.Body)
 	if err != nil {
-		return nil, fmt.Errorf("Failed to read http body into bytes")
+		return nil, ErrParseAPIResponse
 	}
 	return bytes, nil
 }
