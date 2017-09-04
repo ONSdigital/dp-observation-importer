@@ -5,7 +5,6 @@ import (
 
 	eventhandler "github.com/ONSdigital/dp-import-reporter/handler"
 	eventSchema "github.com/ONSdigital/dp-import-reporter/schema"
-	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 )
 
@@ -53,23 +52,16 @@ func (handler *KafkaHandler) Handle(instanceID string, err error, data log.Data)
 		EventMsg:   err.Error(),
 	}
 
-	producer := eventProducer()
+	// producer := eventProducer()
 	avroBytes, err := eventSchema.ReportedEventSchema.Marshal(&eventReport)
 	if err != nil {
 		log.Error(err, nil)
 		return
 	}
 
-	producer.Output() <- avroBytes
+	kafkaErrorHandler := NewKafkaHandler(handler.messageProducer)
+
+	kafkaErrorHandler.messageProducer.Output() <- avroBytes
 	time.Sleep(time.Duration(5000 * time.Millisecond))
-	producer.Closer() <- true
 
-}
-
-func eventProducer() kafka.Producer {
-	// producerTopic := flag.String("topic", "event-reporter", "producer topic")
-	brokers := []string{"localhost:9092"}
-	producer := kafka.NewProducer(brokers, "event-reporter", int(2000000))
-
-	return producer
 }

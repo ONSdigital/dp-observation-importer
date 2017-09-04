@@ -2,6 +2,7 @@ package observation
 
 import (
 	"encoding/csv"
+	"errors"
 	"strings"
 
 	inputcsv "github.com/ONSdigital/dp-observation-importer/csv"
@@ -32,13 +33,17 @@ func (mapper *Mapper) Map(row string, instanceID string) (*Observation, error) {
 	if err != nil {
 		return nil, err
 	}
+	if len(headerRow) < 1 {
+		return nil, errors.New("No header available with instance.")
+	}
+
 	header := inputcsv.NewHeader(headerRow)
+
 	dimensionOffset, err := header.DimensionOffset()
 	if err != nil {
 		log.ErrorC("Dimension offset error", err, nil)
 		return nil, err
 	}
-	log.Info("This far1", nil)
 
 	var dimensions []*DimensionOption
 	csv := csv.NewReader(strings.NewReader(row))
