@@ -43,7 +43,6 @@ func (handler *KafkaHandler) Handle(instanceID string, err error, data log.Data)
 	}
 
 	data["instance_id"] = instanceID
-	// todo - marshsal error + data to avro encoded message and send to handler.messageProducer.Output()
 
 	log.Error(err, data)
 	eventReport := eventhandler.EventReport{
@@ -52,16 +51,13 @@ func (handler *KafkaHandler) Handle(instanceID string, err error, data log.Data)
 		EventMsg:   err.Error(),
 	}
 
-	// producer := eventProducer()
-	avroBytes, err := eventSchema.ReportedEventSchema.Marshal(&eventReport)
+	errMsg, err := eventSchema.ReportedEventSchema.Marshal(&eventReport)
 	if err != nil {
 		log.Error(err, nil)
 		return
 	}
 
-	kafkaErrorHandler := NewKafkaHandler(handler.messageProducer)
-
-	kafkaErrorHandler.messageProducer.Output() <- avroBytes
-	time.Sleep(time.Duration(5000 * time.Millisecond))
+	handler.messageProducer.Output() <- errMsg
+	time.Sleep(time.Duration(1000 * time.Millisecond))
 
 }
