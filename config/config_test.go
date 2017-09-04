@@ -1,10 +1,11 @@
 package config_test
 
 import (
-	"github.com/ONSdigital/dp-observation-importer/config"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
+
+	"github.com/ONSdigital/dp-observation-importer/config"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestSpec(t *testing.T) {
@@ -28,7 +29,7 @@ func TestSpec(t *testing.T) {
 				So(cfg.ImportAPIURL, ShouldEqual, "http://localhost:21800")
 				So(cfg.BatchSize, ShouldEqual, 1000)
 				So(cfg.BatchWaitTime, ShouldEqual, time.Millisecond*200)
-				So(cfg.ErrorProducerTopic, ShouldEqual, "import-error")
+				So(cfg.ErrorProducerTopic, ShouldEqual, "event-reporter")
 				So(cfg.ResultProducerTopic, ShouldEqual, "import-observations-inserted")
 				So(cfg.CacheTTL, ShouldEqual, time.Minute*60)
 			})

@@ -25,7 +25,7 @@ dp-observation-importer
 | IMPORT_API_URL             | "http://localhost:21800"         | The URL of the import API
 | BATCH_SIZE                 | 1000                             | The number of messages to process in each batch if the time out has not been reached
 | BATCH_WAIT_TIME            | 200ms                            | The duration to wait before processing a partially full batch of messages
-| ERROR_PRODUCER_TOPIC       | "import-error"                   | The Kafka topic to send the error messages to
+| ERROR_PRODUCER_TOPIC       | "event-reporter"                 | The Kafka topic to send the error messages to
 | RESULT_PRODUCER_TOPIC      | "import-observations-inserted"   | The Kafka topic to send the observations inserted messages to
 | CACHE_TTL                  | 60m                              | The amount of time to wait before clearing the cache (In minutes)
 

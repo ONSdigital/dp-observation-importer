@@ -1,8 +1,9 @@
 package config
 
 import (
-	"github.com/ian-kent/gofigure"
 	"time"
+
+	"github.com/ian-kent/gofigure"
 )
 
 // Config values for the application.
@@ -32,7 +33,7 @@ func Get() (*Config, error) {
 		ImportAPIURL:             "http://localhost:21800",
 		BatchSize:                1000,
 		BatchWaitTime:            time.Millisecond * 200,
-		ErrorProducerTopic:       "import-error",
+		ErrorProducerTopic:       "event-reporter",
 		ResultProducerTopic:      "import-observations-inserted",
 		CacheTTL:                 time.Minute * 60,
 	}

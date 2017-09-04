@@ -3,9 +3,10 @@ package dimension
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
 	"io/ioutil"
 	"net/http"
+
+	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
 )
 
 // ImportAPIClient an interface used to access the import api
@@ -49,11 +50,13 @@ func (store *Store) GetOrder(instanceID string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to http body into bytes")
 	}
+
 	var csv csvHeaders
 	JSONErr := json.Unmarshal(bytes, &csv)
 	if JSONErr != nil {
 		return nil, JSONErr
 	}
+
 	return csv.Headers, nil
 }
 
@@ -70,7 +73,6 @@ func (store *Store) GetIDs(instanceID string) (map[string]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Failed to read http body into bytes")
 	}
-
 	var dimensions []Dimension
 	JSONErr := json.Unmarshal(bytes, &dimensions)
 	if JSONErr != nil {
