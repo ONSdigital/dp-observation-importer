@@ -13,7 +13,6 @@ type MessageWriter struct {
 // MessageProducer dependency that writes messages
 type MessageProducer interface {
 	Output() chan []byte
-	Closer() chan bool
 }
 
 // NewResultWriter returns a new observation message writer.

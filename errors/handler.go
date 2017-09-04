@@ -28,7 +28,6 @@ func NewKafkaHandler(messageProducer MessageProducer) *KafkaHandler {
 // MessageProducer dependency that writes messages
 type MessageProducer interface {
 	Output() chan []byte
-	Closer() chan bool
 }
 
 // Handle logs the error and sends is as a Kafka message.

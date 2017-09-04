@@ -44,14 +44,22 @@ func main() {
 		config.ObservationConsumerTopic,
 		config.ObservationConsumerGroup,
 		kafka.OffsetNewest)
-
 	if err != nil {
 		log.Error(err, nil)
 		os.Exit(1)
 	}
 
-	kafkaErrorProducer := kafka.NewProducer(kafkaBrokers, config.ErrorProducerTopic, 0)
-	kafkaResultProducer := kafka.NewProducer(kafkaBrokers, config.ResultProducerTopic, 0)
+	kafkaErrorProducer, err := kafka.NewProducer(kafkaBrokers, config.ErrorProducerTopic, 0)
+	if err != nil {
+		log.Error(err, nil)
+		os.Exit(1)
+	}
+
+	kafkaResultProducer, err := kafka.NewProducer(kafkaBrokers, config.ResultProducerTopic, 0)
+	if err != nil {
+		log.Error(err, nil)
+		os.Exit(1)
+	}
 
 	dbConnection, err := bolt.NewDriver().OpenNeo(config.DatabaseAddress)
 
@@ -65,7 +73,7 @@ func main() {
 
 	// a channel used to signal a graceful exit.
 	// it can be listened to by multiple consumers as the closing of the channel is the signal.
-	exit := make(chan struct{})
+	error := make(chan error)
 
 	// when errors occur - we send a message on an error topic.
 	errorHandler := errors.NewKafkaHandler(kafkaErrorProducer)
@@ -88,18 +96,40 @@ func main() {
 	// handle a batch of events.
 	batchHandler := event.NewBatchHandler(observationMapper, observationStore, resultWriter, errorHandler)
 
+	eventConsumer := event.NewConsumer()
+
 	// Start listening for event messages.
-	go event.Consume(kafkaConsumer, config.BatchSize, batchHandler, config.BatchWaitTime, exit)
+	eventConsumer.Consume(kafkaConsumer, config.BatchSize, batchHandler, config.BatchWaitTime, error)
 
-	<-signals
-
-	close(exit)
-
-	// gracefully dispose resources
-	kafkaConsumer.Closer() <- true
-	kafkaErrorProducer.Closer() <- true
-	kafkaResultProducer.Closer() <- true
-
-	log.Debug("graceful shutdown was successful", nil)
-	os.Exit(0)
+	//shutdownGracefully := func(err error) {
+	//
+	//	if err != nil {
+	//		log.Error(err, nil)
+	//	}
+	//
+	//	// gracefully dispose resources
+	//	eventConsumer.Close()
+	//	kafkaConsumer.Close()
+	//	kafkaErrorProducer.Close()
+	//	kafkaResultProducer.Close()
+	//
+	//	log.Debug("graceful shutdown was successful", nil)
+	//	os.Exit(0)
+	//}
+	//
+	//for {
+	//	select {
+	//
+	//	case err := <-kafkaConsumer.Errors():
+	//		shutdownGracefully(err)
+	//	case err := <-kafkaResultProducer.Errors():
+	//		shutdownGracefully(err)
+	//	case err := <-kafkaResultProducer.Errors():
+	//		shutdownGracefully(err)
+	//	case err := <-error:
+	//		shutdownGracefully(err)
+	//	case <-signals:
+	//		shutdownGracefully(fmt.Errorf("os signal receieved"))
+	//	}
+	//}
 }
