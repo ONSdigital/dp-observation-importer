@@ -18,6 +18,7 @@ type Config struct {
 	ErrorProducerTopic       string        `envconfig:"ERROR_PRODUCER_TOPIC"`
 	ResultProducerTopic      string        `envconfig:"RESULT_PRODUCER_TOPIC"`
 	CacheTTL                 time.Duration `envconfig:"CACHE_TTL"`
+	GracefulShutdownTimeout  time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 }
 
 // Get the configuration values from the environment or provide the defaults.
@@ -35,6 +36,7 @@ func Get() (*Config, error) {
 		ErrorProducerTopic:       "import-error",
 		ResultProducerTopic:      "import-observations-inserted",
 		CacheTTL:                 time.Minute * 60,
+		GracefulShutdownTimeout:  time.Second * 10,
 	}
 
 	return cfg, envconfig.Process("", cfg)

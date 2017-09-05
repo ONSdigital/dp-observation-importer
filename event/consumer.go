@@ -1,9 +1,11 @@
 package event
 
 import (
+	"context"
+	"errors"
+	"fmt"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
-	"sync"
 	"time"
 )
 
@@ -18,18 +20,16 @@ type Handler interface {
 }
 
 type Consumer struct {
-	closer chan bool
-	wg     *sync.WaitGroup
+	closing chan bool
+	closed  chan bool
 }
 
 // NewConsumerGroup returns a new consumer group using default configuration.
 func NewConsumer() *Consumer {
 
-	var wg sync.WaitGroup
-
 	c := Consumer{
-		closer: make(chan bool),
-		wg:     &wg,
+		closing: make(chan bool),
+		closed:  make(chan bool),
 	}
 
 	return &c
@@ -40,11 +40,10 @@ func (consumer *Consumer) Consume(messageConsumer MessageConsumer,
 	batchSize int,
 	handler Handler,
 	batchWaitTime time.Duration,
-	exit chan error) {
-
-	consumer.wg.Add(1)
+	error chan error) {
 
 	go func() {
+		defer close(consumer.closed)
 
 		batch := NewBatch(batchSize)
 
@@ -54,7 +53,7 @@ func (consumer *Consumer) Consume(messageConsumer MessageConsumer,
 			select {
 			case msg := <-messageConsumer.Incoming():
 
-				AddMessageToBatch(batch, msg, handler, exit)
+				AddMessageToBatch(batch, msg, handler, error)
 
 			case <-time.After(batchWaitTime):
 
@@ -63,9 +62,9 @@ func (consumer *Consumer) Consume(messageConsumer MessageConsumer,
 				}
 
 				log.Debug("batch wait time reached. proceeding with batch", log.Data{"batchsize": batch.Size()})
-				ProcessBatch(handler, batch, exit)
+				ProcessBatch(handler, batch, error)
 
-			case <-exit:
+			case <-consumer.closing:
 				return
 			}
 		}
@@ -73,12 +72,22 @@ func (consumer *Consumer) Consume(messageConsumer MessageConsumer,
 }
 
 // Close safely closes the consumer and releases all resources
-func (consumer *Consumer) Close() (err error) {
+func (consumer *Consumer) Close(ctx context.Context) (err error) {
 
-	consumer.closer <- true
-	consumer.wg.Wait()
+	if ctx == nil {
+		ctx = context.Background()
+	}
 
-	return nil
+	close(consumer.closing)
+
+	select {
+	case <-consumer.closed:
+		log.Info(fmt.Sprintf("Successfully closed event consumer"), nil)
+		return nil
+	case <-ctx.Done():
+		log.Info(fmt.Sprintf("Shutdown context time exceeded, skipping graceful shutdown of event consumer"), nil)
+		return errors.New("Shutdown context timed out")
+	}
 }
 
 // AddMessageToBatch will attempt to add the message to the batch and determine if it should be processed.

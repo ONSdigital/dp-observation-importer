@@ -13,18 +13,20 @@ import (
 
 func TestConsume(t *testing.T) {
 
-	Convey("Given a mocked message producer with an expected message", t, func() {
+	Convey("Given a consumer with a mocked message producer with an expected message", t, func() {
 
 		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content"}
 		messageConsumer := newMockConsumer(expectedEvent)
 		batchSize := 1
 		eventHandler := eventtest.NewEventHandler()
 		batchWaitTime := time.Second * 1
-		exit := make(chan struct{}, 1)
+		exit := make(chan error, 1)
+
+		consumer := event.NewConsumer()
 
 		Convey("When consume is called", func() {
 
-			go event.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
+			go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
 			waitForEventsToBeSentToHandler(eventHandler, exit)
 
@@ -39,20 +41,48 @@ func TestConsume(t *testing.T) {
 	})
 }
 
+func TestClose(t *testing.T) {
+
+	Convey("Given a consumer", t, func() {
+
+		messages := make(chan kafka.Message, 3)
+		messageConsumer := kafkatest.NewMessageConsumer(messages)
+		batchSize := 1
+		eventHandler := eventtest.NewEventHandler()
+		batchWaitTime := time.Second * 1
+		exit := make(chan error, 1)
+
+		consumer := event.NewConsumer()
+
+		go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
+
+		Convey("When close is called", func() {
+
+			err := consumer.Close(nil)
+
+			Convey("The expected event is sent to the handler", func() {
+				So(err, ShouldBeNil)
+			})
+		})
+	})
+}
+
 func TestConsume_Timeout(t *testing.T) {
 
-	Convey("Given a mocked message producer with an expected message", t, func() {
+	Convey("Given a consumer with a mocked message producer with an expected message", t, func() {
 
 		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content"}
 		messageConsumer := newMockConsumer(expectedEvent)
 		batchSize := 2
 		eventHandler := eventtest.NewEventHandler()
 		batchWaitTime := time.Millisecond * 50
-		exit := make(chan struct{}, 1)
+		exit := make(chan error, 1)
+
+		consumer := event.NewConsumer()
 
 		Convey("When consume is called with a batch size of 2, and no other messages are consumed", func() {
 
-			go event.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
+			go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
 			waitForEventsToBeSentToHandler(eventHandler, exit)
 
@@ -70,7 +100,7 @@ func TestConsume_Timeout(t *testing.T) {
 
 func TestConsume_DelayedMessages(t *testing.T) {
 
-	Convey("Given a mocked message producer that produces messages every 20ms", t, func() {
+	Convey("Given a consumer with a mocked message producer that produces messages every 20ms", t, func() {
 
 		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content"}
 		messages := make(chan kafka.Message, 3)
@@ -79,16 +109,18 @@ func TestConsume_DelayedMessages(t *testing.T) {
 		batchSize := 3
 		eventHandler := eventtest.NewEventHandler()
 		batchWaitTime := time.Millisecond * 50
-		exit := make(chan struct{}, 1)
+		exit := make(chan error, 1)
 
 		messageDelay := time.Millisecond * 25
 		message := kafkatest.NewMessage([]byte(marshal(expectedEvent)))
+
+		consumer := event.NewConsumer()
 
 		SendMessagesWithDelay(messages, message, messageDelay, 3)
 
 		Convey("When consume is called", func() {
 
-			go event.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
+			go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
 			waitForEventsToBeSentToHandler(eventHandler, exit)
 
@@ -103,6 +135,7 @@ func TestConsume_DelayedMessages(t *testing.T) {
 
 	})
 }
+
 func SendMessagesWithDelay(messages chan kafka.Message, message kafka.Message, messageDelay time.Duration, numberOfMessages int) {
 	go func() {
 		for i := 0; i < numberOfMessages; i++ {
@@ -122,7 +155,7 @@ func newMockConsumer(expectedEvent event.ObservationExtracted) event.MessageCons
 
 }
 
-func waitForEventsToBeSentToHandler(eventHandler *eventtest.EventHandler, exit chan struct{}) {
+func waitForEventsToBeSentToHandler(eventHandler *eventtest.EventHandler, exit chan error) {
 
 	start := time.Now()
 	timeout := start.Add(time.Millisecond * 500)

@@ -11,14 +11,15 @@ func main() {
 	var brokers []string
 	brokers = append(brokers, "localhost:9092")
 
-	producer := kafka.NewProducer(brokers, "observation-extracted", int(2000000))
+	producer, _ := kafka.NewProducer(brokers, "observation-extracted", int(2000000))
 
 	event1 := event.ObservationExtracted{InstanceID: "7", Row: "5,,sex,male,age,30"}
 	sendEvent(producer, event1)
 	event2 := event.ObservationExtracted{InstanceID: "7", Row: "5,,sex,female,age,20"}
 	sendEvent(producer, event2)
 	time.Sleep(time.Duration(5000 * time.Millisecond))
-	producer.Closer() <- true
+
+	producer.Close(nil)
 }
 
 func sendEvent(producer kafka.Producer, extracted event.ObservationExtracted) {

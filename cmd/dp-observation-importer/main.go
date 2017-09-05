@@ -1,6 +1,8 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"github.com/ONSdigital/dp-observation-importer/config"
 	"github.com/ONSdigital/dp-observation-importer/dimension"
 	"github.com/ONSdigital/dp-observation-importer/errors"
@@ -71,10 +73,6 @@ func main() {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
-	// a channel used to signal a graceful exit.
-	// it can be listened to by multiple consumers as the closing of the channel is the signal.
-	error := make(chan error)
-
 	// when errors occur - we send a message on an error topic.
 	errorHandler := errors.NewKafkaHandler(kafkaErrorProducer)
 
@@ -98,38 +96,47 @@ func main() {
 
 	eventConsumer := event.NewConsumer()
 
-	// Start listening for event messages.
-	eventConsumer.Consume(kafkaConsumer, config.BatchSize, batchHandler, config.BatchWaitTime, error)
+	// a channel used to signal a graceful exit.
+	// it can be listened to by multiple consumers as the closing of the channel is the signal.
+	errorChannel := make(chan error)
 
-	//shutdownGracefully := func(err error) {
-	//
-	//	if err != nil {
-	//		log.Error(err, nil)
-	//	}
-	//
-	//	// gracefully dispose resources
-	//	eventConsumer.Close()
-	//	kafkaConsumer.Close()
-	//	kafkaErrorProducer.Close()
-	//	kafkaResultProducer.Close()
-	//
-	//	log.Debug("graceful shutdown was successful", nil)
-	//	os.Exit(0)
-	//}
-	//
-	//for {
-	//	select {
-	//
-	//	case err := <-kafkaConsumer.Errors():
-	//		shutdownGracefully(err)
-	//	case err := <-kafkaResultProducer.Errors():
-	//		shutdownGracefully(err)
-	//	case err := <-kafkaResultProducer.Errors():
-	//		shutdownGracefully(err)
-	//	case err := <-error:
-	//		shutdownGracefully(err)
-	//	case <-signals:
-	//		shutdownGracefully(fmt.Errorf("os signal receieved"))
-	//	}
-	//}
+	// Start listening for event messages.
+	eventConsumer.Consume(kafkaConsumer, config.BatchSize, batchHandler, config.BatchWaitTime, errorChannel)
+
+	shutdownGracefully := func(err error) {
+
+		if err != nil {
+			log.Error(err, nil)
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+
+		// gracefully dispose resources
+		eventConsumer.Close(ctx)
+		kafkaConsumer.Close(ctx)
+		kafkaErrorProducer.Close(ctx)
+		kafkaResultProducer.Close(ctx)
+
+		// cancel the timer in the shutdown context.
+		cancel()
+
+		log.Debug("graceful shutdown was successful", nil)
+		os.Exit(0)
+	}
+
+	for {
+		select {
+
+		case err := <-kafkaConsumer.Errors():
+			shutdownGracefully(err)
+		case err := <-kafkaResultProducer.Errors():
+			shutdownGracefully(err)
+		case err := <-kafkaResultProducer.Errors():
+			shutdownGracefully(err)
+		case err := <-errorChannel:
+			shutdownGracefully(err)
+		case <-signals:
+			shutdownGracefully(fmt.Errorf("os signal receieved"))
+		}
+	}
 }
