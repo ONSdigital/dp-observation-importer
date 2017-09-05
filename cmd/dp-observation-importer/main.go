@@ -8,8 +8,11 @@ import (
 	"github.com/ONSdigital/dp-observation-importer/errors"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/observation"
+	"github.com/ONSdigital/go-ns/handlers/healthcheck"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/go-ns/server"
+	"github.com/gorilla/mux"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	"net/http"
 	"os"
@@ -28,7 +31,6 @@ func main() {
 	}
 
 	// Avoid logging the neo4j URL as it may contain a password
-	// Avoid logging the neo4j URL as it may contain a password
 	log.Debug("loaded config", log.Data{
 		"topics":                     []string{config.ObservationConsumerTopic, config.ErrorProducerTopic, config.ResultProducerTopic},
 		"brokers":                    config.KafkaAddr,
@@ -39,10 +41,23 @@ func main() {
 		"batch_size":                 config.BatchSize,
 		"batch_time":                 config.BatchWaitTime})
 
-	kafkaBrokers := config.KafkaAddr
+	// a channel used to signal a graceful exit is required.
+	errorChannel := make(chan error)
+
+	router := mux.NewRouter()
+	router.Path("/healthcheck").HandlerFunc(healthcheck.Handler)
+	httpServer := server.New(config.BindAddr, router)
+	httpServer.HandleOSSignals = false
+
+	go func() {
+		log.Debug("starting http server", log.Data{"bind_addr": config.BindAddr})
+		if err := httpServer.ListenAndServe(); err != nil {
+			errorChannel <- err
+		}
+	}()
 
 	kafkaConsumer, err := kafka.NewConsumerGroup(
-		kafkaBrokers,
+		config.KafkaAddr,
 		config.ObservationConsumerTopic,
 		config.ObservationConsumerGroup,
 		kafka.OffsetNewest)
@@ -51,27 +66,23 @@ func main() {
 		os.Exit(1)
 	}
 
-	kafkaErrorProducer, err := kafka.NewProducer(kafkaBrokers, config.ErrorProducerTopic, 0)
+	kafkaErrorProducer, err := kafka.NewProducer(config.KafkaAddr, config.ErrorProducerTopic, 0)
 	if err != nil {
 		log.Error(err, nil)
 		os.Exit(1)
 	}
 
-	kafkaResultProducer, err := kafka.NewProducer(kafkaBrokers, config.ResultProducerTopic, 0)
+	kafkaResultProducer, err := kafka.NewProducer(config.KafkaAddr, config.ResultProducerTopic, 0)
 	if err != nil {
 		log.Error(err, nil)
 		os.Exit(1)
 	}
 
 	dbConnection, err := bolt.NewDriver().OpenNeo(config.DatabaseAddress)
-
 	if err != nil {
 		log.Error(err, nil)
 		os.Exit(1)
 	}
-
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
 	// when errors occur - we send a message on an error topic.
 	errorHandler := errors.NewKafkaHandler(kafkaErrorProducer)
@@ -96,10 +107,6 @@ func main() {
 
 	eventConsumer := event.NewConsumer()
 
-	// a channel used to signal a graceful exit.
-	// it can be listened to by multiple consumers as the closing of the channel is the signal.
-	errorChannel := make(chan error)
-
 	// Start listening for event messages.
 	eventConsumer.Consume(kafkaConsumer, config.BatchSize, batchHandler, config.BatchWaitTime, errorChannel)
 
@@ -116,6 +123,7 @@ func main() {
 		kafkaConsumer.Close(ctx)
 		kafkaErrorProducer.Close(ctx)
 		kafkaResultProducer.Close(ctx)
+		httpServer.Shutdown(ctx)
 
 		// cancel the timer in the shutdown context.
 		cancel()
@@ -123,6 +131,9 @@ func main() {
 		log.Debug("graceful shutdown was successful", nil)
 		os.Exit(0)
 	}
+
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
 	for {
 		select {
