@@ -3,7 +3,6 @@ package event
 import (
 	"context"
 	"errors"
-	"fmt"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"time"
@@ -26,13 +25,10 @@ type Consumer struct {
 
 // NewConsumerGroup returns a new consumer group using default configuration.
 func NewConsumer() *Consumer {
-
-	c := Consumer{
+	return &Consumer{
 		closing: make(chan bool),
 		closed:  make(chan bool),
 	}
-
-	return &c
 }
 
 // Consume convert them to event instances, and pass the event to the provided handler.
@@ -65,6 +61,7 @@ func (consumer *Consumer) Consume(messageConsumer MessageConsumer,
 				ProcessBatch(handler, batch, error)
 
 			case <-consumer.closing:
+				log.Info("closing event consumer loop", nil)
 				return
 			}
 		}
@@ -82,10 +79,10 @@ func (consumer *Consumer) Close(ctx context.Context) (err error) {
 
 	select {
 	case <-consumer.closed:
-		log.Info(fmt.Sprintf("Successfully closed event consumer"), nil)
+		log.Info("successfully closed event consumer", nil)
 		return nil
 	case <-ctx.Done():
-		log.Info(fmt.Sprintf("Shutdown context time exceeded, skipping graceful shutdown of event consumer"), nil)
+		log.Info("shutdown context time exceeded, skipping graceful shutdown of event consumer", nil)
 		return errors.New("Shutdown context timed out")
 	}
 }

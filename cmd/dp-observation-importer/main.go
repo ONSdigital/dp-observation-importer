@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 	"github.com/ONSdigital/dp-observation-importer/config"
 	"github.com/ONSdigital/dp-observation-importer/dimension"
 	"github.com/ONSdigital/dp-observation-importer/errors"
@@ -47,6 +46,10 @@ func main() {
 	router := mux.NewRouter()
 	router.Path("/healthcheck").HandlerFunc(healthcheck.Handler)
 	httpServer := server.New(config.BindAddr, router)
+
+	// Disable auto handling of os signals by the HTTP server. This is handled
+	// in the service so we can gracefully shutdown resources other than just
+	// the HTTP server.
 	httpServer.HandleOSSignals = false
 
 	go func() {
@@ -110,11 +113,7 @@ func main() {
 	// Start listening for event messages.
 	eventConsumer.Consume(kafkaConsumer, config.BatchSize, batchHandler, config.BatchWaitTime, errorChannel)
 
-	shutdownGracefully := func(err error) {
-
-		if err != nil {
-			log.Error(err, nil)
-		}
+	shutdownGracefully := func() {
 
 		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 
@@ -137,17 +136,21 @@ func main() {
 
 	for {
 		select {
-
 		case err := <-kafkaConsumer.Errors():
-			shutdownGracefully(err)
+			log.ErrorC("kafka consumer", err, nil)
+			shutdownGracefully()
 		case err := <-kafkaResultProducer.Errors():
-			shutdownGracefully(err)
+			log.ErrorC("kafka result producer", err, nil)
+			shutdownGracefully()
 		case err := <-kafkaResultProducer.Errors():
-			shutdownGracefully(err)
+			log.ErrorC("kafka error producer", err, nil)
+			shutdownGracefully()
 		case err := <-errorChannel:
-			shutdownGracefully(err)
+			log.ErrorC("error channel", err, nil)
+			shutdownGracefully()
 		case <-signals:
-			shutdownGracefully(fmt.Errorf("os signal receieved"))
+			log.Debug("os signal received", nil)
+			shutdownGracefully()
 		}
 	}
 }
