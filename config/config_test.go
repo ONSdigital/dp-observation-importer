@@ -25,7 +25,7 @@ func TestSpec(t *testing.T) {
 				So(cfg.ObservationConsumerGroup, ShouldEqual, "observation-extracted")
 				So(cfg.ObservationConsumerTopic, ShouldEqual, "observation-extracted")
 				So(cfg.DatabaseAddress, ShouldEqual, "bolt://localhost:7687")
-				So(cfg.ImportAPIURL, ShouldEqual, "http://localhost:21800")
+				So(cfg.DatasetAPIURL, ShouldEqual, "http://localhost:22000")
 				So(cfg.BatchSize, ShouldEqual, 1000)
 				So(cfg.BatchWaitTime, ShouldEqual, time.Millisecond*200)
 				So(cfg.ErrorProducerTopic, ShouldEqual, "import-error")

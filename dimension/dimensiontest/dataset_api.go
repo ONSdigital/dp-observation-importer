@@ -7,14 +7,14 @@ import (
 	"strings"
 )
 
-// MockImportAPI provides mock functionality for the import API.
-type MockImportAPI struct {
+// MockDatasetAPI provides mock functionality for the dataset API.
+type MockDatasetAPI struct {
 	FailRequest bool
 	Data        string
 }
 
 // Do returns a mock HTTP response for the given request.
-func (i MockImportAPI) Do(req *http.Request) (*http.Response, error) {
+func (i MockDatasetAPI) Do(req *http.Request) (*http.Response, error) {
 	if i.FailRequest {
 		return nil, fmt.Errorf("Failed to process the request")
 	}

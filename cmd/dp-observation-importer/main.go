@@ -34,7 +34,7 @@ func main() {
 		"topics":                     []string{config.ObservationConsumerTopic, config.ErrorProducerTopic, config.ResultProducerTopic},
 		"brokers":                    config.KafkaAddr,
 		"bind_addr":                  config.BindAddr,
-		"import_api_url":             config.ImportAPIURL,
+		"dataset_api_url":             config.DatasetAPIURL,
 		"observation_consumer_group": config.ObservationConsumerGroup,
 		"cache_ttl":                  config.CacheTTL,
 		"batch_size":                 config.BatchSize,
@@ -90,9 +90,9 @@ func main() {
 	// when errors occur - we send a message on an error topic.
 	errorHandler := errors.NewKafkaHandler(kafkaErrorProducer)
 
-	// objects to get dimension data - via the import API + cached locally in memory.
+	// objects to get dimension data - via the dataset API + cached locally in memory.
 	httpClient := http.Client{Timeout: time.Second * 15}
-	dimensionStore := dimension.NewStore(config.ImportAPIURL, &httpClient)
+	dimensionStore := dimension.NewStore(config.DatasetAPIURL, &httpClient)
 	dimensionOrderCache := dimension.NewOrderCache(dimensionStore, config.CacheTTL)
 	dimensionIDCache := dimension.NewIDCache(dimensionStore, config.CacheTTL)
 

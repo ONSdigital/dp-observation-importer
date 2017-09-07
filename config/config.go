@@ -12,7 +12,7 @@ type Config struct {
 	ObservationConsumerGroup string        `envconfig:"OBSERVATION_CONSUMER_GROUP"`
 	ObservationConsumerTopic string        `envconfig:"OBSERVATION_CONSUMER_TOPIC"`
 	DatabaseAddress          string        `envconfig:"DATABASE_ADDRESS"`
-	ImportAPIURL             string        `envconfig:"IMPORT_API_URL"`
+	DatasetAPIURL            string        `envconfig:"DATASET_API_URL"`
 	BatchSize                int           `envconfig:"BATCH_SIZE"`
 	BatchWaitTime            time.Duration `envconfig:"BATCH_WAIT_TIME_MS"`
 	ErrorProducerTopic       string        `envconfig:"ERROR_PRODUCER_TOPIC"`
@@ -30,7 +30,7 @@ func Get() (*Config, error) {
 		ObservationConsumerGroup: "observation-extracted",
 		ObservationConsumerTopic: "observation-extracted",
 		DatabaseAddress:          "bolt://localhost:7687",
-		ImportAPIURL:             "http://localhost:21800",
+		DatasetAPIURL:            "http://localhost:22000",
 		BatchSize:                1000,
 		BatchWaitTime:            time.Millisecond * 200,
 		ErrorProducerTopic:       "import-error",

@@ -22,7 +22,7 @@ dp-observation-importer
 | OBSERVATION_CONSUMER_GROUP | "dp-observation-importer"        | The Kafka consumer group to consume observation extracted events from
 | OBSERVATION_CONSUMER_TOPIC | "observation-extracted"          | The Kafka topic to consume observation extracted events from
 | DATABASE_ADDRESS           | "bolt://localhost:7687"          | The address of the database
-| IMPORT_API_URL             | "http://localhost:21800"         | The URL of the import API
+| DATASET_API_URL            | "http://localhost:21800"         | The URL of the dataset API
 | BATCH_SIZE                 | 1000                             | The number of messages to process in each batch if the time out has not been reached
 | BATCH_WAIT_TIME            | 200ms                            | The duration to wait before processing a partially full batch of messages
 | ERROR_PRODUCER_TOPIC       | "import-error"                   | The Kafka topic to send the error messages to
