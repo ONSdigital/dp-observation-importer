@@ -10,7 +10,7 @@ import (
 
 var _ Handler = (*KafkaHandler)(nil)
 
-//go:generate moq -out errorstest/handler.go -pkg errorstest . Handler
+//go:generate moq -out ../mocks/handler.go -pkg errorstest . Handler MessageProducer
 
 // Handler defines a generic interface for handling errors.
 type Handler interface {
