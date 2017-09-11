@@ -34,7 +34,7 @@ func main() {
 		"topics":                     []string{config.ObservationConsumerTopic, config.ErrorProducerTopic, config.ResultProducerTopic},
 		"brokers":                    config.KafkaAddr,
 		"bind_addr":                  config.BindAddr,
-		"dataset_api_url":             config.DatasetAPIURL,
+		"dataset_api_url":            config.DatasetAPIURL,
 		"observation_consumer_group": config.ObservationConsumerGroup,
 		"cache_ttl":                  config.CacheTTL,
 		"batch_size":                 config.BatchSize,

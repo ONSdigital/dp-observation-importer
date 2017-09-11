@@ -25,6 +25,11 @@ type csvHeaders struct {
 	Headers []string `json:"headers"`
 }
 
+// DimensionNodeResults wraps dimension node objects for pagination
+type DimensionNodeResults struct {
+	Items []Dimension `json:"items"`
+}
+
 // Dimension which has been cached from the dataset api
 type Dimension struct {
 	DimensionName string `json:"dimension_id"`
@@ -79,13 +84,13 @@ func (store *Store) GetIDs(instanceID string) (map[string]string, error) {
 		return nil, err
 	}
 
-	var dimensions []Dimension
-	JSONErr := json.Unmarshal(bytes, &dimensions)
+	var dimensionResults DimensionNodeResults
+	JSONErr := json.Unmarshal(bytes, &dimensionResults)
 	if JSONErr != nil {
 		return nil, JSONErr
 	}
 	cache := make(map[string]string)
-	for _, dimension := range dimensions {
+	for _, dimension := range dimensionResults.Items {
 		cache[(dimension.DimensionName + "_" + dimension.Value)] = dimension.NodeID
 	}
 	return cache, nil
