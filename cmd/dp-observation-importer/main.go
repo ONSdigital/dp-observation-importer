@@ -24,10 +24,7 @@ func main() {
 	log.Namespace = "dp-observation-importer"
 
 	config, err := config.Get()
-	if err != nil {
-		log.Error(err, nil)
-		os.Exit(1)
-	}
+	checkForError(err)
 
 	// Avoid logging the neo4j URL as it may contain a password
 	log.Debug("loaded config", log.Data{
@@ -64,28 +61,16 @@ func main() {
 		config.ObservationConsumerTopic,
 		config.ObservationConsumerGroup,
 		kafka.OffsetNewest)
-	if err != nil {
-		log.Error(err, nil)
-		os.Exit(1)
-	}
+	checkForError(err)
 
 	kafkaErrorProducer, err := kafka.NewProducer(config.KafkaAddr, config.ErrorProducerTopic, 0)
-	if err != nil {
-		log.Error(err, nil)
-		os.Exit(1)
-	}
+	checkForError(err)
 
 	kafkaResultProducer, err := kafka.NewProducer(config.KafkaAddr, config.ResultProducerTopic, 0)
-	if err != nil {
-		log.Error(err, nil)
-		os.Exit(1)
-	}
+	checkForError(err)
 
 	dbConnection, err := bolt.NewDriver().OpenNeo(config.DatabaseAddress)
-	if err != nil {
-		log.Error(err, nil)
-		os.Exit(1)
-	}
+	checkForError(err)
 
 	// when errors occur - we send a message on an error topic.
 	errorHandler := errors.NewKafkaHandler(kafkaErrorProducer)
@@ -115,7 +100,7 @@ func main() {
 
 	shutdownGracefully := func() {
 
-		ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+		ctx, cancel := context.WithTimeout(context.Background(), config.GracefulShutdownTimeout)
 
 		// gracefully dispose resources
 		eventConsumer.Close(ctx)
@@ -142,7 +127,7 @@ func main() {
 		case err := <-kafkaResultProducer.Errors():
 			log.ErrorC("kafka result producer", err, nil)
 			shutdownGracefully()
-		case err := <-kafkaResultProducer.Errors():
+		case err := <-kafkaErrorProducer.Errors():
 			log.ErrorC("kafka error producer", err, nil)
 			shutdownGracefully()
 		case err := <-errorChannel:
@@ -152,5 +137,11 @@ func main() {
 			log.Debug("os signal received", nil)
 			shutdownGracefully()
 		}
+	}
+}
+func checkForError(err error) {
+	if err != nil {
+		log.Error(err, nil)
+		os.Exit(1)
 	}
 }
