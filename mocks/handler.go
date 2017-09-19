@@ -5,8 +5,6 @@ package mocks
 
 import (
 	"sync"
-
-	"github.com/ONSdigital/go-ns/log"
 )
 
 var (
@@ -19,7 +17,7 @@ var (
 //
 //         // make and configure a mocked Handler
 //         mockedHandler := &HandlerMock{
-//             HandleFunc: func(instanceID string, err error, data log.Data)  {
+//             HandleFunc: func(instanceID string, err error)  {
 // 	               panic("TODO: mock out the Handle method")
 //             },
 //         }
@@ -30,7 +28,7 @@ var (
 //     }
 type HandlerMock struct {
 	// HandleFunc mocks the Handle method.
-	HandleFunc func(instanceID string, err error, data log.Data)
+	HandleFunc func(instanceID string, err error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -40,30 +38,26 @@ type HandlerMock struct {
 			InstanceID string
 			// Err is the err argument value.
 			Err error
-			// Data is the data argument value.
-			Data log.Data
 		}
 	}
 }
 
 // Handle calls HandleFunc.
-func (mock *HandlerMock) Handle(instanceID string, err error, data log.Data) {
+func (mock *HandlerMock) Handle(instanceID string, err error) {
 	if mock.HandleFunc == nil {
 		panic("moq: HandlerMock.HandleFunc is nil but Handler.Handle was just called")
 	}
 	callInfo := struct {
 		InstanceID string
 		Err        error
-		Data       log.Data
 	}{
 		InstanceID: instanceID,
 		Err:        err,
-		Data:       data,
 	}
 	lockHandlerMockHandle.Lock()
 	mock.calls.Handle = append(mock.calls.Handle, callInfo)
 	lockHandlerMockHandle.Unlock()
-	mock.HandleFunc(instanceID, err, data)
+	mock.HandleFunc(instanceID, err)
 }
 
 // HandleCalls gets all the calls that were made to Handle.
@@ -72,12 +66,10 @@ func (mock *HandlerMock) Handle(instanceID string, err error, data log.Data) {
 func (mock *HandlerMock) HandleCalls() []struct {
 	InstanceID string
 	Err        error
-	Data       log.Data
 } {
 	var calls []struct {
 		InstanceID string
 		Err        error
-		Data       log.Data
 	}
 	lockHandlerMockHandle.RLock()
 	calls = mock.calls.Handle

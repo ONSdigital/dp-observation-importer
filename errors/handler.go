@@ -1,8 +1,6 @@
 package errors
 
 import (
-	"time"
-
 	eventhandler "github.com/ONSdigital/dp-import-reporter/handler"
 	eventSchema "github.com/ONSdigital/dp-import-reporter/schema"
 	"github.com/ONSdigital/go-ns/log"
@@ -10,11 +8,11 @@ import (
 
 var _ Handler = (*KafkaHandler)(nil)
 
-//go:generate moq -out ../mocks/handler.go -pkg errorstest . Handler MessageProducer
+//go:generate moq -out ../mocks/handler.go -pkg mocks . Handler MessageProducer
 
 // Handler defines a generic interface for handling errors.
 type Handler interface {
-	Handle(instanceID string, err error, data log.Data)
+	Handle(instanceID string, err error)
 }
 
 // KafkaHandler provides an error handler that writes to a Kafka error topic.
@@ -36,15 +34,12 @@ type MessageProducer interface {
 }
 
 // Handle logs the error and sends is as a Kafka message.
-func (handler *KafkaHandler) Handle(instanceID string, err error, data log.Data) {
+func (handler *KafkaHandler) Handle(instanceID string, err error) {
 
-	if data == nil {
-		data = log.Data{}
-	}
+	data := log.Data{"INSTANCEID": instanceID, "ERROR": err.Error()}
 
-	data["instance_id"] = instanceID
+	log.Info("Recieved error report", data)
 
-	log.Error(err, data)
 	eventReport := eventhandler.EventReport{
 		InstanceID: instanceID,
 		EventType:  "error",
@@ -53,11 +48,10 @@ func (handler *KafkaHandler) Handle(instanceID string, err error, data log.Data)
 
 	errMsg, err := eventSchema.ReportedEventSchema.Marshal(&eventReport)
 	if err != nil {
-		log.Error(err, nil)
+		log.ErrorC("Failed to marshall error to event-reporter", err, data)
 		return
 	}
 
 	handler.messageProducer.Output() <- errMsg
-	time.Sleep(time.Duration(1000 * time.Millisecond))
 
 }

@@ -52,11 +52,10 @@ func NewBatchHandler(
 // Handle the given slice of ObservationExtracted events.
 func (handler BatchHandler) Handle(events []*ObservationExtracted) error {
 	observations := make([]*observation.Observation, 0, len(events))
-
 	for _, event := range events {
 		observation, err := handler.observationMapper.Map(event.Row, event.InstanceID)
 		if err != nil {
-			handler.errorHandler.Handle(event.InstanceID, err, nil)
+			handler.errorHandler.Handle(event.InstanceID, err)
 			continue // do not add this error'd event to the batch
 		}
 
