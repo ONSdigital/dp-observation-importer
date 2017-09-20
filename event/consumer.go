@@ -18,12 +18,13 @@ type Handler interface {
 	Handle(events []*ObservationExtracted) error
 }
 
+// Consumer consumes event messages.
 type Consumer struct {
 	closing chan bool
 	closed  chan bool
 }
 
-// NewConsumerGroup returns a new consumer group using default configuration.
+// NewConsumer returns a new consumer instance.
 func NewConsumer() *Consumer {
 	return &Consumer{
 		closing: make(chan bool),

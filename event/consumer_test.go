@@ -28,7 +28,7 @@ func TestConsume(t *testing.T) {
 
 			go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
-			waitForEventsToBeSentToHandler(eventHandler, exit)
+			waitForEventsToBeSentToHandler(eventHandler)
 
 			Convey("The expected event is sent to the handler", func() {
 				So(len(eventHandler.Events), ShouldEqual, 1)
@@ -84,7 +84,7 @@ func TestConsume_Timeout(t *testing.T) {
 
 			go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
-			waitForEventsToBeSentToHandler(eventHandler, exit)
+			waitForEventsToBeSentToHandler(eventHandler)
 
 			Convey("The consumer timeout is hit and the single event is sent to the handler anyway", func() {
 				So(len(eventHandler.Events), ShouldEqual, 1)
@@ -122,7 +122,7 @@ func TestConsume_DelayedMessages(t *testing.T) {
 
 			go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
-			waitForEventsToBeSentToHandler(eventHandler, exit)
+			waitForEventsToBeSentToHandler(eventHandler)
 
 			Convey("The expected events are sent to the handler in one batch - i.e. the timeout is not hit", func() {
 				So(len(eventHandler.Events), ShouldEqual, 3)
@@ -155,20 +155,18 @@ func newMockConsumer(expectedEvent event.ObservationExtracted) event.MessageCons
 
 }
 
-func waitForEventsToBeSentToHandler(eventHandler *eventtest.EventHandler, exit chan error) {
+func waitForEventsToBeSentToHandler(eventHandler *eventtest.EventHandler) {
 
 	start := time.Now()
 	timeout := start.Add(time.Millisecond * 500)
 	for {
 		if len(eventHandler.Events) > 0 {
 			log.Debug("events have been sent to the handler", nil)
-			close(exit)
 			break
 		}
 
 		if time.Now().After(timeout) {
 			log.Debug("timeout hit", nil)
-			close(exit)
 			break
 		}
 
