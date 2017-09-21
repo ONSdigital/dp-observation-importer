@@ -1,8 +1,8 @@
 package event
 
 import (
-	"github.com/ONSdigital/dp-observation-importer/errors"
 	"github.com/ONSdigital/dp-observation-importer/observation"
+	"github.com/ONSdigital/go-ns/errorhandler"
 )
 
 //go:generate moq -out eventtest/observation_mapper.go -pkg eventtest . ObservationMapper
@@ -16,7 +16,7 @@ type BatchHandler struct {
 	observationMapper ObservationMapper
 	observationStore  ObservationStore
 	resultWriter      ResultWriter
-	errorHandler      errors.Handler
+	errorHandler      errorhandler.Handler
 }
 
 // ObservationMapper handles the conversion from row data to observation instances.
@@ -39,7 +39,7 @@ func NewBatchHandler(
 	observationMapper ObservationMapper,
 	observationStore ObservationStore,
 	resultWriter ResultWriter,
-	errorHandler errors.Handler) *BatchHandler {
+	errorHandler errorhandler.Handler) *BatchHandler {
 
 	return &BatchHandler{
 		observationMapper: observationMapper,

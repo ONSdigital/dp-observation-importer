@@ -1,19 +1,21 @@
 package main
 
 import (
-	"github.com/ONSdigital/dp-observation-importer/config"
-	"github.com/ONSdigital/dp-observation-importer/dimension"
-	"github.com/ONSdigital/dp-observation-importer/errors"
-	"github.com/ONSdigital/dp-observation-importer/event"
-	"github.com/ONSdigital/dp-observation-importer/observation"
-	"github.com/ONSdigital/go-ns/kafka"
-	"github.com/ONSdigital/go-ns/log"
-	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/ONSdigital/go-ns/errorhandler"
+
+	"github.com/ONSdigital/dp-observation-importer/config"
+	"github.com/ONSdigital/dp-observation-importer/dimension"
+	"github.com/ONSdigital/dp-observation-importer/event"
+	"github.com/ONSdigital/dp-observation-importer/observation"
+	"github.com/ONSdigital/go-ns/kafka"
+	"github.com/ONSdigital/go-ns/log"
+	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
 
 func main() {
@@ -68,7 +70,7 @@ func main() {
 	exit := make(chan struct{})
 
 	// when errors occur - we send a message on an error topic.
-	errorHandler := errors.NewKafkaHandler(kafkaErrorProducer)
+	errorHandler := errorhandler.NewKafkaHandler(kafkaErrorProducer)
 
 	// objects to get dimension data - via the import API + cached locally in memory.
 	httpClient := http.Client{Timeout: time.Second * 15}

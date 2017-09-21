@@ -3,8 +3,6 @@ package csv
 import (
 	"strconv"
 	"strings"
-
-	"github.com/ONSdigital/go-ns/log"
 )
 
 // Header represent the CSV header row of an import file.
@@ -21,9 +19,8 @@ func NewHeader(header []string) *Header {
 
 // DimensionOffset returns the number of columns before the start of the dimension columns.
 func (header Header) DimensionOffset() (int, error) {
-	// return 0, nil
-	log.Info("Header", log.Data{"header len": len(header.row[0])})
-	if len(header.row[0]) == 0 {
+	headerLen := header.row[0]
+	if len(headerLen) == 0 {
 		return 0, nil
 	}
 	metaData := strings.Split(header.row[0], "_")

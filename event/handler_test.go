@@ -1,14 +1,14 @@
 package event_test
 
 import (
-	"github.com/ONSdigital/dp-observation-importer/errors/errorstest"
+	"testing"
+
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/event/eventtest"
 	"github.com/ONSdigital/dp-observation-importer/observation"
-	"github.com/ONSdigital/go-ns/log"
+	mock "github.com/ONSdigital/go-ns/errorhandler/mock"
 	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
 
 var mockError = errors.New("Mapping failed")
@@ -104,8 +104,8 @@ func TestBatchHandler_Handle_MapperError(t *testing.T) {
 			WriteFunc: func(results []*observation.Result) {},
 		}
 
-		mockErrorHandler := &errorstest.HandlerMock{
-			HandleFunc: func(instanceID string, err error, data log.Data) {},
+		mockErrorHandler := &mock.HandlerMock{
+			HandleFunc: func(instanceID string, err error) {},
 		}
 
 		handler := event.NewBatchHandler(mockObservationMapper, mockObservationStore, mockResultWriter, mockErrorHandler)

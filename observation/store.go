@@ -3,7 +3,7 @@ package observation
 import (
 	"fmt"
 
-	"github.com/ONSdigital/dp-observation-importer/errors"
+	"github.com/ONSdigital/go-ns/errorhandler"
 	"github.com/ONSdigital/go-ns/log"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
@@ -12,7 +12,7 @@ import (
 type Store struct {
 	dimensionIDCache DimensionIDCache
 	dBConnection     DBConnection
-	errorHandler     errors.Handler
+	errorHandler     errorhandler.Handler
 }
 
 // DimensionIDCache provides database ID's of dimensions when inserting observations.
@@ -26,7 +26,7 @@ type DBConnection interface {
 }
 
 // NewStore returns a new Observation store instance that uses the given dimension ID cache and db connection.
-func NewStore(dimensionIDCache DimensionIDCache, dBConnection DBConnection, errorHandler errors.Handler) *Store {
+func NewStore(dimensionIDCache DimensionIDCache, dBConnection DBConnection, errorHandler errorhandler.Handler) *Store {
 	return &Store{
 		dimensionIDCache: dimensionIDCache,
 		dBConnection:     dBConnection,
