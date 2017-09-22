@@ -21,8 +21,8 @@ var inputObservation = &observation.Observation{
 }
 
 var ids = map[string]string{
-	"123_Sex_Male": "333",
-	"123_Age_45":   "666",
+	"123_sex_Male": "333",
+	"123_age_45":   "666",
 }
 
 var mockError = errors.New("Broken")
@@ -46,7 +46,7 @@ func TestStore_SaveAll(t *testing.T) {
 				So(len(dbConnection.Params), ShouldEqual, 1)
 
 				query := dbConnection.Queries[0]
-				So(query, ShouldEqual, "UNWIND $rows AS row MATCH (`Sex`:`_123_Sex`), (`Age`:`_123_Age`) WHERE id(`Sex`) = toInt(row.`Sex`) AND id(`Age`) = toInt(row.`Age`) CREATE (o:`_123_observation` { value:row.v }), (o)-[:isValueOf]->(`Sex`), (o)-[:isValueOf]->(`Age`)")
+				So(query, ShouldEqual, "UNWIND $rows AS row MATCH (`sex`:`_123_sex`), (`age`:`_123_age`) WHERE id(`sex`) = toInt(row.`sex`) AND id(`age`) = toInt(row.`age`) CREATE (o:`_123_observation` { value:row.v }), (o)-[:isValueOf]->(`sex`), (o)-[:isValueOf]->(`age`)")
 
 				//var params map[string]interface{}
 				params := dbConnection.Params[0]
@@ -55,8 +55,8 @@ func TestStore_SaveAll(t *testing.T) {
 				row := rows.([]interface{})[0]
 				rowMap, _ := row.(map[string]interface{})
 				So(rowMap["v"], ShouldEqual, "the,row,content")
-				So(rowMap["Sex"], ShouldEqual, "333")
-				So(rowMap["Age"], ShouldEqual, "666")
+				So(rowMap["sex"], ShouldEqual, "333")
+				So(rowMap["age"], ShouldEqual, "666")
 			})
 
 			Convey("The results have the expected values", func() {

@@ -6,6 +6,7 @@ import (
 	"github.com/ONSdigital/dp-observation-importer/errors"
 	"github.com/ONSdigital/go-ns/log"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	"strings"
 )
 
 // Store provides persistence for observations.
@@ -125,14 +126,16 @@ func createParams(observations []*Observation, dimensionIDs map[string]string) (
 
 		for _, option := range observation.DimensionOptions {
 
-			dimensionLookUp := observation.InstanceID + "_" + option.DimensionName + "_" + option.Name
+			optionName := strings.ToLower(option.DimensionName)
+
+			dimensionLookUp := observation.InstanceID + "_" + optionName + "_" + option.Name
 
 			nodeID, ok := dimensionIDs[dimensionLookUp]
 			if !ok {
 				return nil, fmt.Errorf("No nodeId found for %s", dimensionLookUp)
 			}
 
-			row[option.DimensionName] = nodeID
+			row[optionName] = nodeID
 		}
 
 		rows = append(rows, row)
@@ -159,10 +162,11 @@ func buildInsertObservationQuery(instanceID string, observations []*Observation)
 			where += " AND "
 			create += ", "
 		}
+		optionName := strings.ToLower(option.DimensionName)
 
-		match += fmt.Sprintf("(`%s`:`_%s_%s`)", option.DimensionName, instanceID, option.DimensionName)
-		where += fmt.Sprintf("id(`%s`) = toInt(row.`%s`)", option.DimensionName, option.DimensionName)
-		create += fmt.Sprintf("(o)-[:isValueOf]->(`%s`)", option.DimensionName)
+		match += fmt.Sprintf("(`%s`:`_%s_%s`)", optionName, instanceID, optionName)
+		where += fmt.Sprintf("id(`%s`) = toInt(row.`%s`)", optionName, optionName)
+		create += fmt.Sprintf("(o)-[:isValueOf]->(`%s`)", optionName)
 		index++
 	}
 
