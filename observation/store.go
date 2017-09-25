@@ -126,16 +126,16 @@ func createParams(observations []*Observation, dimensionIDs map[string]string) (
 
 		for _, option := range observation.DimensionOptions {
 
-			optionName := strings.ToLower(option.DimensionName)
+			dimensionName := strings.ToLower(option.DimensionName)
 
-			dimensionLookUp := observation.InstanceID + "_" + optionName + "_" + option.Name
+			dimensionLookUp := observation.InstanceID + "_" + dimensionName + "_" + option.Name
 
 			nodeID, ok := dimensionIDs[dimensionLookUp]
 			if !ok {
 				return nil, fmt.Errorf("No nodeId found for %s", dimensionLookUp)
 			}
 
-			row[optionName] = nodeID
+			row[dimensionName] = nodeID
 		}
 
 		rows = append(rows, row)
