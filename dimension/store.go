@@ -5,6 +5,7 @@ import (
 	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
 	"io/ioutil"
 	"net/http"
+	"fmt"
 )
 
 // ErrParseAPIResponse used when the dataset API response fails to be parsed.
@@ -91,7 +92,7 @@ func (store *Store) GetIDs(instanceID string) (map[string]string, error) {
 	}
 	cache := make(map[string]string)
 	for _, dimension := range dimensionResults.Items {
-		cache[(dimension.DimensionName + "_" + dimension.Value)] = dimension.NodeID
+		cache[fmt.Sprintf("%s_%s_%s", instanceID, dimension.DimensionName, dimension.Value)] = dimension.NodeID
 	}
 	return cache, nil
 }
