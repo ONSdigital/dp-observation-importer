@@ -34,7 +34,7 @@ type DimensionNodeResults struct {
 // Dimension which has been cached from the dataset api
 type Dimension struct {
 	DimensionName string `json:"dimension_id"`
-	Value         string `json:"value"`
+	Option        string `json:"option"`
 	NodeID        string `json:"node_id"`
 }
 
@@ -92,7 +92,7 @@ func (store *Store) GetIDs(instanceID string) (map[string]string, error) {
 	}
 	cache := make(map[string]string)
 	for _, dimension := range dimensionResults.Items {
-		cache[fmt.Sprintf("%s_%s_%s", instanceID, dimension.DimensionName, dimension.Value)] = dimension.NodeID
+		cache[fmt.Sprintf("%s_%s_%s", instanceID, dimension.DimensionName, dimension.Option)] = dimension.NodeID
 	}
 	return cache, nil
 }
