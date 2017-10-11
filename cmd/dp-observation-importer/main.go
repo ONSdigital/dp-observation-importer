@@ -35,7 +35,9 @@ func main() {
 		"observation_consumer_group": config.ObservationConsumerGroup,
 		"cache_ttl":                  config.CacheTTL,
 		"batch_size":                 config.BatchSize,
-		"batch_time":                 config.BatchWaitTime})
+		"batch_time":                 config.BatchWaitTime,
+		"graceful_shutdown_timeout":  config.GracefulShutdownTimeout,
+	})
 
 	// a channel used to signal a graceful exit is required.
 	errorChannel := make(chan error)

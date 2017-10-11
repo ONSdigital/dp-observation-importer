@@ -28,6 +28,7 @@ dp-observation-importer
 | ERROR_PRODUCER_TOPIC       | "report-events"                  | The Kafka topic to send the error messages to
 | RESULT_PRODUCER_TOPIC      | "import-observations-inserted"   | The Kafka topic to send the observations inserted messages to
 | CACHE_TTL                  | 60m                              | The amount of time to wait before clearing the cache (In minutes)
+| GRACEFUL_SHUTDOWN_TIMEOUT  | "10s"                            | The shutdown timeout in seconds
 
 ### Contributing
 
