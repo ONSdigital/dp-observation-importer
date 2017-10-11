@@ -1,11 +1,10 @@
 package event_test
 
 import (
-	"github.com/ONSdigital/dp-observation-importer/errors/errorstest"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/event/eventtest"
 	"github.com/ONSdigital/dp-observation-importer/observation"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/dp-reporter-client/reporter/reportertest"
 	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
@@ -104,11 +103,9 @@ func TestBatchHandler_Handle_MapperError(t *testing.T) {
 			WriteFunc: func(results []*observation.Result) {},
 		}
 
-		mockErrorHandler := &errorstest.HandlerMock{
-			HandleFunc: func(instanceID string, err error, data log.Data) {},
-		}
+		mockErrorReporter := reportertest.NewImportErrorReporterMock(nil)
 
-		handler := event.NewBatchHandler(mockObservationMapper, mockObservationStore, mockResultWriter, mockErrorHandler)
+		handler := event.NewBatchHandler(mockObservationMapper, mockObservationStore, mockResultWriter, mockErrorReporter)
 
 		Convey("When handle is called", func() {
 
@@ -116,8 +113,12 @@ func TestBatchHandler_Handle_MapperError(t *testing.T) {
 
 			Convey("The error from the mapper is sent to the error handler", func() {
 				So(err, ShouldBeNil)
-				So(len(mockErrorHandler.HandleCalls()), ShouldEqual, 1)
-				So(mockErrorHandler.HandleCalls()[0].InstanceID, ShouldEqual, instanceID)
+				So(len(mockErrorReporter.NotifyCalls()), ShouldEqual, 1)
+				So(mockErrorReporter.NotifyCalls()[0], ShouldResemble, reportertest.NotfiyParams{
+					ID:         instanceID,
+					ErrContext: event.MapObservationError,
+					Err:        mockError,
+				})
 			})
 		})
 	})

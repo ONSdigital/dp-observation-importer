@@ -3,6 +3,30 @@
 	"ignore": "test",
 	"package": [
 		{
+			"checksumSHA1": "yVhSSS1KY9fmMVUcoZhIVyRB/YA=",
+			"path": "github.com/ONSdigital/dp-reporter-client/model",
+			"revision": "b6ea8d2c0d8d21b8efdd86345e0d0f61368fb0c0",
+			"revisionTime": "2017-10-10T09:58:16Z"
+		},
+		{
+			"checksumSHA1": "7VuAVtBFJvzKbYbIYRWNxYLu9Ww=",
+			"path": "github.com/ONSdigital/dp-reporter-client/reporter",
+			"revision": "b6ea8d2c0d8d21b8efdd86345e0d0f61368fb0c0",
+			"revisionTime": "2017-10-10T09:58:16Z"
+		},
+		{
+			"checksumSHA1": "OXjV7Al4Q42aSizk3mhzzLCLFWA=",
+			"path": "github.com/ONSdigital/dp-reporter-client/reporter/reportertest",
+			"revision": "b6ea8d2c0d8d21b8efdd86345e0d0f61368fb0c0",
+			"revisionTime": "2017-10-10T09:58:16Z"
+		},
+		{
+			"checksumSHA1": "9+/RSnsTjyQxIVXfczqMkJpN6fM=",
+			"path": "github.com/ONSdigital/dp-reporter-client/schema",
+			"revision": "b6ea8d2c0d8d21b8efdd86345e0d0f61368fb0c0",
+			"revisionTime": "2017-10-10T09:58:16Z"
+		},
+		{
 			"checksumSHA1": "dzh4fF9o6j+mJEbJn5utm8Q+Pyg=",
 			"path": "github.com/ONSdigital/go-ns/avro",
 			"revision": "b84ad6c814376e129cbd402e22454997a1e3bca1",

@@ -4,9 +4,9 @@ import (
 	"context"
 	"github.com/ONSdigital/dp-observation-importer/config"
 	"github.com/ONSdigital/dp-observation-importer/dimension"
-	"github.com/ONSdigital/dp-observation-importer/errors"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/observation"
+	"github.com/ONSdigital/dp-reporter-client/reporter"
 	"github.com/ONSdigital/go-ns/handlers/healthcheck"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
@@ -73,7 +73,8 @@ func main() {
 	checkForError(err)
 
 	// when errors occur - we send a message on an error topic.
-	errorHandler := errors.NewKafkaHandler(kafkaErrorProducer)
+	errorReporter, err := reporter.NewImportErrorReporter(kafkaErrorProducer, log.Namespace)
+	checkForError(err)
 
 	// objects to get dimension data - via the dataset API + cached locally in memory.
 	httpClient := http.Client{Timeout: time.Second * 15}
@@ -85,13 +86,13 @@ func main() {
 	observationMapper := observation.NewMapper(dimensionOrderCache)
 
 	// stores observations in the DB.
-	observationStore := observation.NewStore(dimensionIDCache, dbConnection, errorHandler)
+	observationStore := observation.NewStore(dimensionIDCache, dbConnection, errorReporter)
 
 	// write import results to kafka topic.
 	resultWriter := observation.NewResultWriter(kafkaResultProducer)
 
 	// handle a batch of events.
-	batchHandler := event.NewBatchHandler(observationMapper, observationStore, resultWriter, errorHandler)
+	batchHandler := event.NewBatchHandler(observationMapper, observationStore, resultWriter, errorReporter)
 
 	eventConsumer := event.NewConsumer()
 

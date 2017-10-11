@@ -3,7 +3,7 @@ package observation
 import (
 	"fmt"
 
-	"github.com/ONSdigital/dp-observation-importer/errors"
+	"github.com/ONSdigital/dp-reporter-client/reporter"
 	"github.com/ONSdigital/go-ns/log"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 	"strings"
@@ -13,7 +13,7 @@ import (
 type Store struct {
 	dimensionIDCache DimensionIDCache
 	dBConnection     DBConnection
-	errorHandler     errors.Handler
+	errorReporter    reporter.ErrorReporter
 }
 
 // DimensionIDCache provides database ID's of dimensions when inserting observations.
@@ -27,11 +27,11 @@ type DBConnection interface {
 }
 
 // NewStore returns a new Observation store instance that uses the given dimension ID cache and db connection.
-func NewStore(dimensionIDCache DimensionIDCache, dBConnection DBConnection, errorHandler errors.Handler) *Store {
+func NewStore(dimensionIDCache DimensionIDCache, dBConnection DBConnection, errorReporter reporter.ErrorReporter) *Store {
 	return &Store{
 		dimensionIDCache: dimensionIDCache,
 		dBConnection:     dBConnection,
-		errorHandler:     errorHandler,
+		errorReporter:    errorReporter,
 	}
 }
 
@@ -56,7 +56,7 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 
 		dimensionIds, err := store.dimensionIDCache.GetNodeIDs(instanceID)
 		if err != nil {
-			store.errorHandler.Handle(instanceID, err, log.Data{"message": "failed to get dimension node id's"})
+			store.reportError(instanceID, "failed to get dimension node id's", err)
 			continue
 		}
 
@@ -65,7 +65,7 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 
 		params, err := createParams(instanceObservations[instanceID], dimensionIds)
 		if err != nil {
-			store.errorHandler.Handle(instanceID, err, log.Data{"message": "failed create params for batch query"})
+			store.reportError(instanceID, "failed create params for batch query", err)
 			continue
 		}
 
@@ -77,6 +77,12 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 
 	pipelineResults, err := store.dBConnection.ExecPipeline(queries, pipelineParams...)
 	if err != nil {
+		// TODO MVP solution - if the batch fails update each instance in the batch as failed.
+		// Probably want to come back to this to see if there is a better way to handle it.
+		errContext := "observation batch insert failed"
+		for instanceID, _ := range instanceObservations {
+			store.reportError(instanceID, errContext, err)
+		}
 		return nil, err
 	}
 
@@ -99,7 +105,7 @@ func (store *Store) processResults(pipelineResults []bolt.Result, results []*Res
 
 		rowsAffected, err := result.RowsAffected()
 		if err != nil {
-			store.errorHandler.Handle(instanceID, err, log.Data{"message": "error running observation insert statement"})
+			store.reportError(instanceID, "error running observation insert statement", err)
 			continue
 		}
 
@@ -111,6 +117,14 @@ func (store *Store) processResults(pipelineResults []bolt.Result, results []*Res
 	}
 
 	return results
+}
+
+func (store *Store) reportError(instanceID string, context string, cause error) {
+	if err := store.errorReporter.Notify(instanceID, context, cause); err != nil {
+		log.ErrorC("errorReporter.Notify returned unexpected error while attempting to report error", err, log.Data{
+			"reportedError": context,
+		})
+	}
 }
 
 // createParams creates parameters to inject into an insert query for each observation.

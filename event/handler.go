@@ -1,13 +1,19 @@
 package event
 
 import (
-	"github.com/ONSdigital/dp-observation-importer/errors"
 	"github.com/ONSdigital/dp-observation-importer/observation"
+	"github.com/ONSdigital/dp-reporter-client/reporter"
+	"github.com/ONSdigital/go-ns/log"
 )
 
 //go:generate moq -out eventtest/observation_mapper.go -pkg eventtest . ObservationMapper
 //go:generate moq -out eventtest/observation_store.go -pkg eventtest . ObservationStore
 //go:generate moq -out eventtest/result_writer.go -pkg eventtest . ResultWriter
+
+const (
+	MapObservationError      = "error while attempting to convert from row data to observation instances"
+	errorReporterNotifyError = "error reporter notify returned an unexpected error"
+)
 
 var _ Handler = (*BatchHandler)(nil)
 
@@ -16,7 +22,7 @@ type BatchHandler struct {
 	observationMapper ObservationMapper
 	observationStore  ObservationStore
 	resultWriter      ResultWriter
-	errorHandler      errors.Handler
+	errorReporter     reporter.ErrorReporter
 }
 
 // ObservationMapper handles the conversion from row data to observation instances.
@@ -39,13 +45,13 @@ func NewBatchHandler(
 	observationMapper ObservationMapper,
 	observationStore ObservationStore,
 	resultWriter ResultWriter,
-	errorHandler errors.Handler) *BatchHandler {
+	errorReporter reporter.ErrorReporter) *BatchHandler {
 
 	return &BatchHandler{
 		observationMapper: observationMapper,
 		observationStore:  observationStore,
 		resultWriter:      resultWriter,
-		errorHandler:      errorHandler,
+		errorReporter:     errorReporter,
 	}
 }
 
@@ -56,7 +62,9 @@ func (handler BatchHandler) Handle(events []*ObservationExtracted) error {
 	for _, event := range events {
 		observation, err := handler.observationMapper.Map(event.Row, event.InstanceID)
 		if err != nil {
-			handler.errorHandler.Handle(event.InstanceID, err, nil)
+			if err := handler.errorReporter.Notify(event.InstanceID, MapObservationError, err); err != nil {
+				log.ErrorC(errorReporterNotifyError, err, nil)
+			}
 			continue // do not add this error'd event to the batch
 		}
 
