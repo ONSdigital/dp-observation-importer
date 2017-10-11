@@ -28,7 +28,7 @@ func TestSpec(t *testing.T) {
 				So(cfg.DatasetAPIURL, ShouldEqual, "http://localhost:22000")
 				So(cfg.BatchSize, ShouldEqual, 1000)
 				So(cfg.BatchWaitTime, ShouldEqual, time.Millisecond*200)
-				So(cfg.ErrorProducerTopic, ShouldEqual, "import-error")
+				So(cfg.ErrorProducerTopic, ShouldEqual, "report-events")
 				So(cfg.ResultProducerTopic, ShouldEqual, "import-observations-inserted")
 				So(cfg.CacheTTL, ShouldEqual, time.Minute*60)
 				So(cfg.GracefulShutdownTimeout, ShouldEqual, time.Second*10)

@@ -33,7 +33,7 @@ func Get() (*Config, error) {
 		DatasetAPIURL:            "http://localhost:22000",
 		BatchSize:                1000,
 		BatchWaitTime:            time.Millisecond * 200,
-		ErrorProducerTopic:       "import-error",
+		ErrorProducerTopic:       "report-events",
 		ResultProducerTopic:      "import-observations-inserted",
 		CacheTTL:                 time.Minute * 60,
 		GracefulShutdownTimeout:  time.Second * 10,
