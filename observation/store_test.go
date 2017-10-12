@@ -48,7 +48,6 @@ func TestStore_SaveAll(t *testing.T) {
 				query := dbConnection.Queries[0]
 				So(query, ShouldEqual, "UNWIND $rows AS row MATCH (`sex`:`_123_sex`), (`age`:`_123_age`) WHERE id(`sex`) = toInt(row.`sex`) AND id(`age`) = toInt(row.`age`) CREATE (o:`_123_observation` { value:row.v }), (o)-[:isValueOf]->(`sex`), (o)-[:isValueOf]->(`age`)")
 
-				//var params map[string]interface{}
 				params := dbConnection.Params[0]
 
 				rows := params["rows"]
@@ -100,7 +99,6 @@ func TestStore_SaveAllExecPipelineError(t *testing.T) {
 				query := dbConnection.Queries[0]
 				So(query, ShouldEqual, "UNWIND $rows AS row MATCH (`sex`:`_123_sex`), (`age`:`_123_age`) WHERE id(`sex`) = toInt(row.`sex`) AND id(`age`) = toInt(row.`age`) CREATE (o:`_123_observation` { value:row.v }), (o)-[:isValueOf]->(`sex`), (o)-[:isValueOf]->(`age`)")
 
-				//var params map[string]interface{}
 				params := dbConnection.Params[0]
 
 				rows := params["rows"]
