@@ -10,11 +10,6 @@ import (
 //go:generate moq -out eventtest/observation_store.go -pkg eventtest . ObservationStore
 //go:generate moq -out eventtest/result_writer.go -pkg eventtest . ResultWriter
 
-const (
-	MapObservationError      = "error while attempting to convert from row data to observation instances"
-	errorReporterNotifyError = "error reporter notify returned an unexpected error"
-)
-
 var _ Handler = (*BatchHandler)(nil)
 
 // BatchHandler handles batches of ObservationExtracted events that contain CSV row data.
@@ -62,8 +57,8 @@ func (handler BatchHandler) Handle(events []*ObservationExtracted) error {
 	for _, event := range events {
 		observation, err := handler.observationMapper.Map(event.Row, event.InstanceID)
 		if err != nil {
-			if err := handler.errorReporter.Notify(event.InstanceID, MapObservationError, err); err != nil {
-				log.ErrorC(errorReporterNotifyError, err, nil)
+			if err := handler.errorReporter.Notify(event.InstanceID, "error while attempting to convert from row data to observation instances", err); err != nil {
+				log.ErrorC("error reporter notify returned an unexpected error", err, nil)
 			}
 			continue // do not add this error'd event to the batch
 		}

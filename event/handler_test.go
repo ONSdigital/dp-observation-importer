@@ -116,7 +116,7 @@ func TestBatchHandler_Handle_MapperError(t *testing.T) {
 				So(len(mockErrorReporter.NotifyCalls()), ShouldEqual, 1)
 				So(mockErrorReporter.NotifyCalls()[0], ShouldResemble, reportertest.NotfiyParams{
 					ID:         instanceID,
-					ErrContext: event.MapObservationError,
+					ErrContext: "error while attempting to convert from row data to observation instances",
 					Err:        mockError,
 				})
 			})
