@@ -2,10 +2,11 @@ package dimension
 
 import (
 	"encoding/json"
-	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
+	"fmt"
 	"io/ioutil"
 	"net/http"
-	"fmt"
+
+	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
 )
 
 // ErrParseAPIResponse used when the dataset API response fails to be parsed.
@@ -41,13 +42,15 @@ type Dimension struct {
 // Store represents the storage of dimension data.
 type Store struct {
 	datasetAPIURL    string
+	datasetAPIToken  string
 	datasetAPIClient DatasetAPIClient
 }
 
 // NewStore returns a new instance of a dimension store.
-func NewStore(datasetAPIURL string, client DatasetAPIClient) *Store {
+func NewStore(datasetAPIURL, datasetAPIAuthToken string, client DatasetAPIClient) *Store {
 	return &Store{
 		datasetAPIURL:    datasetAPIURL,
+		datasetAPIToken:  datasetAPIAuthToken,
 		datasetAPIClient: client,
 	}
 }
@@ -59,6 +62,9 @@ func (store *Store) GetOrder(instanceID string) ([]string, error) {
 	if requestErr != nil {
 		return nil, requestErr
 	}
+
+	request.Header.Set("internal-token", store.datasetAPIToken)
+
 	bytes, err := store.processRequest(request, instanceID)
 	if err != nil {
 		return nil, err
@@ -79,6 +85,8 @@ func (store *Store) GetIDs(instanceID string) (map[string]string, error) {
 	if requestErr != nil {
 		return nil, requestErr
 	}
+
+	request.Header.Set("internal-token", store.datasetAPIToken)
 
 	bytes, err := store.processRequest(request, instanceID)
 	if err != nil {

@@ -2,6 +2,12 @@ package main
 
 import (
 	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
+
 	"github.com/ONSdigital/dp-observation-importer/config"
 	"github.com/ONSdigital/dp-observation-importer/dimension"
 	"github.com/ONSdigital/dp-observation-importer/event"
@@ -13,11 +19,6 @@ import (
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
-	"net/http"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 func main() {
@@ -80,7 +81,7 @@ func main() {
 
 	// objects to get dimension data - via the dataset API + cached locally in memory.
 	httpClient := http.Client{Timeout: time.Second * 15}
-	dimensionStore := dimension.NewStore(config.DatasetAPIURL, &httpClient)
+	dimensionStore := dimension.NewStore(config.DatasetAPIURL, config.DatasetAPIAuthToken, &httpClient)
 	dimensionOrderCache := dimension.NewOrderCache(dimensionStore, config.CacheTTL)
 	dimensionIDCache := dimension.NewIDCache(dimensionStore, config.CacheTTL)
 

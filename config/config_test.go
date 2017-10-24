@@ -1,10 +1,11 @@
 package config_test
 
 import (
-	"github.com/ONSdigital/dp-observation-importer/config"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
+
+	"github.com/ONSdigital/dp-observation-importer/config"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestSpec(t *testing.T) {
@@ -26,6 +27,7 @@ func TestSpec(t *testing.T) {
 				So(cfg.ObservationConsumerTopic, ShouldEqual, "observation-extracted")
 				So(cfg.DatabaseAddress, ShouldEqual, "bolt://localhost:7687")
 				So(cfg.DatasetAPIURL, ShouldEqual, "http://localhost:22000")
+				So(cfg.DatasetAPIAuthToken, ShouldEqual, "FD0108EA-825D-411C-9B1D-41EF7727F465")
 				So(cfg.BatchSize, ShouldEqual, 1000)
 				So(cfg.BatchWaitTime, ShouldEqual, time.Millisecond*200)
 				So(cfg.ErrorProducerTopic, ShouldEqual, "report-events")

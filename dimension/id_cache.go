@@ -1,8 +1,9 @@
 package dimension
 
 import (
-	"github.com/patrickmn/go-cache"
 	"time"
+
+	cache "github.com/patrickmn/go-cache"
 )
 
 // MemoryCache is an in memory cache of dimensions with database id's.
