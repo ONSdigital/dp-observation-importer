@@ -9,12 +9,13 @@ var observationExtractedEvent = `{
   "name": "observation-extracted",
   "fields": [
     {"name": "instance_id", "type": "string"},
-    {"name": "row", "type": "string"}
+    {"name": "row", "type": "string"},
+    {"name": "row_index", "type": "long"}
   ]
 }`
 
 // ObservationExtractedEvent is the Avro schema for each observation extracted.
-var ObservationExtractedEvent *avro.Schema = &avro.Schema{
+var ObservationExtractedEvent = &avro.Schema{
 	Definition: observationExtractedEvent,
 }
 
@@ -28,6 +29,6 @@ var observationsInsertedEvent = `{
 }`
 
 // ObservationsInsertedEvent is the Avro schema for each observation batch inserted.
-var ObservationsInsertedEvent *avro.Schema = &avro.Schema{
+var ObservationsInsertedEvent = &avro.Schema{
 	Definition: observationsInsertedEvent,
 }
