@@ -80,7 +80,7 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 				continue
 			}
 
-			for instanceID, _ := range instanceObservations {
+			for instanceID := range instanceObservations {
 				store.reportError(instanceID, "observation batch insert failed", err)
 			}
 			return nil, err
