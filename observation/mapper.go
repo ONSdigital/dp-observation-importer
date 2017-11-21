@@ -24,7 +24,7 @@ func NewMapper(dimensionOrderCache DimensionHeaderCache) *Mapper {
 }
 
 // Map the given CSV row to an observation instance.
-func (mapper *Mapper) Map(row string, instanceID string) (*Observation, error) {
+func (mapper *Mapper) Map(row string, rowIndex int64, instanceID string) (*Observation, error) {
 
 	headerRow, err := mapper.dimensionCache.GetOrder(instanceID)
 	if err != nil {
@@ -71,7 +71,7 @@ func (mapper *Mapper) Map(row string, instanceID string) (*Observation, error) {
 			&DimensionOption{DimensionName: dimensionName, Name: dimensionOption})
 	}
 
-	o := Observation{Row: row, InstanceID: instanceID, DimensionOptions: dimensions}
+	o := Observation{Row: row, RowIndex: rowIndex, InstanceID: instanceID, DimensionOptions: dimensions}
 
 	return &o, nil
 }

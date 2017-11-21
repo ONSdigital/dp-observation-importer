@@ -6,8 +6,12 @@ import (
 	"github.com/ONSdigital/dp-reporter-client/reporter"
 	"github.com/ONSdigital/go-ns/log"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
+	"github.com/johnnadratowski/golang-neo4j-bolt-driver/structures/messages"
 	"strings"
 )
+
+const constraintError = "Neo.ClientError.Schema.ConstraintValidationFailed"
 
 // Store provides persistence for observations.
 type Store struct {
@@ -23,7 +27,7 @@ type DimensionIDCache interface {
 
 // DBConnection provides a connection to the database.
 type DBConnection interface {
-	ExecPipeline(query []string, params ...map[string]interface{}) ([]bolt.Result, error)
+	ExecNeo(query string, params map[string]interface{}) (bolt.Result, error)
 }
 
 // NewStore returns a new Observation store instance that uses the given dimension ID cache and db connection.
@@ -35,7 +39,7 @@ func NewStore(dimensionIDCache DimensionIDCache, dBConnection DBConnection, erro
 	}
 }
 
-// Result holds a single
+// Result holds the result for an individual instance
 type Result struct {
 	InstanceID           string
 	ObservationsInserted int32
@@ -49,10 +53,9 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 	// handle the inserts separately for each instance in the batch.
 	instanceObservations := mapObservationsToInstances(observations)
 
-	var queries = make([]string, 0)                        // query for each different instance
-	var pipelineParams = make([]map[string]interface{}, 0) // a set of parameters for each observation to insert
-
 	for instanceID := range instanceObservations {
+
+		query := buildInsertObservationQuery(instanceID, instanceObservations[instanceID])
 
 		dimensionIds, err := store.dimensionIDCache.GetNodeIDs(instanceID)
 		if err != nil {
@@ -60,63 +63,59 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 			continue
 		}
 
-		query := buildInsertObservationQuery(instanceID, instanceObservations[instanceID])
-		queries = append(queries, query)
-
-		params, err := createParams(instanceObservations[instanceID], dimensionIds)
+		queryParameters, err := createParams(instanceObservations[instanceID], dimensionIds)
 		if err != nil {
-			store.reportError(instanceID, "failed create params for batch query", err)
+			store.reportError(instanceID, "failed to create query parameters for batch query", err)
 			continue
 		}
 
-		pipelineParams = append(pipelineParams, params)
-
-		// create a result placeholder with the instance ID
-		results = append(results, &Result{InstanceID: instanceID})
-	}
-
-	pipelineResults, err := store.dBConnection.ExecPipeline(queries, pipelineParams...)
-	if err != nil {
-		// TODO MVP solution - if the batch fails update each instance in the batch as failed.
-		// Probably want to come back to this to see if there is a better way to handle it.
-		errContext := "observation batch insert failed"
-		for instanceID, _ := range instanceObservations {
-			store.reportError(instanceID, errContext, err)
-		}
-		return nil, err
-	}
-
-	results = store.processResults(pipelineResults, results, instanceObservations)
-
-	return results, nil
-}
-
-func (store *Store) processResults(pipelineResults []bolt.Result, results []*Result, instanceObservations map[string][]*Observation) []*Result {
-
-	// we have no context of which result is for which instance ID.
-	// the only way we can align them is to use the same index into the result arrays.
-	// a result array is passed in containing each instance ID, and the update count is injected into it when the
-	// DB result is checked.
-	resultIndex := 0
-
-	for _, result := range pipelineResults {
-
-		instanceID := results[resultIndex].InstanceID
-
-		rowsAffected, err := result.RowsAffected()
+		queryResult, err := store.dBConnection.ExecNeo(query, queryParameters)
 		if err != nil {
-			store.reportError(instanceID, "error running observation insert statement", err)
+
+			if neo4jErrorCode(err) == constraintError {
+
+				log.Debug("constraint error identified - skipping the inserts for this instance",
+					log.Data{"instance_id": instanceID})
+
+				continue
+			}
+
+			for instanceID, _ := range instanceObservations {
+				store.reportError(instanceID, "observation batch insert failed", err)
+			}
+			return nil, err
+		}
+
+		rowsAffected, err := queryResult.RowsAffected()
+		if err != nil {
+			store.reportError(instanceID, "error attempting to get number of rows affected in query result", err)
 			continue
 		}
 
 		log.Debug("save result",
-			log.Data{"rows affected": rowsAffected, "metadata": result.Metadata()})
+			log.Data{"rows affected": rowsAffected, "metadata": queryResult.Metadata()})
 
-		results[resultIndex].ObservationsInserted = int32(len(instanceObservations[instanceID]))
-		resultIndex++
+		observationsInserted := int32(len(instanceObservations[instanceID]))
+
+		result := &Result{
+			InstanceID:           instanceID,
+			ObservationsInserted: observationsInserted,
+		}
+
+		results = append(results, result)
 	}
 
-	return results
+	return results, nil
+}
+
+func neo4jErrorCode(err error) interface{} {
+	if err, ok := err.(*errors.Error); ok {
+		if bolterr, ok := err.InnerMost().(*messages.FailureMessage); ok {
+			return bolterr.Metadata["code"]
+		}
+	}
+
+	return ""
 }
 
 func (store *Store) reportError(instanceID string, context string, cause error) {
@@ -136,6 +135,7 @@ func createParams(observations []*Observation, dimensionIDs map[string]string) (
 
 		row := map[string]interface{}{
 			"v": observation.Row,
+			"i": observation.RowIndex,
 		}
 
 		for _, option := range observation.DimensionOptions {
@@ -165,7 +165,7 @@ func buildInsertObservationQuery(instanceID string, observations []*Observation)
 
 	match := " MATCH "
 	where := " WHERE "
-	create := fmt.Sprintf(" CREATE (o:`_%s_observation` { value:row.v }), ", instanceID)
+	create := fmt.Sprintf(" CREATE (o:`_%s_observation` { value:row.v, rowIndex:row.i }), ", instanceID)
 
 	index := 0
 

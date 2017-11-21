@@ -22,7 +22,7 @@ type BatchHandler struct {
 
 // ObservationMapper handles the conversion from row data to observation instances.
 type ObservationMapper interface {
-	Map(row string, instanceID string) (*observation.Observation, error)
+	Map(row string, rowIndex int64, instanceID string) (*observation.Observation, error)
 }
 
 // ObservationStore handles the persistence of observations.
@@ -55,7 +55,7 @@ func (handler BatchHandler) Handle(events []*ObservationExtracted) error {
 	observations := make([]*observation.Observation, 0, len(events))
 
 	for _, event := range events {
-		observation, err := handler.observationMapper.Map(event.Row, event.InstanceID)
+		observation, err := handler.observationMapper.Map(event.Row, event.RowIndex, event.InstanceID)
 		if err != nil {
 			if err := handler.errorReporter.Notify(event.InstanceID, "error while attempting to convert from row data to observation instances", err); err != nil {
 				log.ErrorC("error reporter notify returned an unexpected error", err, nil)

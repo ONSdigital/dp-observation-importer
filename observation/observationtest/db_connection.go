@@ -6,16 +6,16 @@ import (
 
 // DBConnection provides a connection to the database.
 type DBConnection struct {
-	Results []bolt.Result
-	Error   error
-	Queries []string
-	Params  []map[string]interface{}
+	Result bolt.Result
+	Error  error
+	Query  string
+	Params map[string]interface{}
 }
 
-// ExecPipeline captures the parameters given and returns the stored responses.
-func (connection *DBConnection) ExecPipeline(queries []string, params ...map[string]interface{}) ([]bolt.Result, error) {
-	connection.Queries = queries
+// ExecNeo captures the parameters given and returns the stored responses.
+func (connection *DBConnection) ExecNeo(query string, params map[string]interface{}) (bolt.Result, error) {
+	connection.Query = query
 	connection.Params = params
 
-	return connection.Results, connection.Error
+	return connection.Result, connection.Error
 }

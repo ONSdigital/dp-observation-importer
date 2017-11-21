@@ -18,6 +18,7 @@ var row = "31749353,Quarter,May-Jul 2016,,,,In Employment,,16+,,People,,Non Seas
 var expectedEvent = &event.ObservationExtracted{
 	InstanceID: instanceID,
 	Row:        row,
+	RowIndex:   int64(765),
 }
 
 var expectedObservation = &observation.Observation{
@@ -45,7 +46,7 @@ func TestBatchHandler_Handle(t *testing.T) {
 	Convey("Given a handler configured with a mock mapper and store", t, func() {
 
 		mockObservationMapper := &eventtest.ObservationMapperMock{
-			MapFunc: func(row string, instanceID string) (*observation.Observation, error) {
+			MapFunc: func(row string, rowIndex int64, instanceID string) (*observation.Observation, error) {
 				return expectedObservation, nil
 			},
 		}
@@ -71,6 +72,7 @@ func TestBatchHandler_Handle(t *testing.T) {
 
 				So(len(mockObservationMapper.MapCalls()), ShouldEqual, 1)
 				So(mockObservationMapper.MapCalls()[0].Row, ShouldEqual, expectedEvent.Row)
+				So(mockObservationMapper.MapCalls()[0].RowIndex, ShouldEqual, expectedEvent.RowIndex)
 				So(mockObservationMapper.MapCalls()[0].InstanceID, ShouldEqual, expectedEvent.InstanceID)
 
 				So(len(mockObservationStore.SaveAllCalls()), ShouldEqual, 1)
@@ -88,7 +90,7 @@ func TestBatchHandler_Handle_MapperError(t *testing.T) {
 	Convey("Given a handler configured with a mock mapper that returns an error", t, func() {
 
 		mockObservationMapper := &eventtest.ObservationMapperMock{
-			MapFunc: func(row string, instanceID string) (*observation.Observation, error) {
+			MapFunc: func(row string, rowIndex int64, instanceID string) (*observation.Observation, error) {
 				return nil, mockError
 			},
 		}
@@ -129,7 +131,7 @@ func TestBatchHandler_Handle_StoreError(t *testing.T) {
 	Convey("Given a handler configured with a mock mapper, and mock store that returns an error", t, func() {
 
 		mockObservationMapper := &eventtest.ObservationMapperMock{
-			MapFunc: func(row string, instanceID string) (*observation.Observation, error) {
+			MapFunc: func(row string, rowIndex int64, instanceID string) (*observation.Observation, error) {
 				return expectedObservation, nil
 			},
 		}

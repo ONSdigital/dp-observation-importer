@@ -19,14 +19,16 @@ func TestMapper_Map(t *testing.T) {
 		Convey("When map is called with an example csv line", func() {
 
 			csvRow := "128,,Month,Aug-16,K02000001,,cpi1dim1A0,CPI (overall index)"
+			rowIndex := int64(453)
 			instanceID := "123321"
-			observation, err := mapper.Map(csvRow, instanceID)
+			observation, err := mapper.Map(csvRow, rowIndex, instanceID)
 
 			Convey("The returned observation should be populated with the row data.", func() {
 				So(err, ShouldBeNil)
 				So(observation, ShouldNotBeNil)
 				So(observation.InstanceID, ShouldEqual, instanceID)
 				So(observation.Row, ShouldEqual, csvRow)
+				So(observation.RowIndex, ShouldEqual, rowIndex)
 
 				So(len(observation.DimensionOptions), ShouldEqual, 3)
 				So(observation.DimensionOptions[0].DimensionName, ShouldEqual, "Time")

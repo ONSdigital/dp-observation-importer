@@ -5,7 +5,8 @@ import (
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-observation-importer/observation/observationtest"
 	"github.com/ONSdigital/dp-reporter-client/reporter/reportertest"
-	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	neoErrors "github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
+	"github.com/johnnadratowski/golang-neo4j-bolt-driver/structures/messages"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
@@ -32,7 +33,7 @@ func TestStore_SaveAll(t *testing.T) {
 
 		idCache := &observationtest.DimensionIDCache{IDs: ids}
 
-		dbConnection := &observationtest.DBConnection{Results: []bolt.Result{observationtest.NewDBResult(1, 1, nil, nil)}}
+		dbConnection := &observationtest.DBConnection{Result: observationtest.NewDBResult(1, 1, nil, nil)}
 		errorReporterMock := reportertest.NewImportErrorReporterMock(nil)
 		store := observation.NewStore(idCache, dbConnection, errorReporterMock)
 
@@ -42,13 +43,10 @@ func TestStore_SaveAll(t *testing.T) {
 
 			Convey("Then the DB is called with the expected query and parameters", func() {
 
-				So(len(dbConnection.Queries), ShouldEqual, 1)
-				So(len(dbConnection.Params), ShouldEqual, 1)
+				query := dbConnection.Query
+				So(query, ShouldEqual, "UNWIND $rows AS row MATCH (`sex`:`_123_sex`), (`age`:`_123_age`) WHERE id(`sex`) = toInt(row.`sex`) AND id(`age`) = toInt(row.`age`) CREATE (o:`_123_observation` { value:row.v, rowIndex:row.i }), (o)-[:isValueOf]->(`sex`), (o)-[:isValueOf]->(`age`)")
 
-				query := dbConnection.Queries[0]
-				So(query, ShouldEqual, "UNWIND $rows AS row MATCH (`sex`:`_123_sex`), (`age`:`_123_age`) WHERE id(`sex`) = toInt(row.`sex`) AND id(`age`) = toInt(row.`age`) CREATE (o:`_123_observation` { value:row.v }), (o)-[:isValueOf]->(`sex`), (o)-[:isValueOf]->(`age`)")
-
-				params := dbConnection.Params[0]
+				params := dbConnection.Params
 
 				rows := params["rows"]
 				row := rows.([]interface{})[0]
@@ -74,39 +72,21 @@ func TestStore_SaveAll(t *testing.T) {
 	})
 }
 
-func TestStore_SaveAllExecPipelineError(t *testing.T) {
+func TestStore_SaveAllExecError(t *testing.T) {
 	Convey("Given a store with mock dimension ID cache and DB connection", t, func() {
 
 		idCache := &observationtest.DimensionIDCache{IDs: ids}
 
-		dbConnection := &observationtest.DBConnection{Results: nil, Error: mockError}
+		dbConnection := &observationtest.DBConnection{Result: nil, Error: mockError}
 		errorReporterMock := reportertest.NewImportErrorReporterMock(nil)
 		store := observation.NewStore(idCache, dbConnection, errorReporterMock)
 
-		Convey("When dBConnection.ExecPipeline returns an error", func() {
+		Convey("When dBConnection.Exec returns an error", func() {
 			results, err := store.SaveAll([]*observation.Observation{inputObservation})
 
 			Convey("Then no results and the expected error are returned", func() {
 				So(results, ShouldBeNil)
 				So(err, ShouldResemble, mockError)
-			})
-
-			Convey("And the DB is called with the expected query and parameters", func() {
-
-				So(len(dbConnection.Queries), ShouldEqual, 1)
-				So(len(dbConnection.Params), ShouldEqual, 1)
-
-				query := dbConnection.Queries[0]
-				So(query, ShouldEqual, "UNWIND $rows AS row MATCH (`sex`:`_123_sex`), (`age`:`_123_age`) WHERE id(`sex`) = toInt(row.`sex`) AND id(`age`) = toInt(row.`age`) CREATE (o:`_123_observation` { value:row.v }), (o)-[:isValueOf]->(`sex`), (o)-[:isValueOf]->(`age`)")
-
-				params := dbConnection.Params[0]
-
-				rows := params["rows"]
-				row := rows.([]interface{})[0]
-				rowMap, _ := row.(map[string]interface{})
-				So(rowMap["v"], ShouldEqual, "the,row,content")
-				So(rowMap["sex"], ShouldEqual, "333")
-				So(rowMap["age"], ShouldEqual, "666")
 			})
 
 			Convey("And the error reporter is called once for each instance in the failed batch", func() {
@@ -121,6 +101,32 @@ func TestStore_SaveAllExecPipelineError(t *testing.T) {
 	})
 }
 
+func TestStore_SaveAll_ExecConstraintError(t *testing.T) {
+	Convey("Given a store with mock dimension ID cache and DB connection", t, func() {
+
+		idCache := &observationtest.DimensionIDCache{IDs: ids}
+
+		constraintError := neoErrors.Wrap(&messages.FailureMessage{Metadata: map[string]interface{}{"code": "Neo.ClientError.Schema.ConstraintValidationFailed"}}, "constraint error msg")
+
+		dbConnection := &observationtest.DBConnection{Result: nil, Error: constraintError}
+		errorReporterMock := reportertest.NewImportErrorReporterMock(nil)
+		store := observation.NewStore(idCache, dbConnection, errorReporterMock)
+
+		Convey("When dBConnection.Exec returns a neo4j constraint error", func() {
+			results, err := store.SaveAll([]*observation.Observation{inputObservation})
+
+			Convey("Then no results and a nil error are returned, as the error was ignored", func() {
+				So(len(results), ShouldEqual, 0)
+				So(err, ShouldEqual, nil)
+			})
+
+			Convey("And the error reporter is not called", func() {
+				So(len(errorReporterMock.NotifyCalls()), ShouldEqual, 0)
+			})
+		})
+	})
+}
+
 func TestStore_SaveAll_GetNodeIDError(t *testing.T) {
 
 	Convey("Given a store with mock dimension ID cache that returns an error", t, func() {
@@ -129,7 +135,7 @@ func TestStore_SaveAll_GetNodeIDError(t *testing.T) {
 
 		errorReporterMock := reportertest.NewImportErrorReporterMock(nil)
 
-		dbConnection := &observationtest.DBConnection{Results: []bolt.Result{}}
+		dbConnection := &observationtest.DBConnection{Result: observationtest.NewDBResult(1, 1, nil, nil)}
 		store := observation.NewStore(idCache, dbConnection, errorReporterMock)
 
 		Convey("When save all is called", func() {
@@ -160,7 +166,7 @@ func TestStore_SaveAll_NoNodeId(t *testing.T) {
 
 		errorReporterMock := reportertest.NewImportErrorReporterMock(nil)
 
-		dbConnection := &observationtest.DBConnection{Results: []bolt.Result{}}
+		dbConnection := &observationtest.DBConnection{Result: observationtest.NewDBResult(1, 1, nil, nil)}
 		store := observation.NewStore(idCache, dbConnection, errorReporterMock)
 
 		Convey("When save all is called", func() {
@@ -175,7 +181,7 @@ func TestStore_SaveAll_NoNodeId(t *testing.T) {
 				So(errorReporterMock.NotifyCalls()[0], ShouldResemble, reportertest.NotfiyParams{
 					ID:         inputObservation.InstanceID,
 					Err:        errors.New("No nodeId found for 123_sex_Male"),
-					ErrContext: "failed create params for batch query",
+					ErrContext: "failed to create query parameters for batch query",
 				})
 			})
 		})
