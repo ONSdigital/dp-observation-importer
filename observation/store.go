@@ -80,7 +80,7 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 				continue
 			}
 
-			for instanceID, _ := range instanceObservations {
+			for instanceID := range instanceObservations {
 				store.reportError(instanceID, "observation batch insert failed", err)
 			}
 			return nil, err
@@ -109,9 +109,9 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 }
 
 func neo4jErrorCode(err error) interface{} {
-	if err, ok := err.(*errors.Error); ok {
-		if bolterr, ok := err.InnerMost().(*messages.FailureMessage); ok {
-			return bolterr.Metadata["code"]
+	if boltErr, ok := err.(*errors.Error); ok {
+		if failureMessage, ok := boltErr.Inner().(messages.FailureMessage); ok {
+			return failureMessage.Metadata["code"]
 		}
 	}
 

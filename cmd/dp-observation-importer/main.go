@@ -106,13 +106,13 @@ func main() {
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
 	select {
-	case err := <-kafkaConsumer.Errors():
+	case err = <-kafkaConsumer.Errors():
 		log.ErrorC("kafka consumer error chan received error, attempting graceful shutdown", err, nil)
-	case err := <-kafkaResultProducer.Errors():
+	case err = <-kafkaResultProducer.Errors():
 		log.ErrorC("kafka result producer error chan received error, attempting graceful shutdown", err, nil)
-	case err := <-kafkaErrorProducer.Errors():
+	case err = <-kafkaErrorProducer.Errors():
 		log.ErrorC("kafka error producer error chan received error, attempting graceful shutdown", err, nil)
-	case err := <-errorChannel:
+	case err = <-errorChannel:
 		log.ErrorC("error channel received error, attempting graceful shutdown", err, nil)
 	case signal := <-signals:
 		log.Info("os signal received attempting graceful shutdown", log.Data{"signal": signal.String()})
@@ -121,11 +121,30 @@ func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), config.GracefulShutdownTimeout)
 
 	// gracefully dispose resources
-	eventConsumer.Close(ctx)
-	kafkaConsumer.Close(ctx)
-	kafkaErrorProducer.Close(ctx)
-	kafkaResultProducer.Close(ctx)
-	httpServer.Shutdown(ctx)
+	err = eventConsumer.Close(ctx)
+	if err != nil {
+		log.Error(err, nil)
+	}
+
+	err = kafkaConsumer.Close(ctx)
+	if err != nil {
+		log.Error(err, nil)
+	}
+
+	err = kafkaErrorProducer.Close(ctx)
+	if err != nil {
+		log.Error(err, nil)
+	}
+
+	err = kafkaResultProducer.Close(ctx)
+	if err != nil {
+		log.Error(err, nil)
+	}
+
+	err = httpServer.Shutdown(ctx)
+	if err != nil {
+		log.Error(err, nil)
+	}
 
 	// cancel the timer in the shutdown context.
 	cancel()

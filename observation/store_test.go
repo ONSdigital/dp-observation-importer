@@ -106,7 +106,7 @@ func TestStore_SaveAll_ExecConstraintError(t *testing.T) {
 
 		idCache := &observationtest.DimensionIDCache{IDs: ids}
 
-		constraintError := neoErrors.Wrap(&messages.FailureMessage{Metadata: map[string]interface{}{"code": "Neo.ClientError.Schema.ConstraintValidationFailed"}}, "constraint error msg")
+		constraintError := neoErrors.Wrap(messages.FailureMessage{Metadata: map[string]interface{}{"code": "Neo.ClientError.Schema.ConstraintValidationFailed"}}, "constraint error msg")
 
 		dbConnection := &observationtest.DBConnection{Result: nil, Error: constraintError}
 		errorReporterMock := reportertest.NewImportErrorReporterMock(nil)
