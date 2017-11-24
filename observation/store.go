@@ -6,7 +6,7 @@ import (
 	"github.com/ONSdigital/dp-reporter-client/reporter"
 	"github.com/ONSdigital/go-ns/log"
 	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
-	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
+	neoErrors "github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
 	"github.com/johnnadratowski/golang-neo4j-bolt-driver/structures/messages"
 	"strings"
 )
@@ -109,7 +109,7 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 }
 
 func neo4jErrorCode(err error) interface{} {
-	if boltErr, ok := err.(*errors.Error); ok {
+	if boltErr, ok := err.(*neoErrors.Error); ok {
 		if failureMessage, ok := boltErr.Inner().(messages.FailureMessage); ok {
 			return failureMessage.Metadata["code"]
 		}

@@ -5,9 +5,9 @@ import (
 	"github.com/ONSdigital/dp-observation-importer/event/eventtest"
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-reporter-client/reporter/reportertest"
-	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+	"errors"
 )
 
 var mockError = errors.New("Mapping failed")

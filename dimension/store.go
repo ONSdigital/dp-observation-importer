@@ -6,7 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	"github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
+	"errors"
 )
 
 // ErrParseAPIResponse used when the dataset API response fails to be parsed.
