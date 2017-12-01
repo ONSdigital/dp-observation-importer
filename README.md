@@ -18,7 +18,7 @@ dp-observation-importer
 | Environment variable       | Default                          | Description
 | ---------------------------|--------------------------------- |-----------------------------------------------------
 | BIND_ADDR                  | ":21700"                         | The port to bind to
-| KAFKA_ADDRESS              | "http://localhost:9092"          | The address of the Kafka instance
+| KAFKA_ADDR                 | "http://localhost:9092"          | The address of the Kafka instance
 | OBSERVATION_CONSUMER_GROUP | "dp-observation-importer"        | The Kafka consumer group to consume observation extracted events from
 | OBSERVATION_CONSUMER_TOPIC | "observation-extracted"          | The Kafka topic to consume observation extracted events from
 | DATABASE_ADDRESS           | "bolt://localhost:7687"          | The address of the database

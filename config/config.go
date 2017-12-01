@@ -16,7 +16,7 @@ type Config struct {
 	DatasetAPIURL            string        `envconfig:"DATASET_API_URL"`
 	DatasetAPIAuthToken      string        `envconfig:"DATASET_API_AUTH_TOKEN"`
 	BatchSize                int           `envconfig:"BATCH_SIZE"`
-	BatchWaitTime            time.Duration `envconfig:"BATCH_WAIT_TIME_MS"`
+	BatchWaitTime            time.Duration `envconfig:"BATCH_WAIT_TIME"`
 	ErrorProducerTopic       string        `envconfig:"ERROR_PRODUCER_TOPIC"`
 	ResultProducerTopic      string        `envconfig:"RESULT_PRODUCER_TOPIC"`
 	CacheTTL                 time.Duration `envconfig:"CACHE_TTL"`
