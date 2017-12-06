@@ -45,7 +45,7 @@ func TestStore_GetOrderReturnAnError(t *testing.T) {
 }
 
 func TestIDCache_GetIDs(t *testing.T) {
-	data := `{"items":[{ "dimension_id": "year","option": "1997","node_id": "123"}]}`
+	data := `{"items":[{ "dimension": "year","option": "1997","node_id": "123"}]}`
 	dataStore := NewStore("http://localhost:288100", datasetAPIToken, dimensiontest.MockDatasetAPI{Data: data})
 	Convey("Given a valid instance id", t, func() {
 		Convey("When the client api is called ", func() {

@@ -34,7 +34,7 @@ type DimensionNodeResults struct {
 
 // Dimension which has been cached from the dataset api
 type Dimension struct {
-	DimensionName string `json:"dimension_id"`
+	DimensionName string `json:"dimension"`
 	Option        string `json:"option"`
 	NodeID        string `json:"node_id"`
 }
