@@ -1,7 +1,7 @@
 package observationtest
 
 import (
-	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
 )
 
 // DBConnection provides a connection to the database.

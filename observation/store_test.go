@@ -5,8 +5,8 @@ import (
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-observation-importer/observation/observationtest"
 	"github.com/ONSdigital/dp-reporter-client/reporter/reportertest"
-	neoErrors "github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
-	"github.com/johnnadratowski/golang-neo4j-bolt-driver/structures/messages"
+	neoErrors "github.com/ONSdigital/golang-neo4j-bolt-driver/errors"
+	"github.com/ONSdigital/golang-neo4j-bolt-driver/structures/messages"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 )
