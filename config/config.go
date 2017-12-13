@@ -14,6 +14,7 @@ type Config struct {
 	ObservationConsumerTopic string        `envconfig:"OBSERVATION_CONSUMER_TOPIC"`
 	DatabaseAddress          string        `envconfig:"DATABASE_ADDRESS"`
 	DatasetAPIURL            string        `envconfig:"DATASET_API_URL"`
+	Neo4jPoolSize            int           `envconfig:"NEO4J_POOL_SIZE"`
 	DatasetAPIAuthToken      string        `envconfig:"DATASET_API_AUTH_TOKEN"`
 	BatchSize                int           `envconfig:"BATCH_SIZE"`
 	BatchWaitTime            time.Duration `envconfig:"BATCH_WAIT_TIME"`
@@ -33,6 +34,7 @@ func Get() (*Config, error) {
 		ObservationConsumerTopic: "observation-extracted",
 		DatabaseAddress:          "bolt://localhost:7687",
 		DatasetAPIURL:            "http://localhost:22000",
+		Neo4jPoolSize:            5,
 		DatasetAPIAuthToken:      "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		BatchSize:                1000,
 		BatchWaitTime:            time.Millisecond * 200,

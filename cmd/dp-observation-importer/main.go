@@ -72,7 +72,7 @@ func main() {
 	kafkaResultProducer, err := kafka.NewProducer(config.KafkaAddr, config.ResultProducerTopic, 0)
 	checkForError(err)
 
-	dbConnection, err := bolt.NewDriver().OpenNeo(config.DatabaseAddress)
+	neo4jPool, err := bolt.NewClosableDriverPool(config.DatabaseAddress, config.Neo4jPoolSize)
 	checkForError(err)
 
 	// when errors occur - we send a message on an error topic.
@@ -89,7 +89,7 @@ func main() {
 	observationMapper := observation.NewMapper(dimensionOrderCache)
 
 	// stores observations in the DB.
-	observationStore := observation.NewStore(dimensionIDCache, dbConnection, errorReporter)
+	observationStore := observation.NewStore(dimensionIDCache, neo4jPool, errorReporter)
 
 	// write import results to kafka topic.
 	resultWriter := observation.NewResultWriter(kafkaResultProducer)
@@ -122,29 +122,22 @@ func main() {
 
 	// gracefully dispose resources
 	err = eventConsumer.Close(ctx)
-	if err != nil {
-		log.Error(err, nil)
-	}
+	logError(err)
 
 	err = kafkaConsumer.Close(ctx)
-	if err != nil {
-		log.Error(err, nil)
-	}
+	logError(err)
 
 	err = kafkaErrorProducer.Close(ctx)
-	if err != nil {
-		log.Error(err, nil)
-	}
+	logError(err)
 
 	err = kafkaResultProducer.Close(ctx)
-	if err != nil {
-		log.Error(err, nil)
-	}
+	logError(err)
+
+	err = neo4jPool.Close()
+	logError(err)
 
 	err = httpServer.Shutdown(ctx)
-	if err != nil {
-		log.Error(err, nil)
-	}
+	logError(err)
 
 	// cancel the timer in the shutdown context.
 	cancel()
@@ -152,9 +145,16 @@ func main() {
 	log.Debug("graceful shutdown was successful", nil)
 	os.Exit(0)
 }
+
 func checkForError(err error) {
 	if err != nil {
 		log.Error(err, nil)
 		os.Exit(1)
+	}
+}
+
+func logError(err error) {
+	if err != nil {
+		log.Error(err, nil)
 	}
 }

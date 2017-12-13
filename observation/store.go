@@ -16,7 +16,7 @@ const constraintError = "Neo.ClientError.Schema.ConstraintValidationFailed"
 // Store provides persistence for observations.
 type Store struct {
 	dimensionIDCache DimensionIDCache
-	dBConnection     DBConnection
+	pool             DBPool
 	errorReporter    reporter.ErrorReporter
 }
 
@@ -25,16 +25,22 @@ type DimensionIDCache interface {
 	GetNodeIDs(instanceID string) (map[string]string, error)
 }
 
-// DBConnection provides a connection to the database.
-type DBConnection interface {
-	ExecNeo(query string, params map[string]interface{}) (bolt.Result, error)
+//go:generate moq -out observationtest/db_pool.go -pkg observationtest . DBPool
+
+// DBPool used to require bolt connections
+type DBPool interface {
+	OpenPool() (bolt.Conn, error)
 }
 
+//go:generate moq -out observationtest/db_conn.go -pkg observationtest . DBConnection
+// The follow variable is only used to generate mocked bolt connections
+type DBConnection bolt.Conn
+
 // NewStore returns a new Observation store instance that uses the given dimension ID cache and db connection.
-func NewStore(dimensionIDCache DimensionIDCache, dBConnection DBConnection, errorReporter reporter.ErrorReporter) *Store {
+func NewStore(dimensionIDCache DimensionIDCache, pool DBPool, errorReporter reporter.ErrorReporter) *Store {
 	return &Store{
 		dimensionIDCache: dimensionIDCache,
-		dBConnection:     dBConnection,
+		pool:     pool,
 		errorReporter:    errorReporter,
 	}
 }
@@ -69,7 +75,13 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 			continue
 		}
 
-		queryResult, err := store.dBConnection.ExecNeo(query, queryParameters)
+		conn, err := store.pool.OpenPool()
+		if err != nil {
+			return nil, err
+		}
+		defer conn.Close()
+
+		queryResult, err := conn.ExecNeo(query, queryParameters)
 		if err != nil {
 
 			if neo4jErrorCode(err) == constraintError {

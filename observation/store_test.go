@@ -9,6 +9,7 @@ import (
 	"github.com/ONSdigital/golang-neo4j-bolt-driver/structures/messages"
 	. "github.com/smartystreets/goconvey/convey"
 	"testing"
+	"github.com/ONSdigital/golang-neo4j-bolt-driver"
 )
 
 var inputObservation = &observation.Observation{
@@ -33,9 +34,23 @@ func TestStore_SaveAll(t *testing.T) {
 
 		idCache := &observationtest.DimensionIDCache{IDs: ids}
 
-		dbConnection := &observationtest.DBConnection{Result: observationtest.NewDBResult(1, 1, nil, nil)}
+		conn := observationtest.DBConnectionMock{
+			ExecNeoFunc: func(query string, params map[string]interface{}) (golangNeo4jBoltDriver.Result, error) {
+				return observationtest.NewDBResult(1, 1, nil, nil), nil
+			},
+			CloseFunc: func() error {
+				return nil
+			},
+		}
+
+		pool := observationtest.DBPoolMock{
+			OpenPoolFunc: func() (golangNeo4jBoltDriver.Conn, error) {
+				return &conn, nil
+			},
+		}
+
 		errorReporterMock := reportertest.NewImportErrorReporterMock(nil)
-		store := observation.NewStore(idCache, dbConnection, errorReporterMock)
+		store := observation.NewStore(idCache, &pool, errorReporterMock)
 
 		Convey("When save all is called", func() {
 
@@ -43,10 +58,10 @@ func TestStore_SaveAll(t *testing.T) {
 
 			Convey("Then the DB is called with the expected query and parameters", func() {
 
-				query := dbConnection.Query
+				query := conn.ExecNeoCalls()[0].Query
 				So(query, ShouldEqual, "UNWIND $rows AS row MATCH (`sex`:`_123_sex`), (`age`:`_123_age`) WHERE id(`sex`) = toInt(row.`sex`) AND id(`age`) = toInt(row.`age`) CREATE (o:`_123_observation` { value:row.v, rowIndex:row.i }), (o)-[:isValueOf]->(`sex`), (o)-[:isValueOf]->(`age`)")
 
-				params := dbConnection.Params
+				params :=  conn.ExecNeoCalls()[0].Params
 
 				rows := params["rows"]
 				row := rows.([]interface{})[0]
@@ -77,9 +92,23 @@ func TestStore_SaveAllExecError(t *testing.T) {
 
 		idCache := &observationtest.DimensionIDCache{IDs: ids}
 
-		dbConnection := &observationtest.DBConnection{Result: nil, Error: mockError}
+		conn := observationtest.DBConnectionMock{
+			ExecNeoFunc: func(query string, params map[string]interface{}) (golangNeo4jBoltDriver.Result, error) {
+				return nil, mockError
+			},
+			CloseFunc: func() error {
+				return nil
+			},
+		}
+
+		pool := observationtest.DBPoolMock{
+			OpenPoolFunc: func() (golangNeo4jBoltDriver.Conn, error) {
+				return &conn, nil
+			},
+		}
+
 		errorReporterMock := reportertest.NewImportErrorReporterMock(nil)
-		store := observation.NewStore(idCache, dbConnection, errorReporterMock)
+		store := observation.NewStore(idCache, &pool, errorReporterMock)
 
 		Convey("When dBConnection.Exec returns an error", func() {
 			results, err := store.SaveAll([]*observation.Observation{inputObservation})
@@ -105,12 +134,25 @@ func TestStore_SaveAll_ExecConstraintError(t *testing.T) {
 	Convey("Given a store with mock dimension ID cache and DB connection", t, func() {
 
 		idCache := &observationtest.DimensionIDCache{IDs: ids}
-
 		constraintError := neoErrors.Wrap(messages.FailureMessage{Metadata: map[string]interface{}{"code": "Neo.ClientError.Schema.ConstraintValidationFailed"}}, "constraint error msg")
 
-		dbConnection := &observationtest.DBConnection{Result: nil, Error: constraintError}
+		conn := observationtest.DBConnectionMock{
+			ExecNeoFunc: func(query string, params map[string]interface{}) (golangNeo4jBoltDriver.Result, error) {
+				return nil, constraintError
+			},
+			CloseFunc: func() error {
+				return nil
+			},
+		}
+
+		pool := observationtest.DBPoolMock{
+			OpenPoolFunc: func() (golangNeo4jBoltDriver.Conn, error) {
+				return &conn, nil
+			},
+		}
+
 		errorReporterMock := reportertest.NewImportErrorReporterMock(nil)
-		store := observation.NewStore(idCache, dbConnection, errorReporterMock)
+		store := observation.NewStore(idCache, &pool, errorReporterMock)
 
 		Convey("When dBConnection.Exec returns a neo4j constraint error", func() {
 			results, err := store.SaveAll([]*observation.Observation{inputObservation})
@@ -135,8 +177,22 @@ func TestStore_SaveAll_GetNodeIDError(t *testing.T) {
 
 		errorReporterMock := reportertest.NewImportErrorReporterMock(nil)
 
-		dbConnection := &observationtest.DBConnection{Result: observationtest.NewDBResult(1, 1, nil, nil)}
-		store := observation.NewStore(idCache, dbConnection, errorReporterMock)
+		conn := observationtest.DBConnectionMock{
+			ExecNeoFunc: func(query string, params map[string]interface{}) (golangNeo4jBoltDriver.Result, error) {
+				return observationtest.NewDBResult(1, 1, nil, nil), nil
+			},
+			CloseFunc: func() error {
+				return nil
+			},
+		}
+
+		pool := observationtest.DBPoolMock{
+			OpenPoolFunc: func() (golangNeo4jBoltDriver.Conn, error) {
+				return &conn, nil
+			},
+		}
+
+        store := observation.NewStore(idCache, &pool, errorReporterMock)
 
 		Convey("When save all is called", func() {
 
@@ -166,8 +222,19 @@ func TestStore_SaveAll_NoNodeId(t *testing.T) {
 
 		errorReporterMock := reportertest.NewImportErrorReporterMock(nil)
 
-		dbConnection := &observationtest.DBConnection{Result: observationtest.NewDBResult(1, 1, nil, nil)}
-		store := observation.NewStore(idCache, dbConnection, errorReporterMock)
+		conn := observationtest.DBConnectionMock{
+			ExecNeoFunc: func(query string, params map[string]interface{}) (golangNeo4jBoltDriver.Result, error) {
+				return observationtest.NewDBResult(1, 1, nil, nil), nil
+			},
+		}
+
+		pool := observationtest.DBPoolMock{
+			OpenPoolFunc: func() (golangNeo4jBoltDriver.Conn, error) {
+				return &conn, nil
+			},
+		}
+
+	    store := observation.NewStore(idCache, &pool, errorReporterMock)
 
 		Convey("When save all is called", func() {
 
