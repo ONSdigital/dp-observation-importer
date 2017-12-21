@@ -115,6 +115,7 @@ func TestStore_SaveAllExecError(t *testing.T) {
 
 			Convey("Then an empty set of results and nil error are returned", func() {
 				So(len(results), ShouldEqual, 0)
+				So(len(conn.ExecNeoCalls()), ShouldEqual, 1)
 				So(err, ShouldBeNil)
 			})
 

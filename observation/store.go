@@ -95,6 +95,11 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 			for instanceID := range instanceObservations {
 				store.reportError(instanceID, "observation batch insert failed", err)
 			}
+
+			// todo: add retry logic and identify fatal errors that should be returned.
+			// any error will currently be sent to the reporter and mark the import as failed
+			// we do not return the error as we want the message to be consumed.
+			// returning an error causes the service to shutdown and not consume the message.
 			continue
 		}
 
