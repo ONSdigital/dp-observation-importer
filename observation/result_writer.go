@@ -32,6 +32,10 @@ func (messageWriter MessageWriter) Write(results []*Result) {
 			ObservationsInserted: result.ObservationsInserted,
 		}
 
+		log.Debug("observations inserted, producing event message",
+			log.Data{"event": event},
+		)
+
 		bytes, err := Marshal(event)
 		if err != nil {
 			log.Error(err, log.Data{
