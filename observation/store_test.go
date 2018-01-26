@@ -113,9 +113,10 @@ func TestStore_SaveAllExecError(t *testing.T) {
 		Convey("When dBConnection.Exec returns an error", func() {
 			results, err := store.SaveAll([]*observation.Observation{inputObservation})
 
-			Convey("Then no results and the expected error are returned", func() {
-				So(results, ShouldBeNil)
-				So(err, ShouldResemble, mockError)
+			Convey("Then an empty set of results and nil error are returned", func() {
+				So(len(results), ShouldEqual, 0)
+				So(len(conn.ExecNeoCalls()), ShouldEqual, 1)
+				So(err, ShouldBeNil)
 			})
 
 			Convey("And the error reporter is called once for each instance in the failed batch", func() {

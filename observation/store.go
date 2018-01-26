@@ -33,7 +33,7 @@ type DBPool interface {
 }
 
 //go:generate moq -out observationtest/db_conn.go -pkg observationtest . DBConnection
-// The follow variable is only used to generate mocked bolt connections
+// DBConnection is only used to generate mocked bolt connections
 type DBConnection bolt.Conn
 
 // NewStore returns a new Observation store instance that uses the given dimension ID cache and db connection.
@@ -95,7 +95,12 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 			for instanceID := range instanceObservations {
 				store.reportError(instanceID, "observation batch insert failed", err)
 			}
-			return nil, err
+
+			// todo: add retry logic and identify fatal errors that should be returned.
+			// any error will currently be sent to the reporter and mark the import as failed
+			// we do not return the error as we want the message to be consumed.
+			// returning an error causes the service to shutdown and not consume the message.
+			continue
 		}
 
 		rowsAffected, err := queryResult.RowsAffected()
