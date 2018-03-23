@@ -17,8 +17,8 @@ import (
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
-	"github.com/gorilla/mux"
 	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
+	"github.com/gorilla/mux"
 )
 
 func main() {
@@ -54,7 +54,7 @@ func main() {
 
 	go func() {
 		log.Debug("starting http server", log.Data{"bind_addr": config.BindAddr})
-		if err := httpServer.ListenAndServe(); err != nil {
+		if err = httpServer.ListenAndServe(); err != nil {
 			errorChannel <- err
 		}
 	}()
@@ -81,7 +81,7 @@ func main() {
 
 	// objects to get dimension data - via the dataset API + cached locally in memory.
 	httpClient := http.Client{Timeout: time.Second * 15}
-	dimensionStore := dimension.NewStore(config.DatasetAPIURL, config.DatasetAPIAuthToken, &httpClient)
+	dimensionStore := dimension.NewStore(config.ServiceAuthToken, config.DatasetAPIURL, config.DatasetAPIAuthToken, &httpClient)
 	dimensionOrderCache := dimension.NewOrderCache(dimensionStore, config.CacheTTL)
 	dimensionIDCache := dimension.NewIDCache(dimensionStore, config.CacheTTL)
 

@@ -7,12 +7,12 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-const datasetAPIToken = "coffee"
+const authToken = "coffee"
 
 func TestStore_GetOrder(t *testing.T) {
 
 	data := `{"headers": ["V4_1","Data_Marking","Time_codelist"]}`
-	dataStore := NewStore("http://localhost:288100", datasetAPIToken, dimensiontest.MockDatasetAPI{Data: data})
+	dataStore := NewStore(authToken, "http://localhost:288100", "", dimensiontest.MockDatasetAPI{Data: data})
 
 	Convey("Given a valid instanceId", t, func() {
 
@@ -30,7 +30,7 @@ func TestStore_GetOrder(t *testing.T) {
 
 func TestStore_GetOrderReturnAnError(t *testing.T) {
 
-	dataStore := NewStore("http://unknown-url:288100", datasetAPIToken, dimensiontest.MockDatasetAPI{FailRequest: true})
+	dataStore := NewStore(authToken, "http://unknown-url:288100", "", dimensiontest.MockDatasetAPI{FailRequest: true})
 
 	Convey("Given a invalid URL", t, func() {
 
@@ -46,7 +46,7 @@ func TestStore_GetOrderReturnAnError(t *testing.T) {
 
 func TestIDCache_GetIDs(t *testing.T) {
 	data := `{"items":[{ "dimension": "year","option": "1997","node_id": "123"}]}`
-	dataStore := NewStore("http://localhost:288100", datasetAPIToken, dimensiontest.MockDatasetAPI{Data: data})
+	dataStore := NewStore(authToken, "http://localhost:288100", "", dimensiontest.MockDatasetAPI{Data: data})
 	Convey("Given a valid instance id", t, func() {
 		Convey("When the client api is called ", func() {
 			Convey("A list of dimensions are returned", func() {
