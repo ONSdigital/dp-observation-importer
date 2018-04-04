@@ -24,6 +24,7 @@ type Config struct {
 	CacheTTL                 time.Duration `envconfig:"CACHE_TTL"`
 	GracefulShutdownTimeout  time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
 	ServiceAuthToken         string        `envconfig:"SERVICE_AUTH_TOKEN"             json:"-"`
+	ZebedeeURL               string        `envconfig:"ZEBEDEE_URL"`
 }
 
 // Get the configuration values from the environment or provide the defaults.
@@ -45,7 +46,10 @@ func Get() (*Config, error) {
 		CacheTTL:                 time.Minute * 60,
 		GracefulShutdownTimeout:  time.Second * 10,
 		ServiceAuthToken:         "AA78C45F-DD64-4631-BED9-FEAE29200620",
+		ZebedeeURL:               "http://localhost:8082",
 	}
+
+	cfg.ServiceAuthToken = "Bearer " + cfg.ServiceAuthToken
 
 	return cfg, envconfig.Process("", cfg)
 }
