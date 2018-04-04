@@ -1,7 +1,6 @@
 package config
 
 import (
-	"encoding/json"
 	"time"
 
 	"github.com/kelseyhightower/envconfig"
@@ -13,7 +12,7 @@ type Config struct {
 	KafkaAddr                []string      `envconfig:"KAFKA_ADDR"`
 	ObservationConsumerGroup string        `envconfig:"OBSERVATION_CONSUMER_GROUP"`
 	ObservationConsumerTopic string        `envconfig:"OBSERVATION_CONSUMER_TOPIC"`
-	DatabaseAddress          string        `envconfig:"DATABASE_ADDRESS"`
+	DatabaseAddress          string        `envconfig:"DATABASE_ADDRESS"                json:"-"`
 	DatasetAPIURL            string        `envconfig:"DATASET_API_URL"`
 	Neo4jPoolSize            int           `envconfig:"NEO4J_POOL_SIZE"`
 	DatasetAPIAuthToken      string        `envconfig:"DATASET_API_AUTH_TOKEN"          json:"-"`
@@ -23,7 +22,7 @@ type Config struct {
 	ResultProducerTopic      string        `envconfig:"RESULT_PRODUCER_TOPIC"`
 	CacheTTL                 time.Duration `envconfig:"CACHE_TTL"`
 	GracefulShutdownTimeout  time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
-	ServiceAuthToken         string        `envconfig:"SERVICE_AUTH_TOKEN"             json:"-"`
+	ServiceAuthToken         string        `envconfig:"SERVICE_AUTH_TOKEN"              json:"-"`
 	ZebedeeURL               string        `envconfig:"ZEBEDEE_URL"`
 }
 
@@ -52,11 +51,4 @@ func Get() (*Config, error) {
 	cfg.ServiceAuthToken = "Bearer " + cfg.ServiceAuthToken
 
 	return cfg, envconfig.Process("", cfg)
-}
-
-// String is implemented to prevent sensitive fields being logged.
-// The config is returned as JSON with sensitive fields omitted.
-func (config Config) String() string {
-	json, _ := json.Marshal(config)
-	return string(json)
 }
