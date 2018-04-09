@@ -34,6 +34,8 @@ func TestSpec(t *testing.T) {
 				So(cfg.ResultProducerTopic, ShouldEqual, "import-observations-inserted")
 				So(cfg.CacheTTL, ShouldEqual, time.Minute*60)
 				So(cfg.GracefulShutdownTimeout, ShouldEqual, time.Second*10)
+				So(cfg.ServiceAuthToken, ShouldEqual, "Bearer AA78C45F-DD64-4631-BED9-FEAE29200620")
+				So(cfg.ZebedeeURL, ShouldEqual, "http://localhost:8082")
 			})
 		})
 	})

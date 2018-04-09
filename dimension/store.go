@@ -9,6 +9,8 @@ import (
 	"errors"
 )
 
+const authorizationHeader = "Authorization"
+
 // ErrParseAPIResponse used when the dataset API response fails to be parsed.
 var ErrParseAPIResponse = errors.New("failed to parse dataset api response")
 
@@ -27,8 +29,8 @@ type csvHeaders struct {
 	Headers []string `json:"headers"`
 }
 
-// DimensionNodeResults wraps dimension node objects for pagination
-type DimensionNodeResults struct {
+// NodeResults wraps dimension node objects for pagination
+type NodeResults struct {
 	Items []Dimension `json:"items"`
 }
 
@@ -41,14 +43,16 @@ type Dimension struct {
 
 // Store represents the storage of dimension data.
 type Store struct {
+	authToken        string
 	datasetAPIURL    string
 	datasetAPIToken  string
 	datasetAPIClient DatasetAPIClient
 }
 
 // NewStore returns a new instance of a dimension store.
-func NewStore(datasetAPIURL, datasetAPIAuthToken string, client DatasetAPIClient) *Store {
+func NewStore(authToken, datasetAPIURL, datasetAPIAuthToken string, client DatasetAPIClient) *Store {
 	return &Store{
+		authToken:        authToken,
 		datasetAPIURL:    datasetAPIURL,
 		datasetAPIToken:  datasetAPIAuthToken,
 		datasetAPIClient: client,
@@ -63,7 +67,9 @@ func (store *Store) GetOrder(instanceID string) ([]string, error) {
 		return nil, requestErr
 	}
 
+	// TODO Remove "internal-token" header, now uses "Authorization" header
 	request.Header.Set("internal-token", store.datasetAPIToken)
+	request.Header.Set(authorizationHeader, store.authToken)
 
 	bytes, err := store.processRequest(request, instanceID)
 	if err != nil {
@@ -86,14 +92,16 @@ func (store *Store) GetIDs(instanceID string) (map[string]string, error) {
 		return nil, requestErr
 	}
 
+	// TODO Remove "internal-token" header, now uses "Authorization" header
 	request.Header.Set("internal-token", store.datasetAPIToken)
+	request.Header.Set(authorizationHeader, store.authToken)
 
 	bytes, err := store.processRequest(request, instanceID)
 	if err != nil {
 		return nil, err
 	}
 
-	var dimensionResults DimensionNodeResults
+	var dimensionResults NodeResults
 	JSONErr := json.Unmarshal(bytes, &dimensionResults)
 	if JSONErr != nil {
 		return nil, JSONErr

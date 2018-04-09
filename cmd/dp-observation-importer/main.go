@@ -17,35 +17,25 @@ import (
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
-	"github.com/gorilla/mux"
 	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
+	"github.com/gorilla/mux"
 )
 
 func main() {
 	log.Namespace = "dp-observation-importer"
 
-	config, err := config.Get()
+	cfg, err := config.Get()
 	checkForError(err)
 
 	// Avoid logging the neo4j URL as it may contain a password
-	log.Debug("loaded config", log.Data{
-		"topics":                     []string{config.ObservationConsumerTopic, config.ErrorProducerTopic, config.ResultProducerTopic},
-		"brokers":                    config.KafkaAddr,
-		"bind_addr":                  config.BindAddr,
-		"dataset_api_url":            config.DatasetAPIURL,
-		"observation_consumer_group": config.ObservationConsumerGroup,
-		"cache_ttl":                  config.CacheTTL,
-		"batch_size":                 config.BatchSize,
-		"batch_time":                 config.BatchWaitTime,
-		"graceful_shutdown_timeout":  config.GracefulShutdownTimeout,
-	})
+	log.Debug("loaded config", log.Data{"config": cfg})
 
 	// a channel used to signal a graceful exit is required.
 	errorChannel := make(chan error)
 
 	router := mux.NewRouter()
 	router.Path("/healthcheck").HandlerFunc(healthcheck.Handler)
-	httpServer := server.New(config.BindAddr, router)
+	httpServer := server.New(cfg.BindAddr, router)
 
 	// Disable auto handling of os signals by the HTTP server. This is handled
 	// in the service so we can gracefully shutdown resources other than just
@@ -53,26 +43,26 @@ func main() {
 	httpServer.HandleOSSignals = false
 
 	go func() {
-		log.Debug("starting http server", log.Data{"bind_addr": config.BindAddr})
-		if err := httpServer.ListenAndServe(); err != nil {
+		log.Debug("starting http server", log.Data{"bind_addr": cfg.BindAddr})
+		if err = httpServer.ListenAndServe(); err != nil {
 			errorChannel <- err
 		}
 	}()
 
 	kafkaConsumer, err := kafka.NewConsumerGroup(
-		config.KafkaAddr,
-		config.ObservationConsumerTopic,
-		config.ObservationConsumerGroup,
+		cfg.KafkaAddr,
+		cfg.ObservationConsumerTopic,
+		cfg.ObservationConsumerGroup,
 		kafka.OffsetNewest)
 	checkForError(err)
 
-	kafkaErrorProducer, err := kafka.NewProducer(config.KafkaAddr, config.ErrorProducerTopic, 0)
+	kafkaErrorProducer, err := kafka.NewProducer(cfg.KafkaAddr, cfg.ErrorProducerTopic, 0)
 	checkForError(err)
 
-	kafkaResultProducer, err := kafka.NewProducer(config.KafkaAddr, config.ResultProducerTopic, 0)
+	kafkaResultProducer, err := kafka.NewProducer(cfg.KafkaAddr, cfg.ResultProducerTopic, 0)
 	checkForError(err)
 
-	neo4jPool, err := bolt.NewClosableDriverPool(config.DatabaseAddress, config.Neo4jPoolSize)
+	neo4jPool, err := bolt.NewClosableDriverPool(cfg.DatabaseAddress, cfg.Neo4jPoolSize)
 	checkForError(err)
 
 	// when errors occur - we send a message on an error topic.
@@ -81,9 +71,9 @@ func main() {
 
 	// objects to get dimension data - via the dataset API + cached locally in memory.
 	httpClient := http.Client{Timeout: time.Second * 15}
-	dimensionStore := dimension.NewStore(config.DatasetAPIURL, config.DatasetAPIAuthToken, &httpClient)
-	dimensionOrderCache := dimension.NewOrderCache(dimensionStore, config.CacheTTL)
-	dimensionIDCache := dimension.NewIDCache(dimensionStore, config.CacheTTL)
+	dimensionStore := dimension.NewStore(cfg.ServiceAuthToken, cfg.DatasetAPIURL, cfg.DatasetAPIAuthToken, &httpClient)
+	dimensionOrderCache := dimension.NewOrderCache(dimensionStore, cfg.CacheTTL)
+	dimensionIDCache := dimension.NewIDCache(dimensionStore, cfg.CacheTTL)
 
 	// maps from CSV row to observation data.
 	observationMapper := observation.NewMapper(dimensionOrderCache)
@@ -100,7 +90,7 @@ func main() {
 	eventConsumer := event.NewConsumer()
 
 	// Start listening for event messages.
-	eventConsumer.Consume(kafkaConsumer, config.BatchSize, batchHandler, config.BatchWaitTime, errorChannel)
+	eventConsumer.Consume(kafkaConsumer, cfg.BatchSize, batchHandler, cfg.BatchWaitTime, errorChannel)
 
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
@@ -118,7 +108,7 @@ func main() {
 		log.Info("os signal received attempting graceful shutdown", log.Data{"signal": signal.String()})
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), config.GracefulShutdownTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.GracefulShutdownTimeout)
 
 	// gracefully dispose resources
 	err = eventConsumer.Close(ctx)

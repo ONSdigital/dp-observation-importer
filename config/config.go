@@ -12,16 +12,18 @@ type Config struct {
 	KafkaAddr                []string      `envconfig:"KAFKA_ADDR"`
 	ObservationConsumerGroup string        `envconfig:"OBSERVATION_CONSUMER_GROUP"`
 	ObservationConsumerTopic string        `envconfig:"OBSERVATION_CONSUMER_TOPIC"`
-	DatabaseAddress          string        `envconfig:"DATABASE_ADDRESS"`
+	DatabaseAddress          string        `envconfig:"DATABASE_ADDRESS"                json:"-"`
 	DatasetAPIURL            string        `envconfig:"DATASET_API_URL"`
 	Neo4jPoolSize            int           `envconfig:"NEO4J_POOL_SIZE"`
-	DatasetAPIAuthToken      string        `envconfig:"DATASET_API_AUTH_TOKEN"`
+	DatasetAPIAuthToken      string        `envconfig:"DATASET_API_AUTH_TOKEN"          json:"-"`
 	BatchSize                int           `envconfig:"BATCH_SIZE"`
 	BatchWaitTime            time.Duration `envconfig:"BATCH_WAIT_TIME"`
 	ErrorProducerTopic       string        `envconfig:"ERROR_PRODUCER_TOPIC"`
 	ResultProducerTopic      string        `envconfig:"RESULT_PRODUCER_TOPIC"`
 	CacheTTL                 time.Duration `envconfig:"CACHE_TTL"`
 	GracefulShutdownTimeout  time.Duration `envconfig:"GRACEFUL_SHUTDOWN_TIMEOUT"`
+	ServiceAuthToken         string        `envconfig:"SERVICE_AUTH_TOKEN"              json:"-"`
+	ZebedeeURL               string        `envconfig:"ZEBEDEE_URL"`
 }
 
 // Get the configuration values from the environment or provide the defaults.
@@ -42,7 +44,15 @@ func Get() (*Config, error) {
 		ResultProducerTopic:      "import-observations-inserted",
 		CacheTTL:                 time.Minute * 60,
 		GracefulShutdownTimeout:  time.Second * 10,
+		ServiceAuthToken:         "AA78C45F-DD64-4631-BED9-FEAE29200620",
+		ZebedeeURL:               "http://localhost:8082",
 	}
 
-	return cfg, envconfig.Process("", cfg)
+	if err := envconfig.Process("", cfg); err != nil {
+		return cfg, err
+	}
+
+	cfg.ServiceAuthToken = "Bearer " + cfg.ServiceAuthToken
+
+	return cfg, nil
 }
