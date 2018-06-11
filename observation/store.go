@@ -144,7 +144,8 @@ func (store *Store) save(attempt, maxAttempts int, conn bolt.Conn, instanceID st
 			"max_attempts": maxAttempts,
 		})
 
-		// Retry until it works
+		// Retry until it is successful or runs out of retries. TODO: the ability to retry
+		// neo queries should be built into go-ns, similar to the rchttp package.
 		return store.save(attempt+1, maxAttempts, conn, instanceID, observations)
 	}
 
