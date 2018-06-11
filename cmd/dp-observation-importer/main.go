@@ -17,8 +17,8 @@ import (
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
-	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
 	"github.com/gorilla/mux"
+	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
 
 func main() {
@@ -79,7 +79,7 @@ func main() {
 	observationMapper := observation.NewMapper(dimensionOrderCache)
 
 	// stores observations in the DB.
-	observationStore := observation.NewStore(dimensionIDCache, neo4jPool, errorReporter)
+	observationStore := observation.NewStore(dimensionIDCache, neo4jPool, errorReporter, cfg.Neo4jMaxRetries)
 
 	// write import results to kafka topic.
 	resultWriter := observation.NewResultWriter(kafkaResultProducer)

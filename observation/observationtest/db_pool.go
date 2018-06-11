@@ -4,8 +4,9 @@
 package observationtest
 
 import (
-	"github.com/ONSdigital/golang-neo4j-bolt-driver"
 	"sync"
+
+	"github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
 
 var (
