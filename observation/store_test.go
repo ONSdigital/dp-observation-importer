@@ -124,7 +124,7 @@ func TestStore_SaveAllExecError(t *testing.T) {
 				So(len(errorReporterMock.NotifyCalls()), ShouldEqual, 1)
 				So(errorReporterMock.NotifyCalls()[0], ShouldResemble, reportertest.NotfiyParams{
 					ID:         inputObservation.InstanceID,
-					ErrContext: "observation batch insert failed",
+					ErrContext: "observation batch save failed",
 					Err:        observation.ErrAttemptsExceededLimit{mockError},
 				})
 			})
@@ -208,7 +208,7 @@ func TestStore_SaveAll_GetNodeIDError(t *testing.T) {
 				So(errorReporterMock.NotifyCalls()[0], ShouldResemble, reportertest.NotfiyParams{
 					ID:         inputObservation.InstanceID,
 					Err:        mockError,
-					ErrContext: "failed to get dimension node id's",
+					ErrContext: "failed to get dimension node id's for batch",
 				})
 
 			})

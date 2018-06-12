@@ -84,14 +84,14 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 		}
 	}()
 
-	for instanceID := range instanceObservations {
+	for instanceID, observations := range instanceObservations {
 
-		err := store.save(1, store.maxRetries, conn, instanceID, instanceObservations[instanceID])
+		err := store.save(1, store.maxRetries, conn, instanceID, observations)
 		if err != nil {
 			continue
 		}
 
-		observationsInserted := int32(len(instanceObservations[instanceID]))
+		observationsInserted := int32(len(observations))
 
 		result := &Result{
 			InstanceID:           instanceID,
@@ -109,7 +109,7 @@ func (store *Store) save(attempt, maxAttempts int, conn bolt.Conn, instanceID st
 
 	dimensionIds, err := store.dimensionIDCache.GetNodeIDs(instanceID)
 	if err != nil {
-		store.reportError(instanceID, "failed to get dimension node id's", err)
+		store.reportError(instanceID, "failed to get dimension node id's for batch", err)
 		return err
 	}
 
@@ -124,7 +124,7 @@ func (store *Store) save(attempt, maxAttempts int, conn bolt.Conn, instanceID st
 
 		if neo4jErrorCode(err) == constraintError {
 
-			log.Debug("constraint error identified - skipping the inserts for this instance",
+			log.Info("constraint error identified - skipping the inserts for this instance",
 				log.Data{"instance_id": instanceID})
 
 			return err
@@ -133,7 +133,7 @@ func (store *Store) save(attempt, maxAttempts int, conn bolt.Conn, instanceID st
 		time.Sleep(getSleepTime(attempt, 20*time.Millisecond))
 
 		if attempt >= maxAttempts {
-			store.reportError(instanceID, "observation batch insert failed", ErrAttemptsExceededLimit{err})
+			store.reportError(instanceID, "observation batch save failed", ErrAttemptsExceededLimit{err})
 
 			return ErrAttemptsExceededLimit{err}
 		}
@@ -155,8 +155,7 @@ func (store *Store) save(attempt, maxAttempts int, conn bolt.Conn, instanceID st
 		return err
 	}
 
-	log.Debug("save result",
-		log.Data{"rows affected": rowsAffected, "metadata": queryResult.Metadata()})
+	log.Info("successfully saved observation batch", log.Data{"rows_affected": rowsAffected, "instance_id": instanceID})
 
 	return nil
 
