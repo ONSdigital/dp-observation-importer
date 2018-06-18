@@ -2,13 +2,17 @@ package observation
 
 import (
 	"fmt"
+	"math"
+	"math/rand"
+	"time"
+
+	"strings"
 
 	"github.com/ONSdigital/dp-reporter-client/reporter"
 	"github.com/ONSdigital/go-ns/log"
-	bolt "github.com/ONSdigital/golang-neo4j-bolt-driver"
-	neoErrors "github.com/ONSdigital/golang-neo4j-bolt-driver/errors"
-	"github.com/ONSdigital/golang-neo4j-bolt-driver/structures/messages"
-	"strings"
+	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
+	neoErrors "github.com/johnnadratowski/golang-neo4j-bolt-driver/errors"
+	"github.com/johnnadratowski/golang-neo4j-bolt-driver/structures/messages"
 )
 
 const constraintError = "Neo.ClientError.Schema.ConstraintValidationFailed"
@@ -18,6 +22,17 @@ type Store struct {
 	dimensionIDCache DimensionIDCache
 	pool             DBPool
 	errorReporter    reporter.ErrorReporter
+	maxRetries       int
+}
+
+// ErrAttemptsExceededLimit is returned when the number of attempts has reaced
+// the maximum permitted
+type ErrAttemptsExceededLimit struct {
+	WrappedErr error
+}
+
+func (e ErrAttemptsExceededLimit) Error() string {
+	return fmt.Sprintf("number of attempts to save observations exceeded: %s", e.WrappedErr.Error())
 }
 
 // DimensionIDCache provides database ID's of dimensions when inserting observations.
@@ -37,11 +52,12 @@ type DBPool interface {
 type DBConnection bolt.Conn
 
 // NewStore returns a new Observation store instance that uses the given dimension ID cache and db connection.
-func NewStore(dimensionIDCache DimensionIDCache, pool DBPool, errorReporter reporter.ErrorReporter) *Store {
+func NewStore(dimensionIDCache DimensionIDCache, pool DBPool, errorReporter reporter.ErrorReporter, maxRetries int) *Store {
 	return &Store{
 		dimensionIDCache: dimensionIDCache,
-		pool:     pool,
+		pool:             pool,
 		errorReporter:    errorReporter,
+		maxRetries:       maxRetries,
 	}
 }
 
@@ -53,66 +69,29 @@ type Result struct {
 
 // SaveAll the observations against the provided dimension options and instanceID.
 func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
-
 	results := make([]*Result, 0)
 
 	// handle the inserts separately for each instance in the batch.
 	instanceObservations := mapObservationsToInstances(observations)
 
-	for instanceID := range instanceObservations {
+	conn, err := store.pool.OpenPool()
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err := conn.Close(); err != nil {
+			log.Error(err, nil)
+		}
+	}()
 
-		query := buildInsertObservationQuery(instanceID, instanceObservations[instanceID])
+	for instanceID, observations := range instanceObservations {
 
-		dimensionIds, err := store.dimensionIDCache.GetNodeIDs(instanceID)
+		err := store.save(1, store.maxRetries, conn, instanceID, observations)
 		if err != nil {
-			store.reportError(instanceID, "failed to get dimension node id's", err)
 			continue
 		}
 
-		queryParameters, err := createParams(instanceObservations[instanceID], dimensionIds)
-		if err != nil {
-			store.reportError(instanceID, "failed to create query parameters for batch query", err)
-			continue
-		}
-
-		conn, err := store.pool.OpenPool()
-		if err != nil {
-			return nil, err
-		}
-		defer conn.Close()
-
-		queryResult, err := conn.ExecNeo(query, queryParameters)
-		if err != nil {
-
-			if neo4jErrorCode(err) == constraintError {
-
-				log.Debug("constraint error identified - skipping the inserts for this instance",
-					log.Data{"instance_id": instanceID})
-
-				continue
-			}
-
-			for instanceID := range instanceObservations {
-				store.reportError(instanceID, "observation batch insert failed", err)
-			}
-
-			// todo: add retry logic and identify fatal errors that should be returned.
-			// any error will currently be sent to the reporter and mark the import as failed
-			// we do not return the error as we want the message to be consumed.
-			// returning an error causes the service to shutdown and not consume the message.
-			continue
-		}
-
-		rowsAffected, err := queryResult.RowsAffected()
-		if err != nil {
-			store.reportError(instanceID, "error attempting to get number of rows affected in query result", err)
-			continue
-		}
-
-		log.Debug("save result",
-			log.Data{"rows affected": rowsAffected, "metadata": queryResult.Metadata()})
-
-		observationsInserted := int32(len(instanceObservations[instanceID]))
+		observationsInserted := int32(len(observations))
 
 		result := &Result{
 			InstanceID:           instanceID,
@@ -123,6 +102,63 @@ func (store *Store) SaveAll(observations []*Observation) ([]*Result, error) {
 	}
 
 	return results, nil
+}
+
+func (store *Store) save(attempt, maxAttempts int, conn bolt.Conn, instanceID string, observations []*Observation) error {
+	query := buildInsertObservationQuery(instanceID, observations)
+
+	dimensionIds, err := store.dimensionIDCache.GetNodeIDs(instanceID)
+	if err != nil {
+		store.reportError(instanceID, "failed to get dimension node id's for batch", err)
+		return err
+	}
+
+	queryParameters, err := createParams(observations, dimensionIds)
+	if err != nil {
+		store.reportError(instanceID, "failed to create query parameters for batch query", err)
+		return err
+	}
+
+	queryResult, err := conn.ExecNeo(query, queryParameters)
+	if err != nil {
+
+		if neo4jErrorCode(err) == constraintError {
+
+			log.Info("constraint error identified - skipping the inserts for this instance",
+				log.Data{"instance_id": instanceID})
+
+			return err
+		}
+
+		time.Sleep(getSleepTime(attempt, 20*time.Millisecond))
+
+		if attempt >= maxAttempts {
+			store.reportError(instanceID, "observation batch save failed", ErrAttemptsExceededLimit{err})
+
+			return ErrAttemptsExceededLimit{err}
+		}
+
+		log.Info("got an error when saving observations, attempting to retry", log.Data{
+			"instance_id":  instanceID,
+			"retry_number": attempt,
+			"max_attempts": maxAttempts,
+		})
+
+		// Retry until it is successful or runs out of retries. TODO: the ability to retry
+		// neo queries should be built into go-ns, similar to the rchttp package.
+		return store.save(attempt+1, maxAttempts, conn, instanceID, observations)
+	}
+
+	rowsAffected, err := queryResult.RowsAffected()
+	if err != nil {
+		store.reportError(instanceID, "error attempting to get number of rows affected in query result", err)
+		return err
+	}
+
+	log.Info("successfully saved observation batch", log.Data{"rows_affected": rowsAffected, "instance_id": instanceID})
+
+	return nil
+
 }
 
 func neo4jErrorCode(err error) interface{} {
@@ -224,4 +260,15 @@ func mapObservationsToInstances(observations []*Observation) map[string][]*Obser
 	}
 
 	return instanceObservations
+}
+
+// getSleepTime will return a sleep time based on the attempt and initial retry time.
+// It uses the algorithm 2^n where n is the attempt number (double the previous) and
+// a randomization factor of between 0-5ms so that the server isn't being hit constantly
+// at the same time by many clients
+func getSleepTime(attempt int, retryTime time.Duration) time.Duration {
+	n := (math.Pow(2, float64(attempt)))
+	rand.Seed(time.Now().Unix())
+	rnd := time.Duration(rand.Intn(4)+1) * time.Millisecond
+	return (time.Duration(n) * retryTime) - rnd
 }
