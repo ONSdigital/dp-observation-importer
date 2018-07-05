@@ -3,9 +3,11 @@ package event
 import (
 	"context"
 	"errors"
+	"time"
+
+	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
-	"time"
 )
 
 // MessageConsumer provides a generic interface for consuming []byte messages (from Kafka)
@@ -103,6 +105,10 @@ func ProcessBatch(handler Handler, batch *Batch, error chan error) {
 	if err != nil {
 		log.Error(err, log.Data{})
 		error <- err
+		// If the retries exceed the limit, then the message is not able to recover, so commit it
+		if _, ok := err.(observation.ErrAttemptsExceededLimit); ok {
+			batch.Commit()
+		}
 		return
 	}
 
