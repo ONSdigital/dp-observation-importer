@@ -105,8 +105,9 @@ func ProcessBatch(handler Handler, batch *Batch, error chan error) {
 	if err != nil {
 		log.Error(err, log.Data{})
 		error <- err
-		// If the retries exceed the limit, then the message is not able to recover, so commit it
-		if _, ok := err.(observation.ErrAttemptsExceededLimit); ok {
+		// If the error type is non retriable then we should commit the message batch,
+		// because we know it will never succeed
+		if _, ok := err.(observation.ErrNonRetriable); ok {
 			batch.Commit()
 		}
 		return
