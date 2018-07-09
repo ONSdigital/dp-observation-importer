@@ -3,9 +3,11 @@ package event
 import (
 	"context"
 	"errors"
+	"time"
+
+	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
-	"time"
 )
 
 // MessageConsumer provides a generic interface for consuming []byte messages (from Kafka)
@@ -103,6 +105,11 @@ func ProcessBatch(handler Handler, batch *Batch, error chan error) {
 	if err != nil {
 		log.Error(err, log.Data{})
 		error <- err
+		// If the error type is non retriable then we should commit the message batch,
+		// because we know it will never succeed
+		if _, ok := err.(observation.ErrNonRetriable); ok {
+			batch.Commit()
+		}
 		return
 	}
 

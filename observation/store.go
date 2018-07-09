@@ -15,7 +15,10 @@ import (
 	"github.com/johnnadratowski/golang-neo4j-bolt-driver/structures/messages"
 )
 
-const constraintError = "Neo.ClientError.Schema.ConstraintValidationFailed"
+const (
+	constraintError      = "Neo.ClientError.Schema.ConstraintValidationFailed"
+	statementErrorPrefix = "Neo.ClientError.Statement"
+)
 
 // Store provides persistence for observations.
 type Store struct {
@@ -33,6 +36,15 @@ type ErrAttemptsExceededLimit struct {
 
 func (e ErrAttemptsExceededLimit) Error() string {
 	return fmt.Sprintf("number of attempts to save observations exceeded: %s", e.WrappedErr.Error())
+}
+
+// ErrNonRetriable is returned when the wrapped error type is not retriable
+type ErrNonRetriable struct {
+	WrappedErr error
+}
+
+func (e ErrNonRetriable) Error() string {
+	return fmt.Sprintf("received a non retriable error from neo4j: %s", e.WrappedErr.Error())
 }
 
 // DimensionIDCache provides database ID's of dimensions when inserting observations.
@@ -122,12 +134,14 @@ func (store *Store) save(attempt, maxAttempts int, conn bolt.Conn, instanceID st
 	queryResult, err := conn.ExecNeo(query, queryParameters)
 	if err != nil {
 
-		if neo4jErrorCode(err) == constraintError {
+		if neoErr, ok := neo4jErrorCode(err).(string); ok {
+			if neoErr == constraintError || strings.Contains(neoErr, statementErrorPrefix) {
 
-			log.Info("constraint error identified - skipping the inserts for this instance",
-				log.Data{"instance_id": instanceID})
+				log.Info("received an error from neo4j that cannot be retried",
+					log.Data{"instance_id": instanceID})
 
-			return err
+				return ErrNonRetriable{err}
+			}
 		}
 
 		time.Sleep(getSleepTime(attempt, 20*time.Millisecond))
