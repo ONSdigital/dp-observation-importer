@@ -75,11 +75,11 @@
 			"revisionTime": "2017-11-27T12:13:36Z"
 		},
 		{
-			"checksumSHA1": "+Jp0tVXfQ1TM8T+oun82oJtME5U=",
+			"checksumSHA1": "K7wm03LN5CpmnuQPGfSmrx1hNtk=",
 			"origin": "github.com/ONSdigital/go-ns/vendor/github.com/Shopify/sarama",
 			"path": "github.com/Shopify/sarama",
-			"revision": "84ec91434eab3ba06a753895619f60ee0ccf6552",
-			"revisionTime": "2017-11-27T12:13:36Z"
+			"revision": "0789b5d0b80600359bdf52c1dd49263f7660c2ba",
+			"revisionTime": "2018-07-10T06:51:12Z"
 		},
 		{
 			"checksumSHA1": "88PtOr8dvh0n877kqDsDVZ73MmY=",
