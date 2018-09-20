@@ -197,8 +197,8 @@ func neo4jErrorCode(err error) (string, bool) {
 	var shortErr string
 	c := 0
 	for _, l := range s {
-		if c < 5 && l != "\n" {
-			shortErr += l
+		if c < 5 && l != "" {
+			shortErr += l + " "
 			c++
 		}
 	}
