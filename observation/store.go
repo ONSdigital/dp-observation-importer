@@ -133,7 +133,6 @@ func (store *Store) save(attempt, maxAttempts int, conn bolt.Conn, instanceID st
 
 	queryResult, err := conn.ExecNeo(query, queryParameters)
 	if err != nil {
-
 		if neoErr, ok := checkForRetry(err); !ok {
 			log.Info("received an error from neo4j that cannot be retried",
 				log.Data{"instance_id": instanceID, "error": neoErr})
@@ -185,23 +184,23 @@ func checkForRetry(err error) (string, bool) {
 		}
 	}
 
-	if neoErr != constraintError && !strings.Contains(neoErr, statementErrorPrefix) {
-		return "", true
-	}
+	if neoErr == constraintError || strings.Contains(neoErr, statementErrorPrefix) {
+		s := strings.Split(err.Error(), "\n")
 
-	s := strings.Split(err.Error(), "\n")
-
-	//get the first 5 useful lines of a neo stack error
-	var shortErr string
-	c := 0
-	for _, l := range s {
-		if c < 5 && l != "" {
-			shortErr += l + "\n"
-			c++
+		//get the first 5 useful lines of a neo stack error
+		var shortErr string
+		c := 0
+		for _, l := range s {
+			if c < 5 && l != "" {
+				shortErr += l + "\n"
+				c++
+			}
 		}
+
+		return shortErr, false
 	}
 
-	return shortErr, false
+	return "", true
 }
 
 func (store *Store) reportError(instanceID string, context string, cause error) {
