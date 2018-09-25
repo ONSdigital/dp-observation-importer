@@ -133,8 +133,7 @@ func (store *Store) save(attempt, maxAttempts int, conn bolt.Conn, instanceID st
 
 	queryResult, err := conn.ExecNeo(query, queryParameters)
 	if err != nil {
-
-		if neoErr, ok := checkNeo4jError(err); ok {
+		if neoErr, ok := checkForRetry(err); !ok {
 			log.Info("received an error from neo4j that cannot be retried",
 				log.Data{"instance_id": instanceID, "error": neoErr})
 
@@ -172,38 +171,36 @@ func (store *Store) save(attempt, maxAttempts int, conn bolt.Conn, instanceID st
 
 }
 
-func checkNeo4jError(err error) (string, bool) {
+func checkForRetry(err error) (string, bool) {
 	var neoErr string
 	var boltErr *neoErrors.Error
 	var ok bool
 
-	if boltErr, ok = err.(*neoErrors.Error); !ok {
-		return "", false
-	}
-
-	if failureMessage, ok := boltErr.Inner().(messages.FailureMessage); ok {
-		if neoErr, ok = failureMessage.Metadata["code"].(string); !ok {
-			return "", false
+	if boltErr, ok = err.(*neoErrors.Error); ok {
+		if failureMessage, ok := boltErr.Inner().(messages.FailureMessage); ok {
+			if neoErr, ok = failureMessage.Metadata["code"].(string); !ok {
+				return "", true
+			}
 		}
 	}
 
-	if neoErr != constraintError && !strings.Contains(neoErr, statementErrorPrefix) {
-		return "", false
-	}
+	if neoErr == constraintError || strings.Contains(neoErr, statementErrorPrefix) {
+		s := strings.Split(err.Error(), "\n")
 
-	s := strings.Split(err.Error(), "\n")
-
-	//get the first 5 useful lines of a neo stack error
-	var shortErr string
-	c := 0
-	for _, l := range s {
-		if c < 5 && l != "" {
-			shortErr += l + "\n"
-			c++
+		//get the first 5 useful lines of a neo stack error
+		var shortErr string
+		c := 0
+		for _, l := range s {
+			if c < 5 && l != "" {
+				shortErr += l + "\n"
+				c++
+			}
 		}
+
+		return shortErr, false
 	}
 
-	return shortErr, true
+	return "", true
 }
 
 func (store *Store) reportError(instanceID string, context string, cause error) {
