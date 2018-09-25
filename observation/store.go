@@ -135,7 +135,7 @@ func (store *Store) save(attempt, maxAttempts int, conn bolt.Conn, instanceID st
 	if err != nil {
 		if neoErr, ok := checkForRetry(err); !ok {
 			log.Info("received an error from neo4j that cannot be retried",
-				log.Data{"instance_id": instanceID, "error": neoErr})
+				log.Data{"instance_id": instanceID, "neo_error": neoErr, "query": query, "params": queryParameters})
 
 			return ErrNonRetriable{err}
 		}

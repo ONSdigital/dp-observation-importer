@@ -1,8 +1,8 @@
 package event
 
-import "github.com/ONSdigital/go-ns/log"
 import (
 	"github.com/ONSdigital/dp-observation-importer/schema"
+	"github.com/ONSdigital/go-ns/log"
 )
 
 // Batch handles adding raw messages to a batch of ObservationExtracted events.
