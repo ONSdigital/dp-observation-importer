@@ -13,6 +13,10 @@ dp-observation-importer
 * Set ```dbms.security.auth_enabled=false```
 * Run ```brew services restart neo4j```
 
+### Kafka scripts
+
+Scripts for updating and debugging Kafka can be found [here](https://github.com/ONSdigital/dp-data-tools)(dp-data-tools)
+
 ### Configuration
 
 | Environment variable       | Default                          | Description
