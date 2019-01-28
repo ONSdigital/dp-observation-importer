@@ -28,11 +28,7 @@ job "dp-observation-importer" {
     }
 
     task "dp-observation-importer" {
-      driver = "exec"
-
-      artifact {
-        source = "s3::https://s3-eu-west-1.amazonaws.com/{{BUILD_BUCKET}}/dp-observation-importer/{{REVISION}}.tar.gz"
-      }
+      driver = "docker"
 
       artifact {
         source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-observation-importer/{{REVISION}}.tar.gz"
@@ -40,9 +36,14 @@ job "dp-observation-importer" {
 
       config {
         command = "${NOMAD_TASK_DIR}/start-task"
-        args    = [
-          "${NOMAD_TASK_DIR}/dp-observation-importer",
-        ]
+
+        args = [“./dp-observation-importer”]
+
+        image = “{{ECR_URL}}:concourse-{{REVISION}}”
+
+        port_map {
+          http = “${NOMAD_PORT_http}”
+        }
       }
 
       service {
