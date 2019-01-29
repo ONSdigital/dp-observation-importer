@@ -37,12 +37,12 @@ job "dp-observation-importer" {
       config {
         command = "${NOMAD_TASK_DIR}/start-task"
 
-        args = [“./dp-observation-importer”]
+        args = ["./dp-observation-importer"]
 
-        image = “{{ECR_URL}}:concourse-{{REVISION}}”
+        image = "{{ECR_URL}}:concourse-{{REVISION}}"
 
         port_map {
-          http = “${NOMAD_PORT_http}”
+          http = "${NOMAD_PORT_http}"
         }
       }
 
