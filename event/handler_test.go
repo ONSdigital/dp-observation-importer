@@ -1,13 +1,15 @@
 package event_test
 
 import (
+	"errors"
+	"testing"
+
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/event/eventtest"
+	"github.com/ONSdigital/dp-observation-importer/models"
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-reporter-client/reporter/reportertest"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
-	"errors"
 )
 
 var mockError = errors.New("Mapping failed")
@@ -21,10 +23,10 @@ var expectedEvent = &event.ObservationExtracted{
 	RowIndex:   int64(765),
 }
 
-var expectedObservation = &observation.Observation{
+var expectedObservation = &models.Observation{
 	InstanceID: instanceID,
 	Row:        row,
-	DimensionOptions: []*observation.DimensionOption{
+	DimensionOptions: []*models.DimensionOption{
 		{
 			Name:          "Male",
 			DimensionName: "Gender",
@@ -46,13 +48,13 @@ func TestBatchHandler_Handle(t *testing.T) {
 	Convey("Given a handler configured with a mock mapper and store", t, func() {
 
 		mockObservationMapper := &eventtest.ObservationMapperMock{
-			MapFunc: func(row string, rowIndex int64, instanceID string) (*observation.Observation, error) {
+			MapFunc: func(row string, rowIndex int64, instanceID string) (*models.Observation, error) {
 				return expectedObservation, nil
 			},
 		}
 
 		mockObservationStore := &eventtest.ObservationStoreMock{
-			SaveAllFunc: func(observations []*observation.Observation) ([]*observation.Result, error) {
+			SaveAllFunc: func(observations []*models.Observation) ([]*observation.Result, error) {
 				return []*observation.Result{expectedResult}, nil
 			},
 		}
@@ -90,13 +92,13 @@ func TestBatchHandler_Handle_MapperError(t *testing.T) {
 	Convey("Given a handler configured with a mock mapper that returns an error", t, func() {
 
 		mockObservationMapper := &eventtest.ObservationMapperMock{
-			MapFunc: func(row string, rowIndex int64, instanceID string) (*observation.Observation, error) {
+			MapFunc: func(row string, rowIndex int64, instanceID string) (*models.Observation, error) {
 				return nil, mockError
 			},
 		}
 
 		mockObservationStore := &eventtest.ObservationStoreMock{
-			SaveAllFunc: func(observations []*observation.Observation) ([]*observation.Result, error) {
+			SaveAllFunc: func(observations []*models.Observation) ([]*observation.Result, error) {
 				return []*observation.Result{expectedResult}, nil
 			},
 		}
@@ -131,13 +133,13 @@ func TestBatchHandler_Handle_StoreError(t *testing.T) {
 	Convey("Given a handler configured with a mock mapper, and mock store that returns an error", t, func() {
 
 		mockObservationMapper := &eventtest.ObservationMapperMock{
-			MapFunc: func(row string, rowIndex int64, instanceID string) (*observation.Observation, error) {
+			MapFunc: func(row string, rowIndex int64, instanceID string) (*models.Observation, error) {
 				return expectedObservation, nil
 			},
 		}
 
 		mockObservationStore := &eventtest.ObservationStoreMock{
-			SaveAllFunc: func(observations []*observation.Observation) ([]*observation.Result, error) {
+			SaveAllFunc: func(observations []*models.Observation) ([]*observation.Result, error) {
 				return nil, mockError
 			},
 		}

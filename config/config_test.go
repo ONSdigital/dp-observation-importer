@@ -25,7 +25,6 @@ func TestSpec(t *testing.T) {
 				So(cfg.KafkaAddr[0], ShouldEqual, "localhost:9092")
 				So(cfg.ObservationConsumerGroup, ShouldEqual, "observation-extracted")
 				So(cfg.ObservationConsumerTopic, ShouldEqual, "observation-extracted")
-				So(cfg.DatabaseAddress, ShouldEqual, "bolt://localhost:7687")
 				So(cfg.DatasetAPIURL, ShouldEqual, "http://localhost:22000")
 				So(cfg.DatasetAPIAuthToken, ShouldEqual, "FD0108EA-825D-411C-9B1D-41EF7727F465")
 				So(cfg.BatchSize, ShouldEqual, 1000)

@@ -8,6 +8,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/ONSdigital/dp-graph/graph"
 	"github.com/ONSdigital/dp-observation-importer/config"
 	"github.com/ONSdigital/dp-observation-importer/dimension"
 	"github.com/ONSdigital/dp-observation-importer/event"
@@ -18,7 +19,6 @@ import (
 	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
 	"github.com/gorilla/mux"
-	bolt "github.com/johnnadratowski/golang-neo4j-bolt-driver"
 )
 
 func main() {
@@ -62,7 +62,7 @@ func main() {
 	kafkaResultProducer, err := kafka.NewProducer(cfg.KafkaAddr, cfg.ResultProducerTopic, 0)
 	checkForError(err)
 
-	neo4jPool, err := bolt.NewClosableDriverPool(cfg.DatabaseAddress, cfg.Neo4jPoolSize)
+	graphDB, err := graph.NewObservationStore(context.Background())
 	checkForError(err)
 
 	// when errors occur - we send a message on an error topic.
@@ -79,7 +79,7 @@ func main() {
 	observationMapper := observation.NewMapper(dimensionOrderCache)
 
 	// stores observations in the DB.
-	observationStore := observation.NewStore(dimensionIDCache, neo4jPool, errorReporter, cfg.Neo4jMaxRetries)
+	observationStore := observation.NewStore(dimensionIDCache, graphDB, errorReporter)
 
 	// write import results to kafka topic.
 	resultWriter := observation.NewResultWriter(kafkaResultProducer)
@@ -123,7 +123,7 @@ func main() {
 	err = kafkaResultProducer.Close(ctx)
 	logError(err)
 
-	err = neo4jPool.Close()
+	err = graphDB.Close(ctx)
 	logError(err)
 
 	err = httpServer.Shutdown(ctx)
