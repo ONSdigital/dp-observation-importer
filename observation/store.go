@@ -1,6 +1,8 @@
 package observation
 
 import (
+	"context"
+
 	graph "github.com/ONSdigital/dp-graph/graph/driver"
 	"github.com/ONSdigital/dp-observation-importer/models"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
@@ -53,7 +55,7 @@ func (store *Store) SaveAll(observations []*models.Observation) ([]*Result, erro
 			return results, err
 		}
 
-		if err := store.graph.InsertObservationBatch(1, instanceID, observations, dimensionIds); err != nil {
+		if err := store.graph.InsertObservationBatch(context.Background(), 1, instanceID, observations, dimensionIds); err != nil {
 			store.reportError(instanceID, "failed to insert observation batch to graph", err)
 			continue
 		}
