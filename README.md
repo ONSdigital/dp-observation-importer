@@ -25,8 +25,6 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 | KAFKA_ADDR                 | http://localhost:9092                | The address of the Kafka instance
 | OBSERVATION_CONSUMER_GROUP | dp-observation-importer              | The Kafka consumer group to consume observation extracted events from
 | OBSERVATION_CONSUMER_TOPIC | observation-extracted                | The Kafka topic to consume observation extracted events from
-| DATABASE_ADDRESS           | bolt://localhost:7687                | The address of the database
-| NEO4J_POOL_SIZE            | 5                                    | The size of the database pool
 | DATASET_API_URL            | http://localhost:21800               | The URL of the dataset API
 | BATCH_SIZE                 | 1000                                 | The number of messages to process in each batch if the time out has not been reached
 | BATCH_WAIT_TIME            | 200ms                                | The duration to wait before processing a partially full batch of messages (time.Duration)

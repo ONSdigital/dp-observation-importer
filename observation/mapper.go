@@ -2,8 +2,10 @@ package observation
 
 import (
 	"encoding/csv"
-	inputcsv "github.com/ONSdigital/dp-observation-importer/csv"
 	"strings"
+
+	inputcsv "github.com/ONSdigital/dp-observation-importer/csv"
+	"github.com/ONSdigital/dp-observation-importer/models"
 )
 
 // Mapper interprets a CSV line and returns an observation instance.
@@ -24,7 +26,7 @@ func NewMapper(dimensionOrderCache DimensionHeaderCache) *Mapper {
 }
 
 // Map the given CSV row to an observation instance.
-func (mapper *Mapper) Map(row string, rowIndex int64, instanceID string) (*Observation, error) {
+func (mapper *Mapper) Map(row string, rowIndex int64, instanceID string) (*models.Observation, error) {
 
 	headerRow, err := mapper.dimensionCache.GetOrder(instanceID)
 	if err != nil {
@@ -37,7 +39,7 @@ func (mapper *Mapper) Map(row string, rowIndex int64, instanceID string) (*Obser
 		return nil, err
 	}
 
-	var dimensions []*DimensionOption
+	var dimensions []*models.DimensionOption
 	csv := csv.NewReader(strings.NewReader(row))
 	csvRow, err := csv.Read()
 	if err != nil {
@@ -68,10 +70,10 @@ func (mapper *Mapper) Map(row string, rowIndex int64, instanceID string) (*Obser
 		dimensionName = headerRow[i+1]
 
 		dimensions = append(dimensions,
-			&DimensionOption{DimensionName: dimensionName, Name: dimensionOption})
+			&models.DimensionOption{DimensionName: dimensionName, Name: dimensionOption})
 	}
 
-	o := Observation{Row: row, RowIndex: rowIndex, InstanceID: instanceID, DimensionOptions: dimensions}
+	o := models.Observation{Row: row, RowIndex: rowIndex, InstanceID: instanceID, DimensionOptions: dimensions}
 
 	return &o, nil
 }
