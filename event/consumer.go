@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/ONSdigital/dp-observation-importer/observation"
+	graph "github.com/ONSdigital/dp-graph/graph/driver"
 	"github.com/ONSdigital/go-ns/kafka"
 	"github.com/ONSdigital/go-ns/log"
 )
@@ -107,7 +107,7 @@ func ProcessBatch(handler Handler, batch *Batch, error chan error) {
 		error <- err
 		// If the error type is non retriable then we should commit the message batch,
 		// because we know it will never succeed
-		if _, ok := err.(observation.ErrNonRetriable); ok {
+		if _, ok := err.(graph.ErrNonRetriable); ok {
 			batch.Commit()
 		}
 		return

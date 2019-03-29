@@ -1,6 +1,7 @@
 package event
 
 import (
+	"github.com/ONSdigital/dp-observation-importer/models"
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
 	"github.com/ONSdigital/go-ns/log"
@@ -22,12 +23,12 @@ type BatchHandler struct {
 
 // ObservationMapper handles the conversion from row data to observation instances.
 type ObservationMapper interface {
-	Map(row string, rowIndex int64, instanceID string) (*observation.Observation, error)
+	Map(row string, rowIndex int64, instanceID string) (*models.Observation, error)
 }
 
 // ObservationStore handles the persistence of observations.
 type ObservationStore interface {
-	SaveAll(observations []*observation.Observation) ([]*observation.Result, error)
+	SaveAll(observations []*models.Observation) ([]*observation.Result, error)
 }
 
 // ResultWriter dependency that outputs results
@@ -52,7 +53,7 @@ func NewBatchHandler(
 
 // Handle the given slice of ObservationExtracted events.
 func (handler BatchHandler) Handle(events []*ObservationExtracted) error {
-	observations := make([]*observation.Observation, 0, len(events))
+	observations := make([]*models.Observation, 0, len(events))
 
 	for _, event := range events {
 		observation, err := handler.observationMapper.Map(event.Row, event.RowIndex, event.InstanceID)

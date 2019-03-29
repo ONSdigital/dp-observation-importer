@@ -12,10 +12,7 @@ type Config struct {
 	KafkaAddr                []string      `envconfig:"KAFKA_ADDR"`
 	ObservationConsumerGroup string        `envconfig:"OBSERVATION_CONSUMER_GROUP"`
 	ObservationConsumerTopic string        `envconfig:"OBSERVATION_CONSUMER_TOPIC"`
-	DatabaseAddress          string        `envconfig:"DATABASE_ADDRESS"                json:"-"`
 	DatasetAPIURL            string        `envconfig:"DATASET_API_URL"`
-	Neo4jPoolSize            int           `envconfig:"NEO4J_POOL_SIZE"`
-	Neo4jMaxRetries          int           `envconfig:"NEO4J_MAX_RETRIES"`
 	DatasetAPIAuthToken      string        `envconfig:"DATASET_API_AUTH_TOKEN"          json:"-"`
 	BatchSize                int           `envconfig:"BATCH_SIZE"`
 	BatchWaitTime            time.Duration `envconfig:"BATCH_WAIT_TIME"`
@@ -35,10 +32,7 @@ func Get() (*Config, error) {
 		KafkaAddr:                []string{"localhost:9092"},
 		ObservationConsumerGroup: "observation-extracted",
 		ObservationConsumerTopic: "observation-extracted",
-		DatabaseAddress:          "bolt://localhost:7687",
 		DatasetAPIURL:            "http://localhost:22000",
-		Neo4jPoolSize:            5,
-		Neo4jMaxRetries:          10,
 		DatasetAPIAuthToken:      "FD0108EA-825D-411C-9B1D-41EF7727F465",
 		BatchSize:                1000,
 		BatchWaitTime:            time.Millisecond * 200,
