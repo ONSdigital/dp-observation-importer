@@ -46,28 +46,16 @@ func (mapper *Mapper) Map(row string, rowIndex int64, instanceID string) (*model
 		return nil, err
 	}
 
-	// if we want to support time being in any column we need to look at the header to see what column time is in.
-	// TODO review whether this is safe to assume. If there are a lot of rows it could be a lot of CPU to determine
-	// this for every row.
-	timeDimensionOffset := dimensionOffset // Assume time is always first
-
 	for i := dimensionOffset; i < len(headerRow); i += 2 {
 
-		var dimensionName, dimensionOption string
+		dimensionOption := csvRow[i]
 
-		if i == timeDimensionOffset {
-			dimensionOption = csvRow[i+1] // code list value
-		} else {
-
-			dimensionOption = csvRow[i] // code list value
-
-			// if there is no code provided, use the label
-			if len(dimensionOption) == 0 {
-				dimensionOption = csvRow[i+1] // dimension option value
-			}
+		// if there is no code provided, use the label
+		if len(dimensionOption) == 0 {
+			dimensionOption = csvRow[i+1]
 		}
 
-		dimensionName = headerRow[i+1]
+		dimensionName := headerRow[i+1]
 
 		dimensions = append(dimensions,
 			&models.DimensionOption{DimensionName: dimensionName, Name: dimensionOption})

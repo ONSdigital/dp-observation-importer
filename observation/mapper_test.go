@@ -1,11 +1,12 @@
 package observation_test
 
 import (
+	"strings"
+	"testing"
+
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-observation-importer/observation/observationtest"
 	. "github.com/smartystreets/goconvey/convey"
-	"strings"
-	"testing"
 )
 
 func TestMapper_Map(t *testing.T) {
@@ -18,7 +19,7 @@ func TestMapper_Map(t *testing.T) {
 
 		Convey("When map is called with an example csv line", func() {
 
-			csvRow := "128,,Month,Aug-16,K02000001,,cpi1dim1A0,CPI (overall index)"
+			csvRow := "128,,Aug-16,August 16,K02000001,,cpi1dim1A0,CPI (overall index)"
 			rowIndex := int64(453)
 			instanceID := "123321"
 			observation, err := mapper.Map(csvRow, rowIndex, instanceID)
