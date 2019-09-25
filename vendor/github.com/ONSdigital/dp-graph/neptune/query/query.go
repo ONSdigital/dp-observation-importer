@@ -101,7 +101,7 @@ const (
 	DropObservationRelationships   = "g.V().hasLabel('_%s_observation').has('value', '%s').bothE().drop().iterate();"
 	DropObservation                = "g.V().hasLabel('_%s_observation').has('value', '%s').drop().iterate();"
 	CreateObservationPart          = "g.addV('_%s_observation').property(single, 'value', '%s').property(single, 'rowIndex', '%d')"
-	AddObservationRelationshipPart = ".addE('isValueOf').V().hasId('%s').hasLabel('_%s_%s').where(values('value').is('%s')).outV()"
+	AddObservationRelationshipPart = ".addE('isValueOf').as('%s').V().hasId('%s').hasLabel('_%s_%s').where(values('value').is('%s')).select('%s').outV()"
 
 	GetInstanceHeaderPart  = "g.V().hasLabel('_%s_Instance').as('instance')"
 	GetAllObservationsPart = ".V().hasLabel('_%s_observation').values('row')"
