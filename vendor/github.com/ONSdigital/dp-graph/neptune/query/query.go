@@ -49,18 +49,18 @@ const (
 	`
 
 	// hierarchy write
-	CloneHierarchyNodes = "g.V().hasLabel('_generic_hierarchy_node_%s').as('old')" +
+	CloneHierarchyNodes = "g.V().hasLabel('_generic_hierarchy_node_%s').as('old').addE('clone_of')" +
 		".addV('_hierarchy_node_%s_%s')" +
 		".property(single,'code',select('old').values('code'))" +
 		".property(single,'label',select('old').values('label'))" +
 		".property(single,'hasData', false)" +
 		".property('code_list','%s').as('new')" +
-		".addE('clone_of').to('old').select('new')"
+		".select('new')"
 	CountHierarchyNodes         = "g.V().hasLabel('_hierarchy_node_%s_%s').count()"
 	CloneHierarchyRelationships = "g.V().hasLabel('_generic_hierarchy_node_%s').as('oc')" +
 		".out('hasParent')" +
 		".in('clone_of').hasLabel('_hierarchy_node_%s_%s')" +
-		".addE('hasParent').from(select('oc').in('clone_of').hasLabel('_hierarchy_node_%s_%s'))"
+		".addE('hasParent').select('oc').in('clone_of').hasLabel('_hierarchy_node_%s_%s')"
 	RemoveCloneMarkers  = "g.V().hasLabel('_hierarchy_node_%s_%s').outE('clone_of').drop()"
 	SetNumberOfChildren = "g.V().hasLabel('_hierarchy_node_%s_%s').property(single,'numberOfChildren',__.in('hasParent').count())"
 	SetHasData          = "g.V().hasLabel('_hierarchy_node_%s_%s').as('v')" +
@@ -82,9 +82,8 @@ const (
 	// instance - import process
 	CreateInstance                   = "g.addV('_%s_Instance').property(single,'header','%s')"
 	CheckInstance                    = "g.V().hasLabel('_%s_Instance').count()"
-	CreateInstanceToCodeRelationship = "g.V().hasLabel('_%s_Instance').as('i').addE('inDataset').from(" +
-		"V().hasLabel('_code').has('value','%s').where(out('usedBy').hasLabel('_code_list').has('listID','%s'))" +
-		")"
+	CreateInstanceToCodeRelationship = "g.V().hasLabel('_%s_Instance').as('i').addE('inDataset')." +
+		"V().hasLabel('_code').has('value','%s').where(out('usedBy').hasLabel('_code_list').has('listID','%s'))"
 	AddVersionDetailsToInstance = "g.V().hasLabel('_%s_Instance').property(single,'dataset_id','%s')." +
 		"property(single,'edition','%s').property(single,'version','%s')"
 	SetInstanceIsPublished = "g.V().hasLabel('_%s_Instance').property(single,'is_published',true)"
@@ -96,13 +95,13 @@ const (
 
 	// dimension
 	CreateDimensionToInstanceRelationship = "g.V().hasLabel('_%s_%s').has('value', '%s').fold().coalesce(unfold(), " +
-		"addV('_%s_%s').as('d').property('value','%s').addE('HAS_DIMENSION').from(V().hasLabel('_%s_Instance')).select('d'))"
+		"addV('_%s_%s').as('d').property('value','%s').addE('HAS_DIMENSION').V().hasLabel('_%s_Instance').select('d'))"
 
 	// observation
 	DropObservationRelationships   = "g.V().hasLabel('_%s_observation').has('value', '%s').bothE().drop().iterate()"
 	DropObservation                = "g.V().hasLabel('_%s_observation').has('value', '%s').drop().iterate()"
 	CreateObservationPart          = "g.addV('_%s_observation').property(single, 'value', '%s').property(single, 'rowIndex', '%d')"
-	AddObservationRelationshipPart = ".addE('isValueOf').to(V().hasId('%s').hasLabel('_%s_%s').where(values('value').is('%s'))).outV()"
+	AddObservationRelationshipPart = ".addE('isValueOf').V().hasId('%s').hasLabel('_%s_%s').where(values('value').is('%s')).outV()"
 
 	GetInstanceHeaderPart  = "g.V().hasLabel('_%s_Instance').as('instance')"
 	GetAllObservationsPart = ".V().hasLabel('_%s_observation').values('row')"
