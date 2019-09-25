@@ -102,6 +102,7 @@ func (n *NeptuneDB) InsertObservationBatch(ctx context.Context, attempt int, ins
 		create += ".iterate(); "
 	}
 
+	create = strings.TrimSuffix(create, ".iterate();")
 	if _, err := n.exec(create); err != nil {
 		return err
 	}
