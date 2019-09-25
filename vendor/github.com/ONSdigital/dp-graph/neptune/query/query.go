@@ -98,8 +98,8 @@ const (
 		"addV('_%s_%s').as('d').property('value','%s').addE('HAS_DIMENSION').V().hasLabel('_%s_Instance').select('d'))"
 
 	// observation
-	DropObservationRelationships   = "g.V().hasLabel('_%s_observation').has('value', '%s').bothE().drop().iterate()"
-	DropObservation                = "g.V().hasLabel('_%s_observation').has('value', '%s').drop().iterate()"
+	DropObservationRelationships   = "g.V().hasLabel('_%s_observation').has('value', '%s').bothE().drop().iterate();"
+	DropObservation                = "g.V().hasLabel('_%s_observation').has('value', '%s').drop().iterate();"
 	CreateObservationPart          = "g.addV('_%s_observation').property(single, 'value', '%s').property(single, 'rowIndex', '%d')"
 	AddObservationRelationshipPart = ".addE('isValueOf').V().hasId('%s').hasLabel('_%s_%s').where(values('value').is('%s')).outV()"
 

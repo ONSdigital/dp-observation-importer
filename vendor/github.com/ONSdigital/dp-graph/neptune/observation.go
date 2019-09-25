@@ -99,7 +99,7 @@ func (n *NeptuneDB) InsertObservationBatch(ctx context.Context, attempt int, ins
 		}
 
 		create = strings.TrimSuffix(create, ".outV()")
-		create += ".iterate(); "
+		create += ".iterate();"
 	}
 
 	create = strings.TrimSuffix(create, ".iterate();")
