@@ -85,6 +85,7 @@ func (n *NeptuneDB) InsertObservationBatch(ctx context.Context, attempt int, ins
 	var create string
 	count := 0
 	for _, o := range observations {
+		log.Info("what is the row before the query is built?", log.Data{"row": o.Row})
 		create += fmt.Sprintf(query.DropObservationRelationships, instanceID, o.Row)
 		create += fmt.Sprintf(query.DropObservation, instanceID, o.Row)
 		create += fmt.Sprintf(query.CreateObservationPart, instanceID, o.Row, o.RowIndex)
