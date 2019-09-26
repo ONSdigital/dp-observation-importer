@@ -98,16 +98,16 @@ const (
 		`addV('_%s_%s').as('d').property('value',"%s").addE('HAS_DIMENSION').V().hasLabel('_%s_Instance').select('d'))`
 
 	// observation
-	DropObservationRelationships   = `g.V().hasLabel('_%s_observation').has('value', "%s").bothE().drop().iterate();`
-	DropObservation                = `g.V().hasLabel('_%s_observation').has('value', "%s").drop().iterate();`
-	CreateObservationPart          = `g.addV('_%s_observation').property(single, 'value', "%s").property(single, 'rowIndex', '%d')`
-	AddObservationRelationshipPart = `.addE('isValueOf').as('%s').V().hasId('%s').hasLabel('_%s_%s').where(values('value').is("%s")).select('%s').outV()`
+	DropObservationRelationships   = `g.V().hasLabel('_%s_observation').has('value', '%s').bothE().drop().iterate();`
+	DropObservation                = `g.V().hasLabel('_%s_observation').has('value', '%s').drop().iterate();`
+	CreateObservationPart          = `g.addV('_%s_observation').property(single, 'value', '%s').property(single, 'rowIndex', '%d')`
+	AddObservationRelationshipPart = `.addE('isValueOf').as('%s').V().hasId('%s').hasLabel('_%s_%s').where(values('value').is('%s')).select('%s').outV()`
 
 	GetInstanceHeaderPart  = `g.V().hasLabel('_%s_Instance').as('instance')`
 	GetAllObservationsPart = `.V().hasLabel('_%s_observation').values('row')`
 
 	GetObservationsPart         = `.V().hasLabel('_%s_observation').match(`
-	GetObservationDimensionPart = `__.as('row').out('isValueOf').hasLabel('_%s_%s').where(values('value').is(within("%s")))`
+	GetObservationDimensionPart = `__.as('row').out('isValueOf').hasLabel('_%s_%s').where(values('value').is(within('%s')))`
 	GetObservationSelectRowPart = `.select('instance', 'row').by('header').by('row').unfold().dedup().select(values)`
 	LimitPart                   = `.limit(%d)`
 )

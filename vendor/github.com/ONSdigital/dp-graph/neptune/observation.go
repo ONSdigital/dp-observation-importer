@@ -85,7 +85,7 @@ func (n *NeptuneDB) InsertObservationBatch(ctx context.Context, attempt int, ins
 	var create string
 	count := 0
 	for _, o := range observations {
-		log.Info("what is the row before the query is built?", log.Data{"row": o.Row})
+		o.Row = escapeSingleQuotes(o.Row)
 		create += fmt.Sprintf(query.DropObservationRelationships, instanceID, o.Row)
 		create += fmt.Sprintf(query.DropObservation, instanceID, o.Row)
 		create += fmt.Sprintf(query.CreateObservationPart, instanceID, o.Row, o.RowIndex)
@@ -113,4 +113,13 @@ func (n *NeptuneDB) InsertObservationBatch(ctx context.Context, attempt int, ins
 
 	log.Info("batch complete", log.Data{"batchID": bID, "elapsed": time.Since(totalTime), "batchTime": time.Since(batchStart)})
 	return nil
+}
+
+func escapeSingleQuotes(input string) string {
+	for i, c := range input {
+		if string(c) == "'" {
+			input = input[:i] + input[i+1:]
+		}
+	}
+	return input
 }
