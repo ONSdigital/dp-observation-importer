@@ -81,10 +81,10 @@
 			"revisionTime": "2019-08-06T12:38:18Z"
 		},
 		{
-			"checksumSHA1": "W9R3H/EhUxXxvmB+SW2/rd0eMoY=",
+			"checksumSHA1": "yb2Hq96XXZgshQCGyZm8GHblxlo=",
 			"path": "github.com/ONSdigital/dp-graph/neptune/query",
-			"revision": "fc948338dcfda1e7917b94cd58f6f303f2cd7125",
-			"revisionTime": "2019-10-04T10:15:26Z"
+			"revision": "bf437a3bf847a884248384c57575f83e94f291aa",
+			"revisionTime": "2019-10-04T10:57:32Z"
 		},
 		{
 			"checksumSHA1": "DRohWZAkyrLLQ5B5yq/bngMZbgM=",
