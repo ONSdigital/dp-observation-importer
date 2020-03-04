@@ -1,25 +1,46 @@
 package dimension
 
 import (
+	"context"
+	"encoding/json"
 	"testing"
 
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-observation-importer/dimension/dimensiontest"
+	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 const authToken = "coffee"
 
 func TestStore_GetOrder(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	ctx := gomock.Any()
 
-	data := `{"headers": ["V4_1","Data_Marking","Time_codelist"]}`
-	dataStore := NewStore(authToken, "http://localhost:288100", "", dimensiontest.MockDatasetAPI{Data: data})
+	mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
 
 	Convey("Given a valid instanceId", t, func() {
 
 		Convey("When the client returns an instances state", func() {
-			Convey("The CSV headers are returned", func() {
-				headers, error := dataStore.GetOrder("1")
-				So(error, ShouldBeNil)
+			data := csvHeaders{
+				Headers: []string{"V4_1", "Data_Marking", "Time_codelist"},
+			}
+			b, err := json.Marshal(data)
+			if err != nil {
+				t.Errorf("unable to json marshal test data: %v", data)
+			}
+			mockDatasetClient.EXPECT().GetInstanceByBytes(ctx, "", authToken, "", "1").Return(b, nil)
+
+			Convey("Then the CSV headers are returned", func() {
+				dataStore := &DatasetStore{
+					authToken:        authToken,
+					datasetAPIURL:    "http://localhost:80",
+					datasetAPIClient: mockDatasetClient,
+				}
+
+				headers, err := dataStore.GetOrder(context.Background(), "1")
+				So(err, ShouldBeNil)
 				So(headers, ShouldContain, "V4_1")
 				So(headers, ShouldContain, "Data_Marking")
 				So(headers, ShouldContain, "Time_codelist")
@@ -29,30 +50,179 @@ func TestStore_GetOrder(t *testing.T) {
 }
 
 func TestStore_GetOrderReturnAnError(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	ctx := gomock.Any()
 
-	dataStore := NewStore(authToken, "http://unknown-url:288100", "", dimensiontest.MockDatasetAPI{FailRequest: true})
+	Convey("Given an invalid URL", t, func() {
+		// Setup mocked dataset client
+		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
+		mockDatasetClient.EXPECT().GetInstanceByBytes(ctx, "", authToken, "", "1").Return(nil, &dataset.ErrInvalidDatasetAPIResponse{ActualCode: 500})
 
-	Convey("Given a invalid URL", t, func() {
+		dataStore := &DatasetStore{
+			authToken:        authToken,
+			datasetAPIURL:    "http://unknown-url:288100",
+			datasetAPIClient: mockDatasetClient,
+		}
 
-		Convey("When the client returns an error", func() {
+		Convey("When the client returns an internal error", func() {
 			Convey("The CSV headers contains nothing and an error is returned", func() {
-				headers, error := dataStore.GetOrder("1")
+				headers, err := dataStore.GetOrder(context.Background(), "1")
 				So(headers, ShouldBeNil)
-				So(error, ShouldNotBeNil)
+				So(err, ShouldNotBeNil)
+				So(err, ShouldResemble, ErrInternalError)
+			})
+		})
+	})
+
+	Convey("Given the instance does not exist", t, func() {
+		// Setup mocked dataset client
+		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
+		mockDatasetClient.EXPECT().GetInstanceByBytes(ctx, "", authToken, "", "1").Return(nil, &dataset.ErrInvalidDatasetAPIResponse{ActualCode: 404})
+
+		dataStore := &DatasetStore{
+			authToken:        authToken,
+			datasetAPIURL:    "http://localhost:80",
+			datasetAPIClient: mockDatasetClient,
+		}
+
+		Convey("When the client returns a not found error", func() {
+			Convey("The CSV headers contains nothing and an error is returned", func() {
+				headers, err := dataStore.GetOrder(context.Background(), "1")
+				So(headers, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+				So(err, ShouldResemble, ErrInstanceNotFound)
+			})
+		})
+	})
+
+	Convey("Given the request is unauthorised", t, func() {
+		// Setup mocked dataset client
+		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
+		mockDatasetClient.EXPECT().GetInstanceByBytes(ctx, "", "", "", "1").Return(nil, &dataset.ErrInvalidDatasetAPIResponse{ActualCode: 401})
+
+		dataStore := &DatasetStore{
+			authToken:        "",
+			datasetAPIURL:    "http://localhost:80",
+			datasetAPIClient: mockDatasetClient,
+		}
+
+		Convey("When the client returns a not found error", func() {
+			Convey("The CSV headers contains nothing and and the original error is returned", func() {
+				headers, err := dataStore.GetOrder(context.Background(), "1")
+				So(headers, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+				So(err, ShouldResemble, &dataset.ErrInvalidDatasetAPIResponse{ActualCode: 401})
 			})
 		})
 	})
 }
 
-func TestIDCache_GetIDs(t *testing.T) {
-	data := `{"items":[{ "dimension": "year","option": "1997","node_id": "123"}]}`
-	dataStore := NewStore(authToken, "http://localhost:288100", "", dimensiontest.MockDatasetAPI{Data: data})
+func TestIDCache_GetIDsReturnError(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	ctx := gomock.Any()
+
+	// Setup mocked dataset client
+	mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
+
+	dataStore := &DatasetStore{
+		authToken:        authToken,
+		datasetAPIURL:    "http://localhost:80",
+		datasetAPIClient: mockDatasetClient,
+	}
+
 	Convey("Given a valid instance id", t, func() {
+		data := &NodeResults{
+			Items: []Dimension{
+				Dimension{
+					DimensionName: "year",
+					Option:        "1997",
+					NodeID:        "123",
+				},
+			},
+		}
+
+		b, err := json.Marshal(data)
+		if err != nil {
+			t.Errorf("unable to json marshal test data: %v", data)
+		}
+		mockDatasetClient.EXPECT().GetInstanceDimensionsByBytes(ctx, "", authToken, "1").Return(b, nil)
+
 		Convey("When the client api is called ", func() {
 			Convey("A list of dimensions are returned", func() {
-				dimensions, error := dataStore.GetIDs("1")
-				So(error, ShouldBeNil)
-				So(dimensions["1_year_1997"], ShouldEqual, "123")
+				cache, err := dataStore.GetIDs(context.Background(), "1")
+				So(err, ShouldBeNil)
+				So(cache["1_year_1997"], ShouldEqual, "123")
+			})
+		})
+	})
+}
+
+func TestStore_GetIDsReturnAnError(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	ctx := gomock.Any()
+
+	Convey("Given an invalid URL", t, func() {
+		// Setup mocked dataset client
+		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
+		mockDatasetClient.EXPECT().GetInstanceDimensionsByBytes(ctx, "", authToken, "1").Return(nil, &dataset.ErrInvalidDatasetAPIResponse{ActualCode: 500})
+
+		dataStore := &DatasetStore{
+			authToken:        authToken,
+			datasetAPIURL:    "http://unknown-url:288100",
+			datasetAPIClient: mockDatasetClient,
+		}
+
+		Convey("When the client returns an internal error", func() {
+			Convey("The cache is empty and an error is returned", func() {
+				cache, err := dataStore.GetIDs(context.Background(), "1")
+				So(cache, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+				So(err, ShouldResemble, ErrInternalError)
+			})
+		})
+	})
+
+	Convey("Given the instance does not exist", t, func() {
+		// Setup mocked dataset client
+		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
+		mockDatasetClient.EXPECT().GetInstanceDimensionsByBytes(ctx, "", authToken, "1").Return(nil, &dataset.ErrInvalidDatasetAPIResponse{ActualCode: 404})
+
+		dataStore := &DatasetStore{
+			authToken:        authToken,
+			datasetAPIURL:    "http://localhost:80",
+			datasetAPIClient: mockDatasetClient,
+		}
+
+		Convey("When the client returns a not found error", func() {
+			Convey("The cache is empty and an error is returned", func() {
+				cache, err := dataStore.GetIDs(context.Background(), "1")
+				So(cache, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+				So(err, ShouldResemble, ErrInstanceNotFound)
+			})
+		})
+	})
+
+	Convey("Given the request is unauthorised", t, func() {
+		// Setup mocked dataset client
+		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
+		mockDatasetClient.EXPECT().GetInstanceDimensionsByBytes(ctx, "", "", "1").Return(nil, &dataset.ErrInvalidDatasetAPIResponse{ActualCode: 401})
+
+		dataStore := &DatasetStore{
+			authToken:        "",
+			datasetAPIURL:    "http://localhost:80",
+			datasetAPIClient: mockDatasetClient,
+		}
+
+		Convey("When the client returns a not found error", func() {
+			Convey("The cache is empty and and the original error is returned", func() {
+				cache, err := dataStore.GetIDs(context.Background(), "1")
+				So(cache, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+				So(err, ShouldResemble, &dataset.ErrInvalidDatasetAPIResponse{ActualCode: 401})
 			})
 		})
 	})

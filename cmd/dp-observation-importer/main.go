@@ -2,39 +2,98 @@ package main
 
 import (
 	"context"
-	"net/http"
+	"fmt"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
-	"time"
 
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-graph/graph"
+	"github.com/ONSdigital/dp-healthcheck/healthcheck"
+	kafka "github.com/ONSdigital/dp-kafka"
 	"github.com/ONSdigital/dp-observation-importer/config"
 	"github.com/ONSdigital/dp-observation-importer/dimension"
 	"github.com/ONSdigital/dp-observation-importer/event"
+	"github.com/ONSdigital/dp-observation-importer/initialise"
 	"github.com/ONSdigital/dp-observation-importer/observation"
-	"github.com/ONSdigital/dp-reporter-client/reporter"
-	"github.com/ONSdigital/go-ns/handlers/healthcheck"
-	"github.com/ONSdigital/go-ns/kafka"
-	"github.com/ONSdigital/go-ns/log"
 	"github.com/ONSdigital/go-ns/server"
+	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
+)
+
+var (
+	// BuildTime represents the time in which the service was built
+	BuildTime string
+	// GitCommit represents the commit (SHA-1) hash of the service that is running
+	GitCommit string
+	// Version represents the version of the service that is running
+	Version string
 )
 
 func main() {
 	log.Namespace = "dp-observation-importer"
+	ctx := context.Background()
+
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+
+	log.Event(ctx, "Starting observation importer", log.INFO)
 
 	cfg, err := config.Get()
-	checkForError(err)
+	exitIfFatal(ctx, "failed to retrieve configuration", err)
 
-	// Avoid logging the neo4j URL as it may contain a password
-	log.Debug("loaded config", log.Data{"config": cfg})
+	// Sensitive fields are omitted from config.String()
+	log.Event(ctx, "loaded config", log.INFO, log.Data{"config": cfg})
 
-	// a channel used to signal a graceful exit is required.
-	errorChannel := make(chan error)
+	// Attempt to parse envMax from config. Exit on failure.
+	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, 10, 32)
+	exitIfFatal(ctx, "encountered error parsing kafka max bytes", err)
+
+	// External services and their initialization state
+	var serviceList initialise.ExternalServiceList
+
+	// Get syncConsumerGroup Kafka Consumer
+	syncConsumerGroup, err := serviceList.GetConsumer(ctx, cfg)
+	exitIfFatal(ctx, "could not obtain consumer group", err)
+
+	// Get observations inserted Kafka Producer
+	observationsImportedProducer, err := serviceList.GetProducer(
+		ctx,
+		cfg.Brokers,
+		cfg.ResultProducerTopic,
+		initialise.ObservationsImported,
+		int(envMax),
+	)
+	exitIfFatal(ctx, "could not obtain observations inserted producer", err)
+
+	// Get observations inserted error Kafka Producer
+	observationsImportedErrProducer, err := serviceList.GetProducer(
+		ctx,
+		cfg.Brokers,
+		cfg.ErrorProducerTopic,
+		initialise.ObservationsImportedErr,
+		int(envMax),
+	)
+	exitIfFatal(ctx, "could not obtain observations inserted error producer", err)
+
+	// Get graphdb connection for observation store
+	graphDB, err := serviceList.GetGraphDB(ctx)
+	logIfError(ctx, "failed to instantiate neo4j observation store", err)
+
+	datasetClient := dataset.NewAPIClient(cfg.DatasetAPIURL)
+
+	// Get HealthCheck
+	hc, err := serviceList.GetHealthCheck(cfg, BuildTime, GitCommit, Version)
+	exitIfFatal(ctx, "could not instantiate healthcheck", err)
+
+	// Add dataset API and graph checks
+	if err := registerCheckers(ctx, &hc, syncConsumerGroup, observationsImportedProducer, observationsImportedErrProducer, *datasetClient, graphDB); err != nil {
+		os.Exit(1)
+	}
 
 	router := mux.NewRouter()
-	router.Path("/healthcheck").HandlerFunc(healthcheck.Handler)
+	router.Path("/health").HandlerFunc(hc.Handler)
 	httpServer := server.New(cfg.BindAddr, router)
 
 	// Disable auto handling of os signals by the HTTP server. This is handled
@@ -42,36 +101,30 @@ func main() {
 	// the HTTP server.
 	httpServer.HandleOSSignals = false
 
+	// a channel to signal a server error
+	errorChannel := make(chan error)
 	go func() {
-		log.Debug("starting http server", log.Data{"bind_addr": cfg.BindAddr})
+		select {
+		case err = <-errorChannel:
+			log.Event(ctx, "error received from http server", log.ERROR, log.Error(err))
+		}
+	}()
+
+	go func() {
+		log.Event(ctx, "starting http server", log.INFO, log.Data{"bind_addr": cfg.BindAddr})
 		if err = httpServer.ListenAndServe(); err != nil {
 			errorChannel <- err
 		}
 	}()
 
-	kafkaConsumer, err := kafka.NewConsumerGroup(
-		cfg.KafkaAddr,
-		cfg.ObservationConsumerTopic,
-		cfg.ObservationConsumerGroup,
-		kafka.OffsetNewest)
-	checkForError(err)
+	hc.Start(ctx)
 
-	kafkaErrorProducer, err := kafka.NewProducer(cfg.KafkaAddr, cfg.ErrorProducerTopic, 0)
-	checkForError(err)
-
-	kafkaResultProducer, err := kafka.NewProducer(cfg.KafkaAddr, cfg.ResultProducerTopic, 0)
-	checkForError(err)
-
-	graphDB, err := graph.NewObservationStore(context.Background())
-	checkForError(err)
-
-	// when errors occur - we send a message on an error topic.
-	errorReporter, err := reporter.NewImportErrorReporter(kafkaErrorProducer, log.Namespace)
-	checkForError(err)
+	// Get Error reporter
+	errorReporter, err := serviceList.GetImportErrorReporter(observationsImportedErrProducer, log.Namespace)
+	logIfError(ctx, "error while attempting to create error reporter client", err)
 
 	// objects to get dimension data - via the dataset API + cached locally in memory.
-	httpClient := http.Client{Timeout: time.Second * 15}
-	dimensionStore := dimension.NewStore(cfg.ServiceAuthToken, cfg.DatasetAPIURL, cfg.DatasetAPIAuthToken, &httpClient)
+	dimensionStore := dimension.NewStore(cfg.ServiceAuthToken, cfg.DatasetAPIURL, datasetClient)
 	dimensionOrderCache := dimension.NewOrderCache(dimensionStore, cfg.CacheTTL)
 	dimensionIDCache := dimension.NewIDCache(dimensionStore, cfg.CacheTTL)
 
@@ -82,7 +135,7 @@ func main() {
 	observationStore := observation.NewStore(dimensionIDCache, graphDB, errorReporter)
 
 	// write import results to kafka topic.
-	resultWriter := observation.NewResultWriter(kafkaResultProducer)
+	resultWriter := observation.NewResultWriter(observationsImportedProducer)
 
 	// handle a batch of events.
 	batchHandler := event.NewBatchHandler(observationMapper, observationStore, resultWriter, errorReporter)
@@ -90,61 +143,107 @@ func main() {
 	eventConsumer := event.NewConsumer()
 
 	// Start listening for event messages.
-	eventConsumer.Consume(kafkaConsumer, cfg.BatchSize, batchHandler, cfg.BatchWaitTime, errorChannel)
+	eventConsumer.Consume(ctx, syncConsumerGroup, cfg.BatchSize, batchHandler, cfg.BatchWaitTime, errorChannel)
 
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-
+	// block until a fatal error occurs
 	select {
-	case err = <-kafkaConsumer.Errors():
-		log.ErrorC("kafka consumer error chan received error, attempting graceful shutdown", err, nil)
-	case err = <-kafkaResultProducer.Errors():
-		log.ErrorC("kafka result producer error chan received error, attempting graceful shutdown", err, nil)
-	case err = <-kafkaErrorProducer.Errors():
-		log.ErrorC("kafka error producer error chan received error, attempting graceful shutdown", err, nil)
-	case err = <-errorChannel:
-		log.ErrorC("error channel received error, attempting graceful shutdown", err, nil)
-	case signal := <-signals:
-		log.Info("os signal received attempting graceful shutdown", log.Data{"signal": signal.String()})
+	case <-signals:
+		log.Event(ctx, "os signal received", log.INFO)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), cfg.GracefulShutdownTimeout)
+	log.Event(ctx, fmt.Sprintf("Shutdown with timeout: %s", cfg.GracefulShutdownTimeout), log.INFO)
+	shutdownContext, cancel := context.WithTimeout(context.Background(), cfg.GracefulShutdownTimeout)
 
-	// gracefully dispose resources
-	err = eventConsumer.Close(ctx)
-	logError(err)
+	// Gracefully shutdown the application closing any open resources.
+	go func() {
+		defer cancel()
 
-	err = kafkaConsumer.Close(ctx)
-	logError(err)
+		hc.Stop()
 
-	err = kafkaErrorProducer.Close(ctx)
-	logError(err)
+		err = httpServer.Shutdown(shutdownContext)
+		logIfError(ctx, "failed to shutdown http server", err)
 
-	err = kafkaResultProducer.Close(ctx)
-	logError(err)
+		// If kafka consumer exists, stop listening to it. (Will close later)
+		if serviceList.Consumer {
+			log.Event(shutdownContext, "stopping kafka consumer listener", log.INFO)
+			syncConsumerGroup.StopListeningToConsumer(shutdownContext)
+			log.Event(shutdownContext, "stopped kafka consumer listener", log.INFO)
+		}
 
-	err = graphDB.Close(ctx)
-	logError(err)
+		if serviceList.Graph {
+			err = graphDB.Close(ctx)
+			logIfError(ctx, "failed to close graph db", err)
+		}
 
-	err = httpServer.Shutdown(ctx)
-	logError(err)
+		// If observation imported kafka producer exists, close it
+		if serviceList.ObservationsImportedProducer {
+			log.Event(shutdownContext, "closing observation imported kafka producer", log.INFO, log.Data{"producer": "DimensionExtracted"})
+			observationsImportedProducer.Close(shutdownContext)
+			log.Event(shutdownContext, "closed observation imported kafka producer", log.INFO, log.Data{"producer": "DimensionExtracted"})
+		}
 
-	// cancel the timer in the shutdown context.
-	cancel()
+		// If observation imported error kafka producer exists, close it
+		if serviceList.ObservationsImportedErrProducer {
+			log.Event(shutdownContext, "closing observation imported error kafka producer", log.INFO, log.Data{"producer": "DimensionExtracted"})
+			observationsImportedErrProducer.Close(shutdownContext)
+			log.Event(shutdownContext, "closed observation imported error kafka producer", log.INFO, log.Data{"producer": "DimensionExtracted"})
+		}
 
-	log.Debug("graceful shutdown was successful", nil)
+		// If kafka consumer exists, close it.
+		if serviceList.Consumer {
+			log.Event(shutdownContext, "closing kafka consumer", log.INFO, log.Data{"consumer": "SyncConsumerGroup"})
+			syncConsumerGroup.Close(shutdownContext)
+			log.Event(shutdownContext, "closed kafka consumer", log.INFO, log.Data{"consumer": "SyncConsumerGroup"})
+		}
+	}()
+
+	// wait for shutdown success (via cancel) or failure (timeout)
+	<-ctx.Done()
+
+	log.Event(ctx, "graceful shutdown was successful", log.INFO)
 	os.Exit(0)
 }
 
-func checkForError(err error) {
+// registerCheckers adds the checkers for the provided clients to the healthcheck object
+func registerCheckers(ctx context.Context, hc *healthcheck.HealthCheck,
+	kafkaConsumer *kafka.ConsumerGroup,
+	observationsImportedProducer *kafka.Producer,
+	observationsImportedErrProducer *kafka.Producer,
+	datasetClient dataset.Client,
+	graphDB *graph.DB) (err error) {
+
+	if err = hc.AddCheck("Kafka Consumer", kafkaConsumer.Checker); err != nil {
+		log.Event(ctx, "error adding check for kafka consumer", log.ERROR, log.Error(err))
+	}
+
+	if err = hc.AddCheck("Kafka Producer", observationsImportedProducer.Checker); err != nil {
+		log.Event(ctx, "error adding check for kafka producer", log.ERROR, log.Error(err))
+	}
+
+	if err = hc.AddCheck("Kafka Error Producer", observationsImportedErrProducer.Checker); err != nil {
+		log.Event(ctx, "error adding check for kafka error producer", log.ERROR, log.Error(err))
+	}
+
+	if err = hc.AddCheck("dataset API", datasetClient.Checker); err != nil {
+		log.Event(ctx, "error adding check dataset client", log.ERROR, log.Error(err))
+	}
+
+	if err = hc.AddCheck("graph db", graphDB.Driver.Checker); err != nil {
+		log.Event(ctx, "error adding check dataset client", log.ERROR, log.Error(err))
+	}
+
+	return
+}
+
+func exitIfFatal(ctx context.Context, message string, err error) {
 	if err != nil {
-		log.Error(err, nil)
+		log.Event(ctx, message, log.FATAL, log.Error(err))
 		os.Exit(1)
 	}
 }
 
-func logError(err error) {
+func logIfError(ctx context.Context, message string, err error) {
 	if err != nil {
-		log.Error(err, nil)
+		log.Event(ctx, message, log.ERROR, log.Error(err))
 	}
 }

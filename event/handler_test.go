@@ -1,6 +1,7 @@
 package event_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -12,6 +13,7 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
+// var ctx = context.Background()
 var mockError = errors.New("Mapping failed")
 
 var instanceID = "123321"
@@ -44,30 +46,31 @@ var expectedResult = &observation.Result{
 }
 
 func TestBatchHandler_Handle(t *testing.T) {
+	ctx := context.Background()
 
 	Convey("Given a handler configured with a mock mapper and store", t, func() {
 
 		mockObservationMapper := &eventtest.ObservationMapperMock{
-			MapFunc: func(row string, rowIndex int64, instanceID string) (*models.Observation, error) {
+			MapFunc: func(ctx context.Context, row string, rowIndex int64, instanceID string) (*models.Observation, error) {
 				return expectedObservation, nil
 			},
 		}
 
 		mockObservationStore := &eventtest.ObservationStoreMock{
-			SaveAllFunc: func(observations []*models.Observation) ([]*observation.Result, error) {
+			SaveAllFunc: func(ctx context.Context, observations []*models.Observation) ([]*observation.Result, error) {
 				return []*observation.Result{expectedResult}, nil
 			},
 		}
 
 		mockResultWriter := &eventtest.ResultWriterMock{
-			WriteFunc: func(results []*observation.Result) {},
+			WriteFunc: func(ctx context.Context, results []*observation.Result) {},
 		}
 
 		handler := event.NewBatchHandler(mockObservationMapper, mockObservationStore, mockResultWriter, nil)
 
 		Convey("When handle is called", func() {
 
-			err := handler.Handle([]*event.ObservationExtracted{expectedEvent})
+			err := handler.Handle(ctx, []*event.ObservationExtracted{expectedEvent})
 
 			Convey("The expected calls to the observation mapper, store, and result writer happen", func() {
 				So(err, ShouldBeNil)
@@ -88,23 +91,24 @@ func TestBatchHandler_Handle(t *testing.T) {
 }
 
 func TestBatchHandler_Handle_MapperError(t *testing.T) {
+	ctx := context.Background()
 
 	Convey("Given a handler configured with a mock mapper that returns an error", t, func() {
 
 		mockObservationMapper := &eventtest.ObservationMapperMock{
-			MapFunc: func(row string, rowIndex int64, instanceID string) (*models.Observation, error) {
+			MapFunc: func(ctx context.Context, row string, rowIndex int64, instanceID string) (*models.Observation, error) {
 				return nil, mockError
 			},
 		}
 
 		mockObservationStore := &eventtest.ObservationStoreMock{
-			SaveAllFunc: func(observations []*models.Observation) ([]*observation.Result, error) {
+			SaveAllFunc: func(ctx context.Context, observations []*models.Observation) ([]*observation.Result, error) {
 				return []*observation.Result{expectedResult}, nil
 			},
 		}
 
 		mockResultWriter := &eventtest.ResultWriterMock{
-			WriteFunc: func(results []*observation.Result) {},
+			WriteFunc: func(ctx context.Context, results []*observation.Result) {},
 		}
 
 		mockErrorReporter := reportertest.NewImportErrorReporterMock(nil)
@@ -113,7 +117,7 @@ func TestBatchHandler_Handle_MapperError(t *testing.T) {
 
 		Convey("When handle is called", func() {
 
-			err := handler.Handle([]*event.ObservationExtracted{expectedEvent})
+			err := handler.Handle(ctx, []*event.ObservationExtracted{expectedEvent})
 
 			Convey("The error from the mapper is sent to the error handler", func() {
 				So(err, ShouldBeNil)
@@ -129,17 +133,18 @@ func TestBatchHandler_Handle_MapperError(t *testing.T) {
 }
 
 func TestBatchHandler_Handle_StoreError(t *testing.T) {
+	ctx := context.Background()
 
 	Convey("Given a handler configured with a mock mapper, and mock store that returns an error", t, func() {
 
 		mockObservationMapper := &eventtest.ObservationMapperMock{
-			MapFunc: func(row string, rowIndex int64, instanceID string) (*models.Observation, error) {
+			MapFunc: func(ctx context.Context, row string, rowIndex int64, instanceID string) (*models.Observation, error) {
 				return expectedObservation, nil
 			},
 		}
 
 		mockObservationStore := &eventtest.ObservationStoreMock{
-			SaveAllFunc: func(observations []*models.Observation) ([]*observation.Result, error) {
+			SaveAllFunc: func(ctx context.Context, observations []*models.Observation) ([]*observation.Result, error) {
 				return nil, mockError
 			},
 		}
@@ -148,7 +153,7 @@ func TestBatchHandler_Handle_StoreError(t *testing.T) {
 
 		Convey("When handle is called", func() {
 
-			err := handler.Handle([]*event.ObservationExtracted{expectedEvent})
+			err := handler.Handle(ctx, []*event.ObservationExtracted{expectedEvent})
 
 			Convey("The error returned from the store is returned", func() {
 				So(err, ShouldNotBeNil)

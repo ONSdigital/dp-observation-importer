@@ -1,19 +1,23 @@
 package event_test
 
 import (
+	"context"
+	"testing"
+
+	"github.com/ONSdigital/dp-kafka/kafkatest"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/schema"
-	"github.com/ONSdigital/go-ns/kafka/kafkatest"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
+
+var ctx = context.Background()
 
 func TestIsEmpty(t *testing.T) {
 
 	Convey("Given a batch that is not empty", t, func() {
 
 		expectedEvent := getExampleEvent()
-		message := kafkatest.NewMessage([]byte(marshal(*expectedEvent)))
+		message := kafkatest.NewMessage([]byte(marshal(*expectedEvent)), 0)
 
 		batchSize := 1
 		batch := event.NewBatch(batchSize)
@@ -26,7 +30,7 @@ func TestIsEmpty(t *testing.T) {
 
 		Convey("When the batch has a message added", func() {
 
-			batch.Add(message)
+			batch.Add(ctx, message)
 
 			Convey("The batch is now empty", func() {
 				So(batch.IsEmpty(), ShouldBeFalse)
@@ -40,14 +44,14 @@ func TestAdd(t *testing.T) {
 	Convey("Given a batch", t, func() {
 
 		expectedEvent := getExampleEvent()
-		message := kafkatest.NewMessage([]byte(marshal(*expectedEvent)))
+		message := kafkatest.NewMessage([]byte(marshal(*expectedEvent)), 0)
 
 		batchSize := 1
 		batch := event.NewBatch(batchSize)
 
 		Convey("When add is called with a valid message", func() {
 
-			batch.Add(message)
+			batch.Add(ctx, message)
 
 			Convey("The batch contains the expected event.", func() {
 				So(batch.Size(), ShouldEqual, 1)
@@ -66,16 +70,16 @@ func TestCommit(t *testing.T) {
 		expectedEvent2 := event.ObservationExtracted{InstanceID: "123", Row: "the,second,content"}
 		expectedEvent3 := event.ObservationExtracted{InstanceID: "123", Row: "the,third,content"}
 		expectedEvent4 := event.ObservationExtracted{InstanceID: "123", Row: "the,fourth,content"}
-		message1 := kafkatest.NewMessage([]byte(marshal(expectedEvent1)))
-		message2 := kafkatest.NewMessage([]byte(marshal(expectedEvent2)))
-		message3 := kafkatest.NewMessage([]byte(marshal(expectedEvent3)))
-		message4 := kafkatest.NewMessage([]byte(marshal(expectedEvent4)))
+		message1 := kafkatest.NewMessage([]byte(marshal(expectedEvent1)), 0)
+		message2 := kafkatest.NewMessage([]byte(marshal(expectedEvent2)), 0)
+		message3 := kafkatest.NewMessage([]byte(marshal(expectedEvent3)), 0)
+		message4 := kafkatest.NewMessage([]byte(marshal(expectedEvent4)), 0)
 
 		batchSize := 2
 		batch := event.NewBatch(batchSize)
 
-		batch.Add(message1)
-		batch.Add(message2)
+		batch.Add(ctx, message1)
+		batch.Add(ctx, message2)
 
 		batch.Commit()
 
@@ -93,7 +97,7 @@ func TestCommit(t *testing.T) {
 			})
 
 			Convey("The batch can be reused", func() {
-				batch.Add(message3)
+				batch.Add(ctx, message3)
 
 				So(batch.IsEmpty(), ShouldBeFalse)
 				So(batch.IsFull(), ShouldBeFalse)
@@ -102,7 +106,7 @@ func TestCommit(t *testing.T) {
 				So(batch.Events()[0].Row, ShouldEqual, expectedEvent3.Row)
 				So(batch.Events()[0].InstanceID, ShouldEqual, expectedEvent3.InstanceID)
 
-				batch.Add(message4)
+				batch.Add(ctx, message4)
 
 				So(batch.IsEmpty(), ShouldBeFalse)
 				So(batch.IsFull(), ShouldBeTrue)
@@ -120,7 +124,7 @@ func TestSize(t *testing.T) {
 	Convey("Given a batch", t, func() {
 
 		expectedEvent := getExampleEvent()
-		message := kafkatest.NewMessage([]byte(marshal(*expectedEvent)))
+		message := kafkatest.NewMessage([]byte(marshal(*expectedEvent)), 0)
 
 		batchSize := 1
 		batch := event.NewBatch(batchSize)
@@ -129,11 +133,11 @@ func TestSize(t *testing.T) {
 
 		Convey("When add is called with a valid message", func() {
 
-			batch.Add(message)
+			batch.Add(ctx, message)
 
 			Convey("The batch size should increase.", func() {
 				So(batch.Size(), ShouldEqual, 1)
-				batch.Add(message)
+				batch.Add(ctx, message)
 				So(batch.Size(), ShouldEqual, 2)
 			})
 		})
@@ -145,7 +149,7 @@ func TestIsFull(t *testing.T) {
 	Convey("Given a batch with a size of 2", t, func() {
 
 		expectedEvent := getExampleEvent()
-		message := kafkatest.NewMessage([]byte(marshal(*expectedEvent)))
+		message := kafkatest.NewMessage([]byte(marshal(*expectedEvent)), 0)
 
 		batchSize := 2
 		batch := event.NewBatch(batchSize)
@@ -154,9 +158,9 @@ func TestIsFull(t *testing.T) {
 
 		Convey("When the number of messages added equals the batch size", func() {
 
-			batch.Add(message)
+			batch.Add(ctx, message)
 			So(batch.IsFull(), ShouldBeFalse)
-			batch.Add(message)
+			batch.Add(ctx, message)
 
 			Convey("The batch should be full.", func() {
 				So(batch.IsFull(), ShouldBeTrue)
@@ -170,7 +174,7 @@ func TestToEvent(t *testing.T) {
 	Convey("Given a event schema encoded using avro", t, func() {
 
 		expectedEvent := getExampleEvent()
-		message := kafkatest.NewMessage([]byte(marshal(*expectedEvent)))
+		message := kafkatest.NewMessage([]byte(marshal(*expectedEvent)), 0)
 
 		Convey("When the expectedEvent is unmarshalled", func() {
 

@@ -1,38 +1,49 @@
 package observation_test
 
 import (
+	"context"
+	"testing"
+
+	kafka "github.com/ONSdigital/dp-kafka"
+	"github.com/ONSdigital/dp-kafka/kafkatest"
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-observation-importer/schema"
-	"github.com/ONSdigital/go-ns/kafka/kafkatest"
 	. "github.com/smartystreets/goconvey/convey"
-	"testing"
 )
 
 func TestResultWriter_Write(t *testing.T) {
+	ctx := context.Background()
 
 	Convey("Given an observation inserted event", t, func() {
-
 		expectedInstanceID := "123abc"
 		result := &observation.Result{ObservationsInserted: 2, InstanceID: expectedInstanceID}
 		expectedEvent := observation.InsertedEvent{ObservationsInserted: 2, InstanceID: expectedInstanceID}
 
-		// mock schema producer contains the output channel to capture messages sent.
-		outputChannel := make(chan []byte, 1)
-		mockMessageProducer := kafkatest.NewMessageProducer(outputChannel, nil, nil)
-
+		pChannels := kafka.CreateProducerChannels()
+		mockMessageProducer := kafkatest.NewMessageProducerWithChannels(pChannels)
 		observationMessageWriter := observation.NewResultWriter(mockMessageProducer)
 
 		Convey("When write is called on the result writer", func() {
 
-			observationMessageWriter.Write([]*observation.Result{result})
+			Convey("The schema producer has the observation on its output channel", func(c C) {
+				go func() {
+					messageBytes := <-pChannels.Output
 
-			Convey("The schema producer has the observation on its output channel", func() {
+					observationEvent, err := Unmarshal(messageBytes)
+					c.So(err, ShouldBeNil)
+					c.So(observationEvent.InstanceID, ShouldEqual, expectedEvent.InstanceID)
+					c.So(observationEvent.ObservationsInserted, ShouldEqual, expectedEvent.ObservationsInserted)
 
-				messageBytes := <-outputChannel
-				close(outputChannel)
-				observationEvent := Unmarshal(messageBytes)
-				So(observationEvent.InstanceID, ShouldEqual, expectedEvent.InstanceID)
-				So(observationEvent.ObservationsInserted, ShouldEqual, expectedEvent.ObservationsInserted)
+				}()
+				observationMessageWriter.Write(ctx, []*observation.Result{result})
+
+				// Closing channels, kafkatest producer channels should contain close function
+				// which does this for us so we can do mockMessageProducer.Close()
+				close(mockMessageProducer.Channels().Init)
+				close(mockMessageProducer.Channels().Output)
+				close(mockMessageProducer.Channels().Errors)
+				close(mockMessageProducer.Channels().Closer)
+				close(mockMessageProducer.Channels().Closed)
 			})
 		})
 	})
@@ -52,7 +63,8 @@ func TestMessageWriter_Marshal(t *testing.T) {
 
 			Convey("The observation inserted event can be unmarshalled and has the expected values", func() {
 
-				actualEvent := Unmarshal(bytes)
+				actualEvent, err := Unmarshal(bytes)
+				So(err, ShouldBeNil)
 				So(actualEvent.InstanceID, ShouldEqual, expectedEvent.InstanceID)
 				So(actualEvent.ObservationsInserted, ShouldEqual, expectedEvent.ObservationsInserted)
 			})
@@ -61,9 +73,9 @@ func TestMessageWriter_Marshal(t *testing.T) {
 }
 
 // Unmarshal converts observation events to []byte.
-func Unmarshal(bytes []byte) *observation.InsertedEvent {
+func Unmarshal(bytes []byte) (*observation.InsertedEvent, error) {
 	event := &observation.InsertedEvent{}
 	err := schema.ObservationsInsertedEvent.Unmarshal(bytes, event)
-	So(err, ShouldBeNil)
-	return event
+
+	return event, err
 }

@@ -6,18 +6,18 @@ import (
 	"time"
 
 	graph "github.com/ONSdigital/dp-graph/graph/driver"
-	"github.com/ONSdigital/go-ns/kafka"
-	"github.com/ONSdigital/go-ns/log"
+	kafka "github.com/ONSdigital/dp-kafka"
+	"github.com/ONSdigital/log.go/log"
 )
 
 // MessageConsumer provides a generic interface for consuming []byte messages (from Kafka)
 type MessageConsumer interface {
-	Incoming() chan kafka.Message
+	Channels() *kafka.ConsumerGroupChannels
 }
 
 // Handler represents a handler for processing a batch of events.
 type Handler interface {
-	Handle(events []*ObservationExtracted) error
+	Handle(ctx context.Context, events []*ObservationExtracted) error
 }
 
 // Consumer consumes event messages.
@@ -35,11 +35,11 @@ func NewConsumer() *Consumer {
 }
 
 // Consume convert them to event instances, and pass the event to the provided handler.
-func (consumer *Consumer) Consume(messageConsumer MessageConsumer,
+func (consumer *Consumer) Consume(ctx context.Context, messageConsumer MessageConsumer,
 	batchSize int,
 	handler Handler,
 	batchWaitTime time.Duration,
-	error chan error) {
+	errChan chan error) {
 
 	go func() {
 		defer close(consumer.closed)
@@ -50,9 +50,9 @@ func (consumer *Consumer) Consume(messageConsumer MessageConsumer,
 		// If we do not get any messages for a time, just process the messages already in the batch.
 		for {
 			select {
-			case msg := <-messageConsumer.Incoming():
+			case msg := <-messageConsumer.Channels().Upstream:
 
-				AddMessageToBatch(batch, msg, handler, error)
+				AddMessageToBatch(ctx, batch, msg, handler, errChan)
 
 			case <-time.After(batchWaitTime):
 
@@ -60,11 +60,11 @@ func (consumer *Consumer) Consume(messageConsumer MessageConsumer,
 					continue
 				}
 
-				log.Debug("batch wait time reached. proceeding with batch", log.Data{"batchsize": batch.Size()})
-				ProcessBatch(handler, batch, error)
+				log.Event(ctx, "batch wait time reached. proceeding with batch", log.INFO, log.Data{"batchsize": batch.Size()})
+				ProcessBatch(ctx, handler, batch, errChan)
 
 			case <-consumer.closing:
-				log.Info("closing event consumer loop", nil)
+				log.Event(ctx, "closing event consumer loop", log.INFO)
 				return
 			}
 		}
@@ -82,29 +82,29 @@ func (consumer *Consumer) Close(ctx context.Context) (err error) {
 
 	select {
 	case <-consumer.closed:
-		log.Info("successfully closed event consumer", nil)
+		log.Event(ctx, "successfully closed event consumer", log.INFO)
 		return nil
 	case <-ctx.Done():
-		log.Info("shutdown context time exceeded, skipping graceful shutdown of event consumer", nil)
+		log.Event(ctx, "shutdown context time exceeded, skipping graceful shutdown of event consumer", log.INFO)
 		return errors.New("Shutdown context timed out")
 	}
 }
 
 // AddMessageToBatch will attempt to add the message to the batch and determine if it should be processed.
-func AddMessageToBatch(batch *Batch, msg kafka.Message, handler Handler, error chan error) {
-	batch.Add(msg)
+func AddMessageToBatch(ctx context.Context, batch *Batch, msg kafka.Message, handler Handler, errChan chan error) {
+	batch.Add(ctx, msg)
 	if batch.IsFull() {
-		log.Debug("batch is full - processing batch", log.Data{"batchsize": batch.Size()})
-		ProcessBatch(handler, batch, error)
+		log.Event(ctx, "batch is full - processing batch", log.INFO, log.Data{"batchsize": batch.Size()})
+		ProcessBatch(ctx, handler, batch, errChan)
 	}
 }
 
 // ProcessBatch will attempt to handle and commit the batch, or shutdown if something goes horribly wrong.
-func ProcessBatch(handler Handler, batch *Batch, error chan error) {
-	err := handler.Handle(batch.Events())
+func ProcessBatch(ctx context.Context, handler Handler, batch *Batch, errChan chan error) {
+	err := handler.Handle(ctx, batch.Events())
 	if err != nil {
-		log.Error(err, log.Data{})
-		error <- err
+		log.Event(ctx, "error processing batch", log.ERROR, log.Error(err))
+		errChan <- err
 		// If the error type is non retriable then we should commit the message batch,
 		// because we know it will never succeed
 		if _, ok := err.(graph.ErrNonRetriable); ok {

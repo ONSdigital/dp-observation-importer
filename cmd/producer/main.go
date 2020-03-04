@@ -1,17 +1,22 @@
 package main
 
 import (
+	"context"
+	"time"
+
+	kafka "github.com/ONSdigital/dp-kafka"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/schema"
-	"github.com/ONSdigital/go-ns/kafka"
-	"time"
 )
 
 func main() {
+	ctx := context.Background()
 	var brokers []string
 	brokers = append(brokers, "localhost:9092")
 
-	producer, _ := kafka.NewProducer(brokers, "observation-extracted", int(2000000))
+	pChannels := kafka.CreateProducerChannels()
+
+	producer, _ := kafka.NewProducer(ctx, brokers, "observation-extracted", int(2000000), pChannels)
 
 	event1 := event.ObservationExtracted{InstanceID: "7", Row: "5,,sex,male,age,30"}
 	sendEvent(producer, event1)
@@ -22,10 +27,10 @@ func main() {
 	producer.Close(nil)
 }
 
-func sendEvent(producer kafka.Producer, extracted event.ObservationExtracted) {
+func sendEvent(producer *kafka.Producer, extracted event.ObservationExtracted) {
 	bytes, error := schema.ObservationExtractedEvent.Marshal(extracted)
 	if error != nil {
 		panic(error)
 	}
-	producer.Output() <- bytes
+	producer.Channels().Output <- bytes
 }
