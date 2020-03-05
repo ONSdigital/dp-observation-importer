@@ -103,12 +103,6 @@ func main() {
 
 	// a channel to signal a server error
 	errorChannel := make(chan error)
-	go func() {
-		select {
-		case err = <-errorChannel:
-			log.Event(ctx, "error received from http server", log.ERROR, log.Error(err))
-		}
-	}()
 
 	go func() {
 		log.Event(ctx, "starting http server", log.INFO, log.Data{"bind_addr": cfg.BindAddr})
@@ -149,6 +143,8 @@ func main() {
 	select {
 	case <-signals:
 		log.Event(ctx, "os signal received", log.INFO)
+	case err = <-errorChannel:
+		log.Event(ctx, "error received from http server", log.ERROR, log.Error(err))
 	}
 
 	log.Event(ctx, fmt.Sprintf("Shutdown with timeout: %s", cfg.GracefulShutdownTimeout), log.INFO)
