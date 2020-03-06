@@ -1,8 +1,11 @@
 package dimension
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
 	"testing"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
@@ -30,7 +33,7 @@ func TestStore_GetOrder(t *testing.T) {
 			if err != nil {
 				t.Errorf("unable to json marshal test data: %v", data)
 			}
-			mockDatasetClient.EXPECT().GetInstanceByBytes(ctx, "", authToken, "", "1").Return(b, nil)
+			mockDatasetClient.EXPECT().GetInstanceBytes(ctx, "", authToken, "", "1").Return(b, nil)
 
 			Convey("Then the CSV headers are returned", func() {
 				dataStore := &DatasetStore{
@@ -55,9 +58,13 @@ func TestStore_GetOrderReturnAnError(t *testing.T) {
 	ctx := gomock.Any()
 
 	Convey("Given an invalid URL", t, func() {
+		errDatasetAPICodeServerError := dataset.NewDatasetAPIResponse(
+			&http.Response{StatusCode: http.StatusInternalServerError}, "someUri",
+		)
+
 		// Setup mocked dataset client
 		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
-		mockDatasetClient.EXPECT().GetInstanceByBytes(ctx, "", authToken, "", "1").Return(nil, &dataset.ErrInvalidDatasetAPIResponse{ActualCode: 500})
+		mockDatasetClient.EXPECT().GetInstanceBytes(ctx, "", authToken, "", "1").Return(nil, errDatasetAPICodeServerError)
 
 		dataStore := &DatasetStore{
 			authToken:        authToken,
@@ -76,9 +83,15 @@ func TestStore_GetOrderReturnAnError(t *testing.T) {
 	})
 
 	Convey("Given the instance does not exist", t, func() {
+		errDatasetAPICodeServerError := dataset.NewDatasetAPIResponse(
+			&http.Response{
+				StatusCode: http.StatusNotFound,
+				Body:       ioutil.NopCloser(bytes.NewBuffer([]byte{})),
+			}, "someUri",
+		)
 		// Setup mocked dataset client
 		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
-		mockDatasetClient.EXPECT().GetInstanceByBytes(ctx, "", authToken, "", "1").Return(nil, &dataset.ErrInvalidDatasetAPIResponse{ActualCode: 404})
+		mockDatasetClient.EXPECT().GetInstanceBytes(ctx, "", authToken, "", "1").Return(nil, errDatasetAPICodeServerError)
 
 		dataStore := &DatasetStore{
 			authToken:        authToken,
@@ -97,9 +110,12 @@ func TestStore_GetOrderReturnAnError(t *testing.T) {
 	})
 
 	Convey("Given the request is unauthorised", t, func() {
+		errDatasetAPICodeServerError := dataset.NewDatasetAPIResponse(
+			&http.Response{StatusCode: http.StatusUnauthorized}, "someUri",
+		)
 		// Setup mocked dataset client
 		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
-		mockDatasetClient.EXPECT().GetInstanceByBytes(ctx, "", "", "", "1").Return(nil, &dataset.ErrInvalidDatasetAPIResponse{ActualCode: 401})
+		mockDatasetClient.EXPECT().GetInstanceBytes(ctx, "", "", "", "1").Return(nil, errDatasetAPICodeServerError)
 
 		dataStore := &DatasetStore{
 			authToken:        "",
@@ -112,7 +128,7 @@ func TestStore_GetOrderReturnAnError(t *testing.T) {
 				headers, err := dataStore.GetOrder(context.Background(), "1")
 				So(headers, ShouldBeNil)
 				So(err, ShouldNotBeNil)
-				So(err, ShouldResemble, &dataset.ErrInvalidDatasetAPIResponse{ActualCode: 401})
+				So(err, ShouldResemble, errDatasetAPICodeServerError)
 			})
 		})
 	})
@@ -147,7 +163,7 @@ func TestIDCache_GetIDsReturnError(t *testing.T) {
 		if err != nil {
 			t.Errorf("unable to json marshal test data: %v", data)
 		}
-		mockDatasetClient.EXPECT().GetInstanceDimensionsByBytes(ctx, "", authToken, "1").Return(b, nil)
+		mockDatasetClient.EXPECT().GetInstanceDimensionsBytes(ctx, "", authToken, "1").Return(b, nil)
 
 		Convey("When the client api is called ", func() {
 			Convey("A list of dimensions are returned", func() {
@@ -165,9 +181,13 @@ func TestStore_GetIDsReturnAnError(t *testing.T) {
 	ctx := gomock.Any()
 
 	Convey("Given an invalid URL", t, func() {
+		errDatasetAPICodeServerError := dataset.NewDatasetAPIResponse(
+			&http.Response{StatusCode: http.StatusInternalServerError}, "someUri",
+		)
+
 		// Setup mocked dataset client
 		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
-		mockDatasetClient.EXPECT().GetInstanceDimensionsByBytes(ctx, "", authToken, "1").Return(nil, &dataset.ErrInvalidDatasetAPIResponse{ActualCode: 500})
+		mockDatasetClient.EXPECT().GetInstanceDimensionsBytes(ctx, "", authToken, "1").Return(nil, errDatasetAPICodeServerError)
 
 		dataStore := &DatasetStore{
 			authToken:        authToken,
@@ -186,9 +206,16 @@ func TestStore_GetIDsReturnAnError(t *testing.T) {
 	})
 
 	Convey("Given the instance does not exist", t, func() {
+		errDatasetAPICodeServerError := dataset.NewDatasetAPIResponse(
+			&http.Response{
+				StatusCode: http.StatusNotFound,
+				Body:       ioutil.NopCloser(bytes.NewBuffer([]byte{})),
+			}, "someUri",
+		)
+
 		// Setup mocked dataset client
 		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
-		mockDatasetClient.EXPECT().GetInstanceDimensionsByBytes(ctx, "", authToken, "1").Return(nil, &dataset.ErrInvalidDatasetAPIResponse{ActualCode: 404})
+		mockDatasetClient.EXPECT().GetInstanceDimensionsBytes(ctx, "", authToken, "1").Return(nil, errDatasetAPICodeServerError)
 
 		dataStore := &DatasetStore{
 			authToken:        authToken,
@@ -207,9 +234,12 @@ func TestStore_GetIDsReturnAnError(t *testing.T) {
 	})
 
 	Convey("Given the request is unauthorised", t, func() {
+		errDatasetAPICodeServerError := dataset.NewDatasetAPIResponse(
+			&http.Response{StatusCode: http.StatusUnauthorized}, "someUri",
+		)
 		// Setup mocked dataset client
 		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
-		mockDatasetClient.EXPECT().GetInstanceDimensionsByBytes(ctx, "", "", "1").Return(nil, &dataset.ErrInvalidDatasetAPIResponse{ActualCode: 401})
+		mockDatasetClient.EXPECT().GetInstanceDimensionsBytes(ctx, "", "", "1").Return(nil, errDatasetAPICodeServerError)
 
 		dataStore := &DatasetStore{
 			authToken:        "",
@@ -222,7 +252,7 @@ func TestStore_GetIDsReturnAnError(t *testing.T) {
 				cache, err := dataStore.GetIDs(context.Background(), "1")
 				So(cache, ShouldBeNil)
 				So(err, ShouldNotBeNil)
-				So(err, ShouldResemble, &dataset.ErrInvalidDatasetAPIResponse{ActualCode: 401})
+				So(err, ShouldResemble, errDatasetAPICodeServerError)
 			})
 		})
 	})

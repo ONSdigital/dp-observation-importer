@@ -44,7 +44,7 @@ func TestClose(t *testing.T) {
 
 	Convey("Given a consumer", t, func() {
 
-		messageConsumer := kafkatest.NewMessageConsumer()
+		messageConsumer := kafkatest.NewMessageConsumer(false)
 		batchSize := 1
 		eventHandler := eventtest.NewEventHandler()
 		batchWaitTime := time.Second * 1
@@ -100,7 +100,7 @@ func TestConsume_DelayedMessages(t *testing.T) {
 
 		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content"}
 		cChannels := kafka.CreateConsumerGroupChannels(true)
-		messageConsumer := kafkatest.NewMessageConsumerWithChannels(cChannels)
+		messageConsumer := kafkatest.NewMessageConsumerWithChannels(&cChannels, false)
 
 		batchSize := 3
 		eventHandler := eventtest.NewEventHandler()
@@ -144,7 +144,7 @@ func SendMessagesWithDelay(messages chan kafka.Message, message kafka.Message, m
 func newMockConsumer(expectedEvent event.ObservationExtracted) event.MessageConsumer {
 
 	cChannels := kafka.CreateConsumerGroupChannels(true)
-	messageConsumer := kafkatest.NewMessageConsumerWithChannels(cChannels)
+	messageConsumer := kafkatest.NewMessageConsumerWithChannels(&cChannels, false)
 	message := kafkatest.NewMessage([]byte(marshal(expectedEvent)), 0)
 	cChannels.Upstream <- message
 

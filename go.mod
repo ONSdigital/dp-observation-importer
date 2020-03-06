@@ -3,10 +3,10 @@ module github.com/ONSdigital/dp-observation-importer
 go 1.13
 
 require (
-	github.com/ONSdigital/dp-api-clients-go v1.5.1-0.20200302121104-0cf8e50eacdc
-	github.com/ONSdigital/dp-graph v1.0.2-0.20200304173922-3a73dcad25f5
+	github.com/ONSdigital/dp-api-clients-go v1.7.0
+	github.com/ONSdigital/dp-graph v1.0.2
 	github.com/ONSdigital/dp-healthcheck v1.0.0
-	github.com/ONSdigital/dp-kafka v1.1.1
+	github.com/ONSdigital/dp-kafka v1.1.2
 	github.com/ONSdigital/dp-reporter-client v1.0.0
 	github.com/ONSdigital/dp-vault v1.1.0
 	github.com/ONSdigital/go-ns v0.0.0-20200205115900-a11716f93bad
