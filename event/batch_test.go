@@ -85,11 +85,6 @@ func TestCommit(t *testing.T) {
 
 		Convey("When commit is called", func() {
 
-			Convey("The last message in the batch is committed", func() {
-				So(message1.Committed(), ShouldBeFalse)
-				So(message2.Committed(), ShouldBeTrue)
-			})
-
 			Convey("The batch is emptied.", func() {
 				So(batch.IsEmpty(), ShouldBeTrue)
 				So(batch.IsFull(), ShouldBeFalse)

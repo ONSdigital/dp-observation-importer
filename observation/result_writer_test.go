@@ -20,7 +20,7 @@ func TestResultWriter_Write(t *testing.T) {
 		expectedEvent := observation.InsertedEvent{ObservationsInserted: 2, InstanceID: expectedInstanceID}
 
 		pChannels := kafka.CreateProducerChannels()
-		mockMessageProducer := kafkatest.NewMessageProducerWithChannels(&pChannels, false)
+		mockMessageProducer := kafkatest.NewMessageProducerWithChannels(pChannels, false)
 		observationMessageWriter := observation.NewResultWriter(mockMessageProducer)
 
 		Convey("When write is called on the result writer", func() {

@@ -166,11 +166,6 @@ func main() {
 			log.Event(shutdownContext, "stopped kafka consumer listener", log.INFO)
 		}
 
-		if serviceList.Graph {
-			err = graphDB.Close(ctx)
-			logIfError(ctx, "failed to close graph db", err)
-		}
-
 		// If observation imported kafka producer exists, close it
 		if serviceList.ObservationsImportedProducer {
 			log.Event(shutdownContext, "closing observation imported kafka producer", log.INFO, log.Data{"producer": "DimensionExtracted"})
@@ -185,18 +180,28 @@ func main() {
 			log.Event(shutdownContext, "closed observation imported error kafka producer", log.INFO, log.Data{"producer": "DimensionExtracted"})
 		}
 
+		// Attempting to close event consumer
+		log.Event(shutdownContext, "closing event wrapper", log.INFO)
+		eventConsumer.Close(shutdownContext)
+		log.Event(shutdownContext, "closing event wrapper", log.INFO)
+
 		// If kafka consumer exists, close it.
 		if serviceList.Consumer {
 			log.Event(shutdownContext, "closing kafka consumer", log.INFO, log.Data{"consumer": "SyncConsumerGroup"})
 			syncConsumerGroup.Close(shutdownContext)
 			log.Event(shutdownContext, "closed kafka consumer", log.INFO, log.Data{"consumer": "SyncConsumerGroup"})
 		}
+
+		if serviceList.Graph {
+			err = graphDB.Close(ctx)
+			logIfError(ctx, "failed to close graph db", err)
+		}
 	}()
 
 	// wait for shutdown success (via cancel) or failure (timeout)
-	<-ctx.Done()
+	<-shutdownContext.Done()
 
-	log.Event(ctx, "graceful shutdown was successful", log.INFO)
+	log.Event(shutdownContext, "graceful shutdown was successful", log.INFO)
 	os.Exit(0)
 }
 
@@ -212,8 +217,8 @@ func registerCheckers(ctx context.Context, hc *healthcheck.HealthCheck,
 		log.Event(ctx, "error adding check for kafka consumer", log.ERROR, log.Error(err))
 	}
 
-	if err = hc.AddCheck("Kafka Producer", observationsImportedProducer.Checker); err != nil {
-		log.Event(ctx, "error adding check for kafka producer", log.ERROR, log.Error(err))
+	if err = hc.AddCheck("Kafka Import Producer", observationsImportedProducer.Checker); err != nil {
+		log.Event(ctx, "error adding check for kafka import producer", log.ERROR, log.Error(err))
 	}
 
 	if err = hc.AddCheck("Kafka Error Producer", observationsImportedErrProducer.Checker); err != nil {
