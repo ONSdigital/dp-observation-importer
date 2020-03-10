@@ -23,20 +23,24 @@ type Handler interface {
 
 // Consumer consumes event messages.
 type Consumer struct {
-	closing chan bool
+	closing chan eventClose
 	closed  chan bool
+}
+
+type eventClose struct {
+	ctx context.Context
 }
 
 // NewConsumer returns a new consumer instance.
 func NewConsumer() *Consumer {
 	return &Consumer{
-		closing: make(chan bool),
+		closing: make(chan eventClose),
 		closed:  make(chan bool),
 	}
 }
 
 // Consume convert them to event instances, and pass the event to the provided handler.
-func (consumer *Consumer) Consume(ctx context.Context, messageConsumer MessageConsumer,
+func (consumer *Consumer) Consume(messageConsumer MessageConsumer,
 	batchSize int,
 	handler Handler,
 	batchWaitTime time.Duration,
@@ -52,6 +56,7 @@ func (consumer *Consumer) Consume(ctx context.Context, messageConsumer MessageCo
 		for {
 			select {
 			case msg := <-messageConsumer.Channels().Upstream:
+				ctx := context.Background()
 
 				AddMessageToBatch(ctx, batch, msg, handler, errChan)
 				messageConsumer.CommitAndRelease(msg)
@@ -61,11 +66,14 @@ func (consumer *Consumer) Consume(ctx context.Context, messageConsumer MessageCo
 					continue
 				}
 
+				ctx := context.Background()
+
 				log.Event(ctx, "batch wait time reached. proceeding with batch", log.INFO, log.Data{"batchsize": batch.Size()})
 				ProcessBatch(ctx, handler, batch, errChan)
 
-			case <-consumer.closing:
-				log.Event(ctx, "closing event consumer loop", log.INFO)
+			case eventClose := <-consumer.closing:
+				log.Event(eventClose.ctx, "closing event consumer loop", log.INFO)
+				close(consumer.closing)
 				return
 			}
 		}
@@ -79,7 +87,7 @@ func (consumer *Consumer) Close(ctx context.Context) (err error) {
 		ctx = context.Background()
 	}
 
-	close(consumer.closing)
+	consumer.closing <- eventClose{ctx: ctx}
 
 	select {
 	case <-consumer.closed:

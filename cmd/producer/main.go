@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"os"
 	"time"
 
 	kafka "github.com/ONSdigital/dp-kafka"
@@ -16,7 +17,10 @@ func main() {
 
 	pChannels := kafka.CreateProducerChannels()
 
-	producer, _ := kafka.NewProducer(ctx, brokers, "observation-extracted", int(2000000), pChannels)
+	producer, err := kafka.NewProducer(ctx, brokers, "observation-extracted", int(2000000), pChannels)
+	if err != nil {
+		os.Exit(1)
+	}
 
 	event1 := event.ObservationExtracted{InstanceID: "7", Row: "5,,sex,male,age,30"}
 	sendEvent(producer, event1)

@@ -32,6 +32,14 @@ var (
 )
 
 func main() {
+	if err := run(); err != nil {
+		os.Exit(1)
+	}
+
+	os.Exit(0)
+}
+
+func run() error {
 	log.Namespace = "dp-observation-importer"
 	ctx := context.Background()
 
@@ -89,7 +97,7 @@ func main() {
 
 	// Add dataset API and graph checks
 	if err := registerCheckers(ctx, &hc, syncConsumerGroup, observationsImportedProducer, observationsImportedErrProducer, *datasetClient, graphDB); err != nil {
-		os.Exit(1)
+		return err
 	}
 
 	router := mux.NewRouter()
@@ -137,14 +145,23 @@ func main() {
 	eventConsumer := event.NewConsumer()
 
 	// Start listening for event messages.
-	eventConsumer.Consume(ctx, syncConsumerGroup, cfg.BatchSize, batchHandler, cfg.BatchWaitTime, errorChannel)
+	eventConsumer.Consume(syncConsumerGroup, cfg.BatchSize, batchHandler, cfg.BatchWaitTime, errorChannel)
+
+	syncConsumerGroup.Channels().LogErrors(ctx, "Consumer error")
+	observationsImportedProducer.Channels().LogErrors(ctx, "Observations Imported Producer error")
+	observationsImportedErrProducer.Channels().LogErrors(ctx, "Observation Imported Error Producer error")
+
+	go func() {
+		select {
+		case err = <-errorChannel:
+			log.Event(ctx, "error received from http server", log.ERROR, log.Error(err))
+		}
+	}()
 
 	// block until a fatal error occurs
 	select {
 	case <-signals:
 		log.Event(ctx, "os signal received", log.INFO)
-	case err = <-errorChannel:
-		log.Event(ctx, "error received from http server", log.ERROR, log.Error(err))
 	}
 
 	log.Event(ctx, fmt.Sprintf("Shutdown with timeout: %s", cfg.GracefulShutdownTimeout), log.INFO)
@@ -154,7 +171,9 @@ func main() {
 	go func() {
 		defer cancel()
 
-		hc.Stop()
+		if serviceList.HealthCheck {
+			hc.Stop()
+		}
 
 		err = httpServer.Shutdown(shutdownContext)
 		logIfError(ctx, "failed to shutdown http server", err)
@@ -202,7 +221,8 @@ func main() {
 	<-shutdownContext.Done()
 
 	log.Event(shutdownContext, "graceful shutdown was successful", log.INFO)
-	os.Exit(0)
+
+	return nil
 }
 
 // registerCheckers adds the checkers for the provided clients to the healthcheck object

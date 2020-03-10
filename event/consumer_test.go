@@ -25,7 +25,7 @@ func TestConsume(t *testing.T) {
 
 		Convey("When consume is called", func() {
 
-			go consumer.Consume(ctx, messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
+			go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
 			message := kafkatest.NewMessage([]byte(marshal(expectedEvent)), 0)
 			messageConsumer.Channels().Upstream <- message
@@ -55,7 +55,7 @@ func TestClose(t *testing.T) {
 
 		consumer := event.NewConsumer()
 
-		go consumer.Consume(ctx, messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
+		go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
 		Convey("When close is called", func() {
 			err := consumer.Close(nil)
@@ -82,7 +82,7 @@ func TestConsume_Timeout(t *testing.T) {
 
 		Convey("When consume is called with a batch size of 2, and no other messages are consumed", func() {
 
-			go consumer.Consume(ctx, messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
+			go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
 			message := kafkatest.NewMessage([]byte(marshal(expectedEvent)), 0)
 			messageConsumer.Channels().Upstream <- message
@@ -121,7 +121,7 @@ func TestConsume_DelayedMessages(t *testing.T) {
 
 		Convey("When consume is called", func() {
 
-			go consumer.Consume(ctx, messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
+			go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
 			message := kafkatest.NewMessage([]byte(marshal(expectedEvent)), 0)
 			go SendMessagesWithDelay(messageConsumer, []*kafkatest.Message{message, message, message}, messageDelay)

@@ -38,12 +38,7 @@ func TestResultWriter_Write(t *testing.T) {
 				observationMessageWriter.Write(ctx, []*observation.Result{result})
 
 				// Closing channels, kafkatest producer channels should contain close function
-				// which does this for us so we can do mockMessageProducer.Close()
-				close(mockMessageProducer.Channels().Init)
-				close(mockMessageProducer.Channels().Output)
-				close(mockMessageProducer.Channels().Errors)
-				close(mockMessageProducer.Channels().Closer)
-				close(mockMessageProducer.Channels().Closed)
+				mockMessageProducer.Close(ctx)
 			})
 		})
 	})
