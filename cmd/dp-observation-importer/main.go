@@ -87,7 +87,7 @@ func run() error {
 
 	// Get graphdb connection for observation store
 	graphDB, err := serviceList.GetGraphDB(ctx)
-	logIfError(ctx, "failed to instantiate neo4j observation store", err)
+	exitIfFatal(ctx, "failed to instantiate neo4j observation store", err)
 
 	datasetClient := dataset.NewAPIClient(cfg.DatasetAPIURL)
 
