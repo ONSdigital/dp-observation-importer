@@ -33,38 +33,47 @@ var (
 )
 
 func main() {
-	if err := run(); err != nil {
+	log.Namespace = "dp-observation-importer"
+	ctx := context.Background()
+
+	if err := run(ctx); err != nil {
+		log.Event(ctx, "application unexpectedly failed, shutting down ungracefully", log.Error(err))
 		os.Exit(1)
 	}
 
 	os.Exit(0)
 }
 
-func run() error {
-	log.Namespace = "dp-observation-importer"
-	ctx := context.Background()
-
+func run(ctx context.Context) error {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
 	log.Event(ctx, "Starting observation importer", log.INFO)
 
 	cfg, err := config.Get()
-	exitIfFatal(ctx, "failed to retrieve configuration", err)
-
+	if err != nil {
+		log.Event(ctx, "failed to retrieve configuration", log.FATAL, log.Error(err))
+		return err
+	}
 	// Sensitive fields are omitted from config.String()
 	log.Event(ctx, "loaded config", log.INFO, log.Data{"config": cfg})
 
 	// Attempt to parse envMax from config. Exit on failure.
 	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, 10, 32)
-	exitIfFatal(ctx, "encountered error parsing kafka max bytes", err)
+	if err != nil {
+		log.Event(ctx, "encountered error parsing kafka max bytes", log.FATAL, log.Error(err))
+		return err
+	}
 
 	// External services and their initialization state
 	var serviceList initialise.ExternalServiceList
 
 	// Get syncConsumerGroup Kafka Consumer
 	syncConsumerGroup, err := serviceList.GetConsumer(ctx, cfg)
-	exitIfFatal(ctx, "could not obtain consumer group", err)
+	if err != nil {
+		log.Event(ctx, "could not obtain consumer group", log.FATAL, log.Error(err))
+		return err
+	}
 
 	// Get observations inserted Kafka Producer
 	observationsImportedProducer, err := serviceList.GetProducer(
@@ -74,7 +83,10 @@ func run() error {
 		initialise.ObservationsImported,
 		int(envMax),
 	)
-	exitIfFatal(ctx, "could not obtain observations inserted producer", err)
+	if err != nil {
+		log.Event(ctx, "could not obtain observations inserted producer", log.FATAL, log.Error(err))
+		return err
+	}
 
 	// Get observations inserted error Kafka Producer
 	observationsImportedErrProducer, err := serviceList.GetProducer(
@@ -84,17 +96,26 @@ func run() error {
 		initialise.ObservationsImportedErr,
 		int(envMax),
 	)
-	exitIfFatal(ctx, "could not obtain observations inserted error producer", err)
+	if err != nil {
+		log.Event(ctx, "could not obtain observations inserted error producer", log.FATAL, log.Error(err))
+		return err
+	}
 
 	// Get graphdb connection for observation store
 	graphDB, err := serviceList.GetGraphDB(ctx)
-	exitIfFatal(ctx, "failed to instantiate neo4j observation store", err)
+	if err != nil {
+		log.Event(ctx, "failed to instantiate neo4j observation store", log.FATAL, log.Error(err))
+		return err
+	}
 
 	datasetClient := dataset.NewAPIClient(cfg.DatasetAPIURL)
 
 	// Get HealthCheck
 	hc, err := serviceList.GetHealthCheck(cfg, BuildTime, GitCommit, Version)
-	exitIfFatal(ctx, "could not instantiate healthcheck", err)
+	if err != nil {
+		log.Event(ctx, "could not instantiate healthcheck", log.FATAL, log.Error(err))
+		return err
+	}
 
 	// Add dataset API and graph checks
 	if err := registerCheckers(ctx, &hc, syncConsumerGroup, observationsImportedProducer, observationsImportedErrProducer, *datasetClient, graphDB); err != nil {
@@ -265,13 +286,6 @@ func registerCheckers(ctx context.Context, hc *healthcheck.HealthCheck,
 		return errors.New("Error(s) registering checkers for healthcheck")
 	}
 	return nil
-}
-
-func exitIfFatal(ctx context.Context, message string, err error) {
-	if err != nil {
-		log.Event(ctx, message, log.FATAL, log.Error(err))
-		os.Exit(1)
-	}
 }
 
 func logIfError(ctx context.Context, message string, err error) {
