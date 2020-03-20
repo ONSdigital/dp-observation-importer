@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -233,27 +234,37 @@ func registerCheckers(ctx context.Context, hc *healthcheck.HealthCheck,
 	datasetClient dataset.Client,
 	graphDB *graph.DB) (err error) {
 
+	hasErrors := false
+
 	if err = hc.AddCheck("Kafka Consumer", kafkaConsumer.Checker); err != nil {
+		hasErrors = true
 		log.Event(ctx, "error adding check for kafka consumer", log.ERROR, log.Error(err))
 	}
 
 	if err = hc.AddCheck("Kafka Import Producer", observationsImportedProducer.Checker); err != nil {
+		hasErrors = true
 		log.Event(ctx, "error adding check for kafka import producer", log.ERROR, log.Error(err))
 	}
 
 	if err = hc.AddCheck("Kafka Error Producer", observationsImportedErrProducer.Checker); err != nil {
+		hasErrors = true
 		log.Event(ctx, "error adding check for kafka error producer", log.ERROR, log.Error(err))
 	}
 
 	if err = hc.AddCheck("dataset API", datasetClient.Checker); err != nil {
+		hasErrors = true
 		log.Event(ctx, "error adding check dataset client", log.ERROR, log.Error(err))
 	}
 
 	if err = hc.AddCheck("graph db", graphDB.Driver.Checker); err != nil {
+		hasErrors = true
 		log.Event(ctx, "error adding check dataset client", log.ERROR, log.Error(err))
 	}
 
-	return
+	if hasErrors {
+		return errors.New("Error(s) registering checkers for healthcheck")
+	}
+	return nil
 }
 
 func exitIfFatal(ctx context.Context, message string, err error) {
