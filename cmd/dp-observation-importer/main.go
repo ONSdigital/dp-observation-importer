@@ -37,7 +37,7 @@ func main() {
 	ctx := context.Background()
 
 	if err := run(ctx); err != nil {
-		log.Event(ctx, "application unexpectedly failed, shutting down ungracefully", log.Error(err))
+		log.Event(ctx, "application unexpectedly failed", log.ERROR, log.Error(err))
 		os.Exit(1)
 	}
 
@@ -48,7 +48,7 @@ func run(ctx context.Context) error {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
-	log.Event(ctx, "Starting observation importer", log.INFO)
+	log.Event(ctx, "starting observation importer", log.INFO)
 
 	cfg, err := config.Get()
 	if err != nil {
@@ -101,6 +101,13 @@ func run(ctx context.Context) error {
 		return err
 	}
 
+	// Get Error reporter
+	errorReporter, err := serviceList.GetImportErrorReporter(observationsImportedErrProducer, log.Namespace)
+	if err != nil {
+		log.Event(ctx, "error while attempting to create error reporter client", log.FATAL, log.Error(err))
+		return err
+	}
+
 	// Get graphdb connection for observation store
 	graphDB, err := serviceList.GetGraphDB(ctx)
 	if err != nil {
@@ -143,10 +150,6 @@ func run(ctx context.Context) error {
 
 	hc.Start(ctx)
 
-	// Get Error reporter
-	errorReporter, err := serviceList.GetImportErrorReporter(observationsImportedErrProducer, log.Namespace)
-	logIfError(ctx, "error while attempting to create error reporter client", err)
-
 	// objects to get dimension data - via the dataset API + cached locally in memory.
 	dimensionStore := dimension.NewStore(cfg.ServiceAuthToken, cfg.DatasetAPIURL, datasetClient)
 	dimensionOrderCache := dimension.NewOrderCache(dimensionStore, cfg.CacheTTL)
@@ -169,9 +172,9 @@ func run(ctx context.Context) error {
 	// Start listening for event messages.
 	eventConsumer.Consume(syncConsumerGroup, cfg.BatchSize, batchHandler, cfg.BatchWaitTime, errorChannel)
 
-	syncConsumerGroup.Channels().LogErrors(ctx, "Consumer error")
-	observationsImportedProducer.Channels().LogErrors(ctx, "Observations Imported Producer error")
-	observationsImportedErrProducer.Channels().LogErrors(ctx, "Observation Imported Error Producer error")
+	syncConsumerGroup.Channels().LogErrors(ctx, "error received from kafka consumer, topic: "+cfg.ObservationConsumerTopic)
+	observationsImportedProducer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+cfg.ResultProducerTopic)
+	observationsImportedErrProducer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+cfg.ErrorProducerTopic)
 
 	go func() {
 		select {
@@ -186,8 +189,11 @@ func run(ctx context.Context) error {
 		log.Event(ctx, "os signal received", log.INFO)
 	}
 
-	log.Event(ctx, fmt.Sprintf("Shutdown with timeout: %s", cfg.GracefulShutdownTimeout), log.INFO)
+	log.Event(ctx, fmt.Sprintf("shutdown with timeout: %s", cfg.GracefulShutdownTimeout), log.INFO)
 	shutdownContext, cancel := context.WithTimeout(context.Background(), cfg.GracefulShutdownTimeout)
+
+	// track shutdown gracefully closes app
+	var gracefulShutdown bool
 
 	// Gracefully shutdown the application closing any open resources.
 	go func() {
@@ -197,8 +203,12 @@ func run(ctx context.Context) error {
 			hc.Stop()
 		}
 
+		var hasShutdownError bool
 		err = httpServer.Shutdown(shutdownContext)
-		logIfError(ctx, "failed to shutdown http server", err)
+		if err != nil {
+			log.Event(ctx, "failed to shutdown http server", log.ERROR, log.Error(err))
+			hasShutdownError = true
+		}
 
 		// If kafka consumer exists, stop listening to it. (Will close later)
 		if serviceList.Consumer {
@@ -234,13 +244,25 @@ func run(ctx context.Context) error {
 		}
 
 		if serviceList.Graph {
-			err = graphDB.Close(ctx)
-			logIfError(ctx, "failed to close graph db", err)
+			if err != nil {
+				log.Event(ctx, "failed to close graph db", log.ERROR, log.Error(err))
+				hasShutdownError = true
+			}
+		}
+
+		if !hasShutdownError {
+			gracefulShutdown = true
 		}
 	}()
 
 	// wait for shutdown success (via cancel) or failure (timeout)
 	<-shutdownContext.Done()
+
+	if !gracefulShutdown {
+		err = errors.New("failed to shutdown gracefully")
+		log.Event(shutdownContext, "failed to shutdown gracefully ", log.ERROR, log.Error(err))
+		return err
+	}
 
 	log.Event(shutdownContext, "graceful shutdown was successful", log.INFO)
 
@@ -272,24 +294,18 @@ func registerCheckers(ctx context.Context, hc *healthcheck.HealthCheck,
 		log.Event(ctx, "error adding check for kafka error producer", log.ERROR, log.Error(err))
 	}
 
-	if err = hc.AddCheck("dataset API", datasetClient.Checker); err != nil {
+	if err = hc.AddCheck("Dataset API", datasetClient.Checker); err != nil {
 		hasErrors = true
-		log.Event(ctx, "error adding check dataset client", log.ERROR, log.Error(err))
+		log.Event(ctx, "error adding check for dataset client", log.ERROR, log.Error(err))
 	}
 
-	if err = hc.AddCheck("graph db", graphDB.Driver.Checker); err != nil {
+	if err = hc.AddCheck("Graph DB", graphDB.Driver.Checker); err != nil {
 		hasErrors = true
-		log.Event(ctx, "error adding check dataset client", log.ERROR, log.Error(err))
+		log.Event(ctx, "error adding check for graph db", log.ERROR, log.Error(err))
 	}
 
 	if hasErrors {
 		return errors.New("Error(s) registering checkers for healthcheck")
 	}
 	return nil
-}
-
-func logIfError(ctx context.Context, message string, err error) {
-	if err != nil {
-		log.Event(ctx, message, log.ERROR, log.Error(err))
-	}
 }

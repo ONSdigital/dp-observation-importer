@@ -13,7 +13,6 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-// var ctx = context.Background()
 var mockError = errors.New("Mapping failed")
 
 var instanceID = "123321"

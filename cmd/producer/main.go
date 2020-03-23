@@ -8,6 +8,7 @@ import (
 	kafka "github.com/ONSdigital/dp-kafka"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/schema"
+	"github.com/ONSdigital/log.go/log"
 )
 
 func main() {
@@ -19,6 +20,7 @@ func main() {
 
 	producer, err := kafka.NewProducer(ctx, brokers, "observation-extracted", int(2000000), pChannels)
 	if err != nil {
+		log.Event(ctx, "failed to create kafka prodecer", log.FATAL, log.Error(err))
 		os.Exit(1)
 	}
 
