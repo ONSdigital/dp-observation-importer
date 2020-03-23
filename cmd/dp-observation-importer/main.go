@@ -176,17 +176,12 @@ func run(ctx context.Context) error {
 	observationsImportedProducer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+cfg.ResultProducerTopic)
 	observationsImportedErrProducer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+cfg.ErrorProducerTopic)
 
-	go func() {
-		select {
-		case err = <-errorChannel:
-			log.Event(ctx, "error received from http server", log.ERROR, log.Error(err))
-		}
-	}()
-
 	// block until a fatal error occurs
 	select {
 	case <-signals:
 		log.Event(ctx, "os signal received", log.INFO)
+	case err = <-errorChannel:
+		log.Event(ctx, "error received from http server, shutting down application", log.ERROR, log.Error(err))
 	}
 
 	log.Event(ctx, fmt.Sprintf("shutdown with timeout: %s", cfg.GracefulShutdownTimeout), log.INFO)
