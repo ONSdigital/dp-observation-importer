@@ -1,6 +1,7 @@
 package observation
 
 import (
+	"context"
 	"encoding/csv"
 	"strings"
 
@@ -15,7 +16,7 @@ type Mapper struct {
 
 // DimensionHeaderCache provides the an array of dimension names to define the order of dimensions (v4 format)
 type DimensionHeaderCache interface {
-	GetOrder(instanceID string) ([]string, error)
+	GetOrder(ctx context.Context, instanceID string) ([]string, error)
 }
 
 // NewMapper returns a new Mapper instance
@@ -26,9 +27,9 @@ func NewMapper(dimensionOrderCache DimensionHeaderCache) *Mapper {
 }
 
 // Map the given CSV row to an observation instance.
-func (mapper *Mapper) Map(row string, rowIndex int64, instanceID string) (*models.Observation, error) {
+func (mapper *Mapper) Map(ctx context.Context, row string, rowIndex int64, instanceID string) (*models.Observation, error) {
 
-	headerRow, err := mapper.dimensionCache.GetOrder(instanceID)
+	headerRow, err := mapper.dimensionCache.GetOrder(ctx, instanceID)
 	if err != nil {
 		return nil, err
 	}

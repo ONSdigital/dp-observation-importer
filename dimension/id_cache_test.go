@@ -1,38 +1,64 @@
 package dimension
 
 import (
-	"github.com/ONSdigital/dp-observation-importer/dimension/dimensiontest"
-	. "github.com/smartystreets/goconvey/convey"
+	"context"
 	"testing"
 	"time"
+
+	"github.com/ONSdigital/dp-observation-importer/dimension/dimensiontest"
+	"github.com/golang/mock/gomock"
+	cache "github.com/patrickmn/go-cache"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestDimensionMemoryCache_GetNodeIDs(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	ctx := gomock.Any()
 
-	cache := NewIDCache(dimensiontest.MockIDStore{}, time.Minute)
+	data := make(map[string]string)
+	data["1_year_1997"] = "123"
 
-	Convey("Given a valid instanceId", t, func() {
+	mockIDStore := dimensiontest.NewMockIDStore(mockCtrl)
+	mockIDStore.EXPECT().GetIDs(ctx, "1").Return(data, nil)
 
+	cache := &MemoryCache{
+		store:       mockIDStore,
+		memoryCache: cache.New(1*time.Minute, 15*time.Minute),
+	}
+
+	Convey("Given a valid instance Id", t, func() {
 		Convey("When a request for a cached dimensions", func() {
-			dimensions, error := cache.GetNodeIDs("1")
+			dimensions, err := cache.GetNodeIDs(context.Background(), "1")
 			Convey("The dimensions are returned", func() {
-				So(error, ShouldBeNil)
-				So(dimensions["age_55"], ShouldEqual, "123")
+				So(err, ShouldBeNil)
+				So(dimensions["1_year_1997"], ShouldEqual, "123")
 			})
 		})
 	})
 }
 
 func TestDimensionMemoryCache_GetNodeIDsReturnsError(t *testing.T) {
+	mockCtrl := gomock.NewController(t)
+	defer mockCtrl.Finish()
+	ctx := gomock.Any()
 
-	cache := NewIDCache(dimensiontest.MockIDStore{ReturnError: true}, time.Minute)
+	mockIDStore := dimensiontest.NewMockIDStore(mockCtrl)
+	mockIDStore.EXPECT().GetIDs(ctx, "1").Return(nil, ErrInstanceNotFound)
 
-	Convey("Given a invalid instanceId", t, func() {
+	cache := &MemoryCache{
+		store:       mockIDStore,
+		memoryCache: cache.New(1*time.Minute, 15*time.Minute),
+	}
 
-		Convey("When a request for a cached dimensions", func() {
-			_, error := cache.GetNodeIDs("1")
+	Convey("Given a invalid instance Id", t, func() {
+
+		Convey("When a request for cached dimensions", func() {
+			dimensions, err := cache.GetNodeIDs(context.Background(), "1")
 			Convey("An error is returned", func() {
-				So(error, ShouldNotBeNil)
+				So(dimensions, ShouldBeNil)
+				So(err, ShouldNotBeNil)
+				So(err, ShouldResemble, ErrInstanceNotFound)
 			})
 		})
 	})

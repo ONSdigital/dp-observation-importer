@@ -1,6 +1,7 @@
 package dimension
 
 import (
+	"context"
 	"time"
 
 	cache "github.com/patrickmn/go-cache"
@@ -14,7 +15,7 @@ type MemoryCache struct {
 
 // IDStore represents the data store for dimension id's
 type IDStore interface {
-	GetIDs(instanceID string) (map[string]string, error)
+	GetIDs(ctx context.Context, instanceID string) (map[string]string, error)
 }
 
 // NewIDCache returns a new cache instance that uses the given data store.
@@ -26,13 +27,13 @@ func NewIDCache(idStore IDStore, cacheTTL time.Duration) *MemoryCache {
 }
 
 // GetNodeIDs returns all dimensions for a given instanceID
-func (mc *MemoryCache) GetNodeIDs(instanceID string) (map[string]string, error) {
+func (mc *MemoryCache) GetNodeIDs(ctx context.Context, instanceID string) (map[string]string, error) {
 
 	if dimensions, ok := mc.memoryCache.Get(instanceID); ok {
 		return dimensions.(map[string]string), nil
 	}
 
-	newDimensions, err := mc.store.GetIDs(instanceID)
+	newDimensions, err := mc.store.GetIDs(ctx, instanceID)
 	if err != nil {
 		return nil, err
 	}

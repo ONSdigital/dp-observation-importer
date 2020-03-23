@@ -1,30 +1,32 @@
 package observation
 
 import (
+	"context"
+
+	kafka "github.com/ONSdigital/dp-kafka"
 	"github.com/ONSdigital/dp-observation-importer/schema"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/log.go/log"
 )
 
 // MessageWriter writes observations as messages
 type MessageWriter struct {
-	messageProducer MessageProducer
+	MessageProducer MessageProducer
 }
 
 // MessageProducer dependency that writes messages
 type MessageProducer interface {
-	Output() chan []byte
+	Channels() *kafka.ProducerChannels
 }
 
 // NewResultWriter returns a new observation message writer.
 func NewResultWriter(messageProducer MessageProducer) *MessageWriter {
 	return &MessageWriter{
-		messageProducer: messageProducer,
+		MessageProducer: messageProducer,
 	}
 }
 
 // Write results as messages.
-func (messageWriter MessageWriter) Write(results []*Result) {
-
+func (messageWriter MessageWriter) Write(ctx context.Context, results []*Result) {
 	for _, result := range results {
 
 		event := InsertedEvent{
@@ -32,18 +34,19 @@ func (messageWriter MessageWriter) Write(results []*Result) {
 			ObservationsInserted: result.ObservationsInserted,
 		}
 
-		log.Debug("observations inserted, producing event message",
+		log.Event(ctx, "observations inserted, producing event message", log.INFO,
 			log.Data{"event": event},
 		)
 
-		bytes, err := Marshal(event)
+		b, err := Marshal(event)
 		if err != nil {
-			log.Error(err, log.Data{
+			log.Event(ctx, "failed to marshal observations inserted event", log.ERROR, log.Error(err), log.Data{
 				"schema": "failed to marshal observations inserted event",
 				"event":  event})
+			continue
 		}
 
-		messageWriter.messageProducer.Output() <- bytes
+		messageWriter.MessageProducer.Channels().Output <- b
 	}
 }
 

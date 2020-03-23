@@ -4,6 +4,8 @@
 package eventtest
 
 import (
+	"context"
+	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/models"
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"sync"
@@ -13,29 +15,35 @@ var (
 	lockObservationStoreMockSaveAll sync.RWMutex
 )
 
-// ObservationStoreMock is a mock implementation of ObservationStore.
+// Ensure, that ObservationStoreMock does implement event.ObservationStore.
+// If this is not the case, regenerate this file with moq.
+var _ event.ObservationStore = &ObservationStoreMock{}
+
+// ObservationStoreMock is a mock implementation of event.ObservationStore.
 //
 //     func TestSomethingThatUsesObservationStore(t *testing.T) {
 //
-//         // make and configure a mocked ObservationStore
+//         // make and configure a mocked event.ObservationStore
 //         mockedObservationStore := &ObservationStoreMock{
-//             SaveAllFunc: func(observations []*models.Observation) ([]*observation.Result, error) {
-// 	               panic("TODO: mock out the SaveAll method")
+//             SaveAllFunc: func(ctx context.Context, observations []*models.Observation) ([]*observation.Result, error) {
+// 	               panic("mock out the SaveAll method")
 //             },
 //         }
 //
-//         // TODO: use mockedObservationStore in code that requires ObservationStore
-//         //       and then make assertions.
+//         // use mockedObservationStore in code that requires event.ObservationStore
+//         // and then make assertions.
 //
 //     }
 type ObservationStoreMock struct {
 	// SaveAllFunc mocks the SaveAll method.
-	SaveAllFunc func(observations []*models.Observation) ([]*observation.Result, error)
+	SaveAllFunc func(ctx context.Context, observations []*models.Observation) ([]*observation.Result, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// SaveAll holds details about calls to the SaveAll method.
 		SaveAll []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// Observations is the observations argument value.
 			Observations []*models.Observation
 		}
@@ -43,28 +51,32 @@ type ObservationStoreMock struct {
 }
 
 // SaveAll calls SaveAllFunc.
-func (mock *ObservationStoreMock) SaveAll(observations []*models.Observation) ([]*observation.Result, error) {
+func (mock *ObservationStoreMock) SaveAll(ctx context.Context, observations []*models.Observation) ([]*observation.Result, error) {
 	if mock.SaveAllFunc == nil {
 		panic("ObservationStoreMock.SaveAllFunc: method is nil but ObservationStore.SaveAll was just called")
 	}
 	callInfo := struct {
+		Ctx          context.Context
 		Observations []*models.Observation
 	}{
+		Ctx:          ctx,
 		Observations: observations,
 	}
 	lockObservationStoreMockSaveAll.Lock()
 	mock.calls.SaveAll = append(mock.calls.SaveAll, callInfo)
 	lockObservationStoreMockSaveAll.Unlock()
-	return mock.SaveAllFunc(observations)
+	return mock.SaveAllFunc(ctx, observations)
 }
 
 // SaveAllCalls gets all the calls that were made to SaveAll.
 // Check the length with:
 //     len(mockedObservationStore.SaveAllCalls())
 func (mock *ObservationStoreMock) SaveAllCalls() []struct {
+	Ctx          context.Context
 	Observations []*models.Observation
 } {
 	var calls []struct {
+		Ctx          context.Context
 		Observations []*models.Observation
 	}
 	lockObservationStoreMockSaveAll.RLock()

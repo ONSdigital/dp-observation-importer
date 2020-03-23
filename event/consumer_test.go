@@ -1,14 +1,13 @@
 package event_test
 
 import (
-	"github.com/ONSdigital/dp-observation-importer/event"
-	"github.com/ONSdigital/dp-observation-importer/event/eventtest"
-	"github.com/ONSdigital/go-ns/kafka"
-	"github.com/ONSdigital/go-ns/kafka/kafkatest"
-	"github.com/ONSdigital/go-ns/log"
-	. "github.com/smartystreets/goconvey/convey"
 	"testing"
 	"time"
+
+	"github.com/ONSdigital/dp-kafka/kafkatest"
+	"github.com/ONSdigital/dp-observation-importer/event"
+	"github.com/ONSdigital/dp-observation-importer/event/eventtest"
+	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestConsume(t *testing.T) {
@@ -16,10 +15,10 @@ func TestConsume(t *testing.T) {
 	Convey("Given a consumer with a mocked message producer with an expected message", t, func() {
 
 		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content"}
-		messageConsumer := newMockConsumer(expectedEvent)
+		messageConsumer := kafkatest.NewMessageConsumer(false)
 		batchSize := 1
 		eventHandler := eventtest.NewEventHandler()
-		batchWaitTime := time.Second * 1
+		batchWaitTime := time.Second
 		exit := make(chan error, 1)
 
 		consumer := event.NewConsumer()
@@ -28,7 +27,10 @@ func TestConsume(t *testing.T) {
 
 			go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
-			waitForEventsToBeSentToHandler(eventHandler)
+			message := kafkatest.NewMessage([]byte(marshal(expectedEvent)), 0)
+			messageConsumer.Channels().Upstream <- message
+
+			<-eventHandler.EventUpdated
 
 			Convey("The expected event is sent to the handler", func() {
 				So(len(eventHandler.Events), ShouldEqual, 1)
@@ -45,11 +47,10 @@ func TestClose(t *testing.T) {
 
 	Convey("Given a consumer", t, func() {
 
-		messages := make(chan kafka.Message, 3)
-		messageConsumer := kafkatest.NewMessageConsumer(messages)
+		messageConsumer := kafkatest.NewMessageConsumer(false)
 		batchSize := 1
 		eventHandler := eventtest.NewEventHandler()
-		batchWaitTime := time.Second * 1
+		batchWaitTime := time.Second
 		exit := make(chan error, 1)
 
 		consumer := event.NewConsumer()
@@ -57,7 +58,6 @@ func TestClose(t *testing.T) {
 		go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
 		Convey("When close is called", func() {
-
 			err := consumer.Close(nil)
 
 			Convey("The expected event is sent to the handler", func() {
@@ -72,10 +72,10 @@ func TestConsume_Timeout(t *testing.T) {
 	Convey("Given a consumer with a mocked message producer with an expected message", t, func() {
 
 		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content"}
-		messageConsumer := newMockConsumer(expectedEvent)
+		messageConsumer := kafkatest.NewMessageConsumer(false)
 		batchSize := 2
 		eventHandler := eventtest.NewEventHandler()
-		batchWaitTime := time.Millisecond * 50
+		batchWaitTime := 50 * time.Millisecond
 		exit := make(chan error, 1)
 
 		consumer := event.NewConsumer()
@@ -84,7 +84,11 @@ func TestConsume_Timeout(t *testing.T) {
 
 			go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
-			waitForEventsToBeSentToHandler(eventHandler)
+			message := kafkatest.NewMessage([]byte(marshal(expectedEvent)), 0)
+			messageConsumer.Channels().Upstream <- message
+			<-messageConsumer.Channels().UpstreamDone
+
+			<-eventHandler.EventUpdated
 
 			Convey("The consumer timeout is hit and the single event is sent to the handler anyway", func() {
 				So(len(eventHandler.Events), ShouldEqual, 1)
@@ -103,31 +107,32 @@ func TestConsume_DelayedMessages(t *testing.T) {
 	Convey("Given a consumer with a mocked message producer that produces messages every 20ms", t, func() {
 
 		expectedEvent := event.ObservationExtracted{InstanceID: "123", Row: "the,row,content"}
-		messages := make(chan kafka.Message, 3)
-		messageConsumer := kafkatest.NewMessageConsumer(messages)
+		messageConsumer := kafkatest.NewMessageConsumer(true)
 
+		// batchsize is also the maximum number of messages which would get processed
+		// before assertions are being made in this test due to the mocked version of event handler
 		batchSize := 3
 		eventHandler := eventtest.NewEventHandler()
-		batchWaitTime := time.Millisecond * 50
+		batchWaitTime := 150 * time.Millisecond
 		exit := make(chan error, 1)
 
 		messageDelay := time.Millisecond * 25
-		message := kafkatest.NewMessage([]byte(marshal(expectedEvent)))
-
 		consumer := event.NewConsumer()
-
-		SendMessagesWithDelay(messages, message, messageDelay, 3)
 
 		Convey("When consume is called", func() {
 
 			go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
-			waitForEventsToBeSentToHandler(eventHandler)
+			message := kafkatest.NewMessage([]byte(marshal(expectedEvent)), 0)
+			go SendMessagesWithDelay(messageConsumer, []*kafkatest.Message{message, message, message}, messageDelay)
+
+			// wait for event updated channel to receive event from the mock event handler
+			<-eventHandler.EventUpdated
 
 			Convey("The expected events are sent to the handler in one batch - i.e. the timeout is not hit", func() {
 				So(len(eventHandler.Events), ShouldEqual, 3)
 
-				event := eventHandler.Events[2]
+				event := eventHandler.Events[0]
 				So(event.InstanceID, ShouldEqual, expectedEvent.InstanceID)
 				So(event.Row, ShouldEqual, expectedEvent.Row)
 			})
@@ -136,40 +141,10 @@ func TestConsume_DelayedMessages(t *testing.T) {
 	})
 }
 
-func SendMessagesWithDelay(messages chan kafka.Message, message kafka.Message, messageDelay time.Duration, numberOfMessages int) {
-	go func() {
-		for i := 0; i < numberOfMessages; i++ {
-			time.Sleep(messageDelay)
-			messages <- message
-		}
-	}()
-}
-
-func newMockConsumer(expectedEvent event.ObservationExtracted) event.MessageConsumer {
-
-	messages := make(chan kafka.Message, 1)
-	messageConsumer := kafkatest.NewMessageConsumer(messages)
-	message := kafkatest.NewMessage([]byte(marshal(expectedEvent)))
-	messages <- message
-	return messageConsumer
-
-}
-
-func waitForEventsToBeSentToHandler(eventHandler *eventtest.EventHandler) {
-
-	start := time.Now()
-	timeout := start.Add(time.Millisecond * 500)
-	for {
-		if len(eventHandler.Events) > 0 {
-			log.Debug("events have been sent to the handler", nil)
-			break
-		}
-
-		if time.Now().After(timeout) {
-			log.Debug("timeout hit", nil)
-			break
-		}
-
-		time.Sleep(time.Millisecond * 10)
+func SendMessagesWithDelay(messageConsumer *kafkatest.MessageConsumer, messages []*kafkatest.Message, messageDelay time.Duration) {
+	for _, message := range messages {
+		time.Sleep(messageDelay)
+		messageConsumer.Channels().Upstream <- message
+		<-messageConsumer.Channels().UpstreamDone
 	}
 }
