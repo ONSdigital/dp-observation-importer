@@ -239,6 +239,7 @@ func run(ctx context.Context) error {
 		}
 
 		if serviceList.Graph {
+			err = graphDB.Close(ctx)
 			if err != nil {
 				log.Event(ctx, "failed to close graph db", log.ERROR, log.Error(err))
 				hasShutdownError = true
