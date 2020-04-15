@@ -34,6 +34,8 @@ func TestSpec(t *testing.T) {
 				So(cfg.GracefulShutdownTimeout, ShouldEqual, time.Second*10)
 				So(cfg.ServiceAuthToken, ShouldEqual, "Bearer AA78C45F-DD64-4631-BED9-FEAE29200620")
 				So(cfg.ZebedeeURL, ShouldEqual, "http://localhost:8082")
+				So(cfg.HealthCheckInterval, ShouldEqual, 30*time.Second)
+				So(cfg.HealthCheckCriticalTimeout, ShouldEqual, 90*time.Second)
 			})
 		})
 	})

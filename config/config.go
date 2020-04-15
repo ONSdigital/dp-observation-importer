@@ -44,8 +44,8 @@ func Get() (*Config, error) {
 		GracefulShutdownTimeout:    time.Second * 10,
 		ServiceAuthToken:           "AA78C45F-DD64-4631-BED9-FEAE29200620",
 		ZebedeeURL:                 "http://localhost:8082",
-		HealthCheckInterval:        10 * time.Second,
-		HealthCheckCriticalTimeout: 1 * time.Minute,
+		HealthCheckInterval:        30 * time.Second,
+		HealthCheckCriticalTimeout: 90 * time.Second,
 	}
 
 	if err := envconfig.Process("", cfg); err != nil {
