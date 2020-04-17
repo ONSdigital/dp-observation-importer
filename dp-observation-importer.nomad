@@ -48,7 +48,14 @@ job "dp-observation-importer" {
 
       service {
         name = "dp-observation-importer"
+        port = "http"
         tags = ["publishing"]
+        check {
+          type     = "http"
+          path     = "/health"
+          interval = "10s"
+          timeout  = "2s"
+        }
       }
 
       resources {

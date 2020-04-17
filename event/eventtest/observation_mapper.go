@@ -4,6 +4,8 @@
 package eventtest
 
 import (
+	"context"
+	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/models"
 	"sync"
 )
@@ -12,29 +14,35 @@ var (
 	lockObservationMapperMockMap sync.RWMutex
 )
 
-// ObservationMapperMock is a mock implementation of ObservationMapper.
+// Ensure, that ObservationMapperMock does implement event.ObservationMapper.
+// If this is not the case, regenerate this file with moq.
+var _ event.ObservationMapper = &ObservationMapperMock{}
+
+// ObservationMapperMock is a mock implementation of event.ObservationMapper.
 //
 //     func TestSomethingThatUsesObservationMapper(t *testing.T) {
 //
-//         // make and configure a mocked ObservationMapper
+//         // make and configure a mocked event.ObservationMapper
 //         mockedObservationMapper := &ObservationMapperMock{
-//             MapFunc: func(row string, rowIndex int64, instanceID string) (*models.Observation, error) {
-// 	               panic("TODO: mock out the Map method")
+//             MapFunc: func(ctx context.Context, row string, rowIndex int64, instanceID string) (*models.Observation, error) {
+// 	               panic("mock out the Map method")
 //             },
 //         }
 //
-//         // TODO: use mockedObservationMapper in code that requires ObservationMapper
-//         //       and then make assertions.
+//         // use mockedObservationMapper in code that requires event.ObservationMapper
+//         // and then make assertions.
 //
 //     }
 type ObservationMapperMock struct {
 	// MapFunc mocks the Map method.
-	MapFunc func(row string, rowIndex int64, instanceID string) (*models.Observation, error)
+	MapFunc func(ctx context.Context, row string, rowIndex int64, instanceID string) (*models.Observation, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
 		// Map holds details about calls to the Map method.
 		Map []struct {
+			// Ctx is the ctx argument value.
+			Ctx context.Context
 			// Row is the row argument value.
 			Row string
 			// RowIndex is the rowIndex argument value.
@@ -46,15 +54,17 @@ type ObservationMapperMock struct {
 }
 
 // Map calls MapFunc.
-func (mock *ObservationMapperMock) Map(row string, rowIndex int64, instanceID string) (*models.Observation, error) {
+func (mock *ObservationMapperMock) Map(ctx context.Context, row string, rowIndex int64, instanceID string) (*models.Observation, error) {
 	if mock.MapFunc == nil {
 		panic("ObservationMapperMock.MapFunc: method is nil but ObservationMapper.Map was just called")
 	}
 	callInfo := struct {
+		Ctx        context.Context
 		Row        string
 		RowIndex   int64
 		InstanceID string
 	}{
+		Ctx:        ctx,
 		Row:        row,
 		RowIndex:   rowIndex,
 		InstanceID: instanceID,
@@ -62,18 +72,20 @@ func (mock *ObservationMapperMock) Map(row string, rowIndex int64, instanceID st
 	lockObservationMapperMockMap.Lock()
 	mock.calls.Map = append(mock.calls.Map, callInfo)
 	lockObservationMapperMockMap.Unlock()
-	return mock.MapFunc(row, rowIndex, instanceID)
+	return mock.MapFunc(ctx, row, rowIndex, instanceID)
 }
 
 // MapCalls gets all the calls that were made to Map.
 // Check the length with:
 //     len(mockedObservationMapper.MapCalls())
 func (mock *ObservationMapperMock) MapCalls() []struct {
+	Ctx        context.Context
 	Row        string
 	RowIndex   int64
 	InstanceID string
 } {
 	var calls []struct {
+		Ctx        context.Context
 		Row        string
 		RowIndex   int64
 		InstanceID string

@@ -1,10 +1,12 @@
 package event
 
 import (
+	"context"
+
 	"github.com/ONSdigital/dp-observation-importer/models"
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/log.go/log"
 )
 
 //go:generate moq -out eventtest/observation_mapper.go -pkg eventtest . ObservationMapper
@@ -23,17 +25,17 @@ type BatchHandler struct {
 
 // ObservationMapper handles the conversion from row data to observation instances.
 type ObservationMapper interface {
-	Map(row string, rowIndex int64, instanceID string) (*models.Observation, error)
+	Map(ctx context.Context, row string, rowIndex int64, instanceID string) (*models.Observation, error)
 }
 
 // ObservationStore handles the persistence of observations.
 type ObservationStore interface {
-	SaveAll(observations []*models.Observation) ([]*observation.Result, error)
+	SaveAll(ctx context.Context, observations []*models.Observation) ([]*observation.Result, error)
 }
 
 // ResultWriter dependency that outputs results
 type ResultWriter interface {
-	Write(results []*observation.Result)
+	Write(ctx context.Context, results []*observation.Result)
 }
 
 // NewBatchHandler returns a new BatchHandler to use the given observation mapper / store.
@@ -52,14 +54,14 @@ func NewBatchHandler(
 }
 
 // Handle the given slice of ObservationExtracted events.
-func (handler BatchHandler) Handle(events []*ObservationExtracted) error {
+func (handler BatchHandler) Handle(ctx context.Context, events []*ObservationExtracted) error {
 	observations := make([]*models.Observation, 0, len(events))
 
 	for _, event := range events {
-		observation, err := handler.observationMapper.Map(event.Row, event.RowIndex, event.InstanceID)
+		observation, err := handler.observationMapper.Map(ctx, event.Row, event.RowIndex, event.InstanceID)
 		if err != nil {
 			if err := handler.errorReporter.Notify(event.InstanceID, "error while attempting to convert from row data to observation instances", err); err != nil {
-				log.ErrorC("error reporter notify returned an unexpected error", err, nil)
+				log.Event(ctx, "error reporter notify returned an unexpected error", log.ERROR, log.Error(err))
 			}
 			continue // do not add this error'd event to the batch
 		}
@@ -67,12 +69,12 @@ func (handler BatchHandler) Handle(events []*ObservationExtracted) error {
 		observations = append(observations, observation)
 	}
 
-	results, err := handler.observationStore.SaveAll(observations)
+	results, err := handler.observationStore.SaveAll(ctx, observations)
 	if err != nil {
 		return err
 	}
 
-	handler.resultWriter.Write(results)
+	handler.resultWriter.Write(ctx, results)
 
 	return nil
 }

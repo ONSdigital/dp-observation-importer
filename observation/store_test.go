@@ -1,6 +1,7 @@
 package observation_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 
@@ -29,6 +30,7 @@ var ids = map[string]string{
 var mockError = errors.New("Broken")
 
 func TestStore_SaveAll(t *testing.T) {
+	ctx := context.Background()
 
 	Convey("Given a store with mock dimension ID cache and DB connection", t, func() {
 
@@ -41,7 +43,7 @@ func TestStore_SaveAll(t *testing.T) {
 
 		Convey("When save all is called", func() {
 
-			results, err := s.SaveAll([]*models.Observation{inputObservation})
+			results, err := s.SaveAll(ctx, []*models.Observation{inputObservation})
 
 			Convey("The results have the expected values", func() {
 
@@ -60,6 +62,7 @@ func TestStore_SaveAll(t *testing.T) {
 }
 
 func TestStore_SaveAll_GetNodeIDError(t *testing.T) {
+	ctx := context.Background()
 
 	Convey("Given a store with mock dimension ID cache that returns an error", t, func() {
 
@@ -73,7 +76,7 @@ func TestStore_SaveAll_GetNodeIDError(t *testing.T) {
 
 		Convey("When save all is called", func() {
 
-			results, err := s.SaveAll([]*models.Observation{inputObservation})
+			results, err := s.SaveAll(ctx, []*models.Observation{inputObservation})
 
 			Convey("The results have the expected values", func() {
 
