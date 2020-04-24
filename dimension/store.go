@@ -1,12 +1,14 @@
 package dimension
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 
 	"errors"
+
+	"github.com/ONSdigital/dp-api-clients-go/dataset"
 )
 
 const authorizationHeader = "Authorization"
@@ -19,11 +21,6 @@ var ErrInstanceNotFound = errors.New("dataset api failed to find instance")
 
 // ErrInternalError returned when an unrecognised internal error occurs in the dataset API.
 var ErrInternalError = errors.New("internal error from the dataset api")
-
-// DatasetAPIClient an interface used to access the dataset api
-type DatasetAPIClient interface {
-	Do(req *http.Request) (*http.Response, error)
-}
 
 type csvHeaders struct {
 	Headers []string `json:"headers"`
@@ -41,42 +38,37 @@ type Dimension struct {
 	NodeID        string `json:"node_id"`
 }
 
-// Store represents the storage of dimension data.
-type Store struct {
+// DatasetStore represents the storage of dimension data.
+type DatasetStore struct {
 	authToken        string
 	datasetAPIURL    string
-	datasetAPIToken  string
-	datasetAPIClient DatasetAPIClient
+	datasetAPIClient DatasetClient
+}
+
+// DatasetClient represents the dataset client for dataset API
+type DatasetClient interface {
+	GetInstanceBytes(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID string) ([]byte, error)
+	GetInstanceDimensionsBytes(ctx context.Context, userAuthToken, serviceAuthToken, instanceID string) (b []byte, err error)
 }
 
 // NewStore returns a new instance of a dimension store.
-func NewStore(authToken, datasetAPIURL, datasetAPIAuthToken string, client DatasetAPIClient) *Store {
-	return &Store{
+func NewStore(authToken, datasetAPIURL string, client DatasetClient) *DatasetStore {
+	return &DatasetStore{
 		authToken:        authToken,
 		datasetAPIURL:    datasetAPIURL,
-		datasetAPIToken:  datasetAPIAuthToken,
 		datasetAPIClient: client,
 	}
 }
 
 // GetOrder returns list of dimension names in the order they are stored in the input file.
-func (store *Store) GetOrder(instanceID string) ([]string, error) {
-	url := store.datasetAPIURL + "/instances/" + instanceID
-	request, requestErr := http.NewRequest("GET", url, nil)
-	if requestErr != nil {
-		return nil, requestErr
-	}
-
-	// TODO Remove "internal-token" header, now uses "Authorization" header
-	request.Header.Set("internal-token", store.datasetAPIToken)
-	request.Header.Set(authorizationHeader, store.authToken)
-
-	bytes, err := store.processRequest(request, instanceID)
-	if err != nil {
+func (store *DatasetStore) GetOrder(ctx context.Context, instanceID string) ([]string, error) {
+	b, clientErr := store.datasetAPIClient.GetInstanceBytes(ctx, "", store.authToken, "", instanceID)
+	if err := checkResponse(clientErr); err != nil {
 		return nil, err
 	}
+
 	var csv csvHeaders
-	JSONErr := json.Unmarshal(bytes, &csv)
+	JSONErr := json.Unmarshal(b, &csv)
 	if JSONErr != nil {
 		return nil, JSONErr
 	}
@@ -84,25 +76,14 @@ func (store *Store) GetOrder(instanceID string) ([]string, error) {
 }
 
 // GetIDs returns all dimensions for a given instanceID
-func (store *Store) GetIDs(instanceID string) (map[string]string, error) {
-
-	url := store.datasetAPIURL + "/instances/" + instanceID + "/dimensions"
-	request, requestErr := http.NewRequest("GET", url, nil)
-	if requestErr != nil {
-		return nil, requestErr
-	}
-
-	// TODO Remove "internal-token" header, now uses "Authorization" header
-	request.Header.Set("internal-token", store.datasetAPIToken)
-	request.Header.Set(authorizationHeader, store.authToken)
-
-	bytes, err := store.processRequest(request, instanceID)
-	if err != nil {
+func (store *DatasetStore) GetIDs(ctx context.Context, instanceID string) (map[string]string, error) {
+	b, clientErr := store.datasetAPIClient.GetInstanceDimensionsBytes(ctx, "", store.authToken, instanceID)
+	if err := checkResponse(clientErr); err != nil {
 		return nil, err
 	}
 
 	var dimensionResults NodeResults
-	JSONErr := json.Unmarshal(bytes, &dimensionResults)
+	JSONErr := json.Unmarshal(b, &dimensionResults)
 	if JSONErr != nil {
 		return nil, JSONErr
 	}
@@ -110,23 +91,27 @@ func (store *Store) GetIDs(instanceID string) (map[string]string, error) {
 	for _, dimension := range dimensionResults.Items {
 		cache[fmt.Sprintf("%s_%s_%s", instanceID, dimension.DimensionName, dimension.Option)] = dimension.NodeID
 	}
+
 	return cache, nil
 }
 
-func (store *Store) processRequest(r *http.Request, instanceID string) ([]byte, error) {
-	response, responseError := store.datasetAPIClient.Do(r)
-	if responseError != nil {
-		return nil, responseError
+func checkResponse(err error) error {
+	if err == nil {
+		return nil
 	}
-	switch response.StatusCode {
-	case http.StatusNotFound:
-		return nil, ErrInstanceNotFound
-	case http.StatusInternalServerError:
-		return nil, ErrInternalError
+
+	// Get status code from error
+	switch err.(type) {
+	case *dataset.ErrInvalidDatasetAPIResponse:
+		code := err.(*dataset.ErrInvalidDatasetAPIResponse).Code()
+
+		switch code {
+		case http.StatusNotFound:
+			return ErrInstanceNotFound
+		case http.StatusInternalServerError:
+			return ErrInternalError
+		}
 	}
-	bytes, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, ErrParseAPIResponse
-	}
-	return bytes, nil
+
+	return err
 }

@@ -1,14 +1,17 @@
 package observation_test
 
 import (
+	"context"
+	"strings"
+	"testing"
+
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-observation-importer/observation/observationtest"
 	. "github.com/smartystreets/goconvey/convey"
-	"strings"
-	"testing"
 )
 
 func TestMapper_Map(t *testing.T) {
+	ctx := context.Background()
 
 	Convey("Given a mapper with a mock header cache", t, func() {
 
@@ -21,7 +24,7 @@ func TestMapper_Map(t *testing.T) {
 			csvRow := "128,,Month,Aug-16,K02000001,,cpi1dim1A0,CPI (overall index)"
 			rowIndex := int64(453)
 			instanceID := "123321"
-			observation, err := mapper.Map(csvRow, rowIndex, instanceID)
+			observation, err := mapper.Map(ctx, csvRow, rowIndex, instanceID)
 
 			Convey("The returned observation should be populated with the row data.", func() {
 				So(err, ShouldBeNil)

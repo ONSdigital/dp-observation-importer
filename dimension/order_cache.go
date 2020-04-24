@@ -1,8 +1,10 @@
 package dimension
 
 import (
-	"github.com/patrickmn/go-cache"
+	"context"
 	"time"
+
+	"github.com/patrickmn/go-cache"
 )
 
 // HeaderCache is cache the for order of dimensions in the input file
@@ -13,7 +15,7 @@ type HeaderCache struct {
 
 // OrderStore represents the data store for dimension order
 type OrderStore interface {
-	GetOrder(instanceID string) ([]string, error)
+	GetOrder(ctx context.Context, instanceID string) ([]string, error)
 }
 
 // NewOrderCache returns a new instance of the order cache that uses the given OrderStore.
@@ -25,12 +27,12 @@ func NewOrderCache(orderStore OrderStore, cacheTTL time.Duration) *HeaderCache {
 }
 
 // GetOrder returns list of dimension names in the order they are stored in the input file.
-func (hc *HeaderCache) GetOrder(instanceID string) ([]string, error) {
+func (hc *HeaderCache) GetOrder(ctx context.Context, instanceID string) ([]string, error) {
 	if item, ok := hc.memoryCache.Get(instanceID); ok {
 		return item.([]string), nil
 	}
 
-	newHeaders, err := hc.orderStore.GetOrder(instanceID)
+	newHeaders, err := hc.orderStore.GetOrder(ctx, instanceID)
 	if err != nil {
 		return nil, err
 	}

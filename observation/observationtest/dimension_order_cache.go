@@ -1,6 +1,8 @@
 package observationtest
 
 import (
+	"context"
+
 	"github.com/ONSdigital/dp-observation-importer/observation"
 )
 
@@ -13,6 +15,6 @@ type DimensionHeaderCache struct {
 }
 
 // GetOrder returns the stored mock response.
-func (cache DimensionHeaderCache) GetOrder(instanceID string) ([]string, error) {
+func (cache DimensionHeaderCache) GetOrder(ctx context.Context, instanceID string) ([]string, error) {
 	return cache.DimensionOrder, cache.Error
 }

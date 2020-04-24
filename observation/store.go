@@ -6,7 +6,7 @@ import (
 	graph "github.com/ONSdigital/dp-graph/graph/driver"
 	"github.com/ONSdigital/dp-observation-importer/models"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
-	"github.com/ONSdigital/go-ns/log"
+	"github.com/ONSdigital/log.go/log"
 )
 
 const (
@@ -14,16 +14,16 @@ const (
 	statementErrorPrefix = "Neo.ClientError.Statement"
 )
 
+// DimensionIDCache provides database ID's of dimensions when inserting observations.
+type DimensionIDCache interface {
+	GetNodeIDs(ctx context.Context, instanceID string) (map[string]string, error)
+}
+
 // Store provides persistence for observations.
 type Store struct {
 	dimensionIDCache DimensionIDCache
 	graph            graph.Observation
 	errorReporter    reporter.ErrorReporter
-}
-
-// DimensionIDCache provides database ID's of dimensions when inserting observations.
-type DimensionIDCache interface {
-	GetNodeIDs(instanceID string) (map[string]string, error)
 }
 
 // NewStore returns a new Observation store instance that uses the given dimension ID cache and db connection.
@@ -42,21 +42,21 @@ type Result struct {
 }
 
 // SaveAll the observations against the provided dimension options and instanceID.
-func (store *Store) SaveAll(observations []*models.Observation) ([]*Result, error) {
+func (store *Store) SaveAll(ctx context.Context, observations []*models.Observation) ([]*Result, error) {
 	results := make([]*Result, 0)
 
 	// handle the inserts separately for each instance in the batch.
 	instanceObservations := mapObservationsToInstances(observations)
 
 	for instanceID, observations := range instanceObservations {
-		dimensionIds, err := store.dimensionIDCache.GetNodeIDs(instanceID)
+		dimensionIds, err := store.dimensionIDCache.GetNodeIDs(ctx, instanceID)
 		if err != nil {
-			store.reportError(instanceID, "failed to get dimension node id's for batch", err)
+			store.reportError(ctx, instanceID, "failed to get dimension node id's for batch", err)
 			return results, err
 		}
 
 		if err := store.graph.InsertObservationBatch(context.Background(), 1, instanceID, observations, dimensionIds); err != nil {
-			store.reportError(instanceID, "failed to insert observation batch to graph", err)
+			store.reportError(ctx, instanceID, "failed to insert observation batch to graph", err)
 			continue
 		}
 
@@ -73,10 +73,10 @@ func (store *Store) SaveAll(observations []*models.Observation) ([]*Result, erro
 	return results, nil
 }
 
-func (store *Store) reportError(instanceID string, context string, cause error) {
-	if err := store.errorReporter.Notify(instanceID, context, cause); err != nil {
-		log.ErrorC("errorReporter.Notify returned unexpected error while attempting to report error", err, log.Data{
-			"reportedError": context,
+func (store *Store) reportError(ctx context.Context, instanceID string, message string, cause error) {
+	if err := store.errorReporter.Notify(instanceID, message, cause); err != nil {
+		log.Event(ctx, "errorReporter.Notify returned unexpected error while attempting to report error", log.ERROR, log.Error(err), log.Data{
+			"reportedError": message,
 		})
 	}
 }

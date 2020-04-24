@@ -2,9 +2,7 @@
 
 cwd=$(pwd)
 
-export GOPATH=$cwd/go
-
-pushd $GOPATH/src/github.com/ONSdigital/dp-observation-importer
-  make build && mv build/$(go env GOOS)-$(go env GOARCH)/* $cwd/build
+pushd $cwd/dp-observation-importer
+  make build && cp build/dp-observation-importer $cwd/build
   cp Dockerfile.concourse $cwd/build
 popd
