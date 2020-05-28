@@ -3,11 +3,11 @@ package event_test
 import (
 	"context"
 	"errors"
+	"github.com/ONSdigital/dp-graph/v2/models"
 	"testing"
 
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/event/eventtest"
-	"github.com/ONSdigital/dp-observation-importer/models"
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-reporter-client/reporter/reportertest"
 	. "github.com/smartystreets/goconvey/convey"

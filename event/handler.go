@@ -2,8 +2,8 @@ package event
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-graph/v2/models"
 
-	"github.com/ONSdigital/dp-observation-importer/models"
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
 	"github.com/ONSdigital/log.go/log"

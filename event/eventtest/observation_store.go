@@ -5,8 +5,8 @@ package eventtest
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-graph/v2/models"
 	"github.com/ONSdigital/dp-observation-importer/event"
-	"github.com/ONSdigital/dp-observation-importer/models"
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"sync"
 )
@@ -15,7 +15,7 @@ var (
 	lockObservationStoreMockSaveAll sync.RWMutex
 )
 
-// Ensure, that ObservationStoreMock does implement event.ObservationStore.
+// Ensure, that ObservationStoreMock does implement ObservationStore.
 // If this is not the case, regenerate this file with moq.
 var _ event.ObservationStore = &ObservationStoreMock{}
 
