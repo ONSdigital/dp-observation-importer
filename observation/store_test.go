@@ -3,10 +3,10 @@ package observation_test
 import (
 	"context"
 	"errors"
+	"github.com/ONSdigital/dp-graph/v2/models"
 	"testing"
 
-	"github.com/ONSdigital/dp-graph/graph"
-	"github.com/ONSdigital/dp-observation-importer/models"
+	"github.com/ONSdigital/dp-graph/v2/graph"
 	store "github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-observation-importer/observation/observationtest"
 	"github.com/ONSdigital/dp-reporter-client/reporter/reportertest"

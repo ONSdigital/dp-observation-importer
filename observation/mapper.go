@@ -3,10 +3,10 @@ package observation
 import (
 	"context"
 	"encoding/csv"
+	"github.com/ONSdigital/dp-graph/v2/models"
 	"strings"
 
 	inputcsv "github.com/ONSdigital/dp-observation-importer/csv"
-	"github.com/ONSdigital/dp-observation-importer/models"
 )
 
 // Mapper interprets a CSV line and returns an observation instance.

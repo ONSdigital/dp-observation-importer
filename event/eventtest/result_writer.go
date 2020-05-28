@@ -14,7 +14,7 @@ var (
 	lockResultWriterMockWrite sync.RWMutex
 )
 
-// Ensure, that ResultWriterMock does implement event.ResultWriter.
+// Ensure, that ResultWriterMock does implement ResultWriter.
 // If this is not the case, regenerate this file with moq.
 var _ event.ResultWriter = &ResultWriterMock{}
 
