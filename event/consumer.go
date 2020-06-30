@@ -13,7 +13,7 @@ import (
 // MessageConsumer provides a generic interface for consuming []byte messages (from Kafka)
 type MessageConsumer interface {
 	Channels() *kafka.ConsumerGroupChannels
-	CommitAndRelease(msg kafka.Message)
+	Release()
 }
 
 // Handler represents a handler for processing a batch of events.
@@ -59,7 +59,7 @@ func (consumer *Consumer) Consume(messageConsumer MessageConsumer,
 				ctx := context.Background()
 
 				AddMessageToBatch(ctx, batch, msg, handler, errChan)
-				messageConsumer.CommitAndRelease(msg)
+				messageConsumer.Release()
 
 			case <-time.After(batchWaitTime):
 				if batch.IsEmpty() {
