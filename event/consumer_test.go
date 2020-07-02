@@ -27,14 +27,10 @@ func TestConsume(t *testing.T) {
 
 			go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
-			message := kafkatest.NewMessage(marshal(expectedEvent), 0)
+			message := kafkatest.NewMessage([]byte(marshal(expectedEvent)), 0)
 			messageConsumer.Channels().Upstream <- message
 
 			<-eventHandler.EventUpdated
-
-			Convey("The consumer is released to consume the next message", func() {
-				So(len(messageConsumer.ReleaseCalls()), ShouldEqual, 1)
-			})
 
 			Convey("The expected event is sent to the handler", func() {
 				So(len(eventHandler.Events), ShouldEqual, 1)
@@ -88,15 +84,11 @@ func TestConsume_Timeout(t *testing.T) {
 
 			go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
-			message := kafkatest.NewMessage(marshal(expectedEvent), 0)
+			message := kafkatest.NewMessage([]byte(marshal(expectedEvent)), 0)
 			messageConsumer.Channels().Upstream <- message
 			<-messageConsumer.Channels().UpstreamDone
 
 			<-eventHandler.EventUpdated
-
-			Convey("The consumer is released to consume the next message", func() {
-				So(len(messageConsumer.ReleaseCalls()), ShouldEqual, 1)
-			})
 
 			Convey("The consumer timeout is hit and the single event is sent to the handler anyway", func() {
 				So(len(eventHandler.Events), ShouldEqual, 1)
@@ -131,15 +123,11 @@ func TestConsume_DelayedMessages(t *testing.T) {
 
 			go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
-			message := kafkatest.NewMessage(marshal(expectedEvent), 0)
+			message := kafkatest.NewMessage([]byte(marshal(expectedEvent)), 0)
 			go SendMessagesWithDelay(messageConsumer, []*kafkatest.Message{message, message, message}, messageDelay)
 
 			// wait for event updated channel to receive event from the mock event handler
 			<-eventHandler.EventUpdated
-
-			Convey("The consumer is released to consume the next message", func() {
-				So(len(messageConsumer.ReleaseCalls()), ShouldEqual, 3)
-			})
 
 			Convey("The expected events are sent to the handler in one batch - i.e. the timeout is not hit", func() {
 				So(len(eventHandler.Events), ShouldEqual, 3)
