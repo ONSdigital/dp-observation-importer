@@ -4,12 +4,12 @@ go 1.13
 
 require (
 	github.com/ONSdigital/dp-api-clients-go v1.7.0
-	github.com/ONSdigital/dp-graph/v2 v2.2.0
-	github.com/ONSdigital/dp-healthcheck v1.0.3
+	github.com/ONSdigital/dp-graph/v2 v2.2.2
+	github.com/ONSdigital/dp-healthcheck v1.0.5
 	github.com/ONSdigital/dp-kafka v1.1.5
 	github.com/ONSdigital/dp-reporter-client v1.0.0
 	github.com/ONSdigital/go-ns v0.0.0-20200205115900-a11716f93bad
-	github.com/ONSdigital/log.go v1.0.0
+	github.com/ONSdigital/log.go v1.0.1
 	github.com/eapache/go-resiliency v1.2.0 // indirect
 	github.com/frankban/quicktest v1.7.2 // indirect
 	github.com/golang/mock v1.3.1
@@ -28,7 +28,6 @@ require (
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/stretchr/testify v1.4.0 // indirect
 	golang.org/x/crypto v0.0.0-20200204104054-c9f3fb736b72 // indirect
-	golang.org/x/net v0.0.0-20200202094626-16171245cfb2 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	gopkg.in/avro.v0 v0.0.0-20171217001914-a730b5802183 // indirect
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
