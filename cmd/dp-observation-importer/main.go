@@ -13,12 +13,12 @@ import (
 	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka"
+	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/dp-observation-importer/config"
 	"github.com/ONSdigital/dp-observation-importer/dimension"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/initialise"
 	"github.com/ONSdigital/dp-observation-importer/observation"
-	"github.com/ONSdigital/go-ns/server"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
 )
@@ -136,7 +136,7 @@ func run(ctx context.Context) error {
 
 	router := mux.NewRouter()
 	router.Path("/health").HandlerFunc(hc.Handler)
-	httpServer := server.New(cfg.BindAddr, router)
+	httpServer := dphttp.NewServer(cfg.BindAddr, router)
 
 	// Disable auto handling of os signals by the HTTP server. This is handled
 	// in the service so we can gracefully shutdown resources other than just
