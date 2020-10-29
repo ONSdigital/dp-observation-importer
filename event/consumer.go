@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	graph "github.com/ONSdigital/dp-graph/graph/driver"
+	graph "github.com/ONSdigital/dp-graph/v2/graph/driver"
 	kafka "github.com/ONSdigital/dp-kafka"
 	"github.com/ONSdigital/log.go/log"
 )

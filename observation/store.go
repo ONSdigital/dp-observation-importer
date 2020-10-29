@@ -2,16 +2,11 @@ package observation
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-graph/v2/models"
 
-	graph "github.com/ONSdigital/dp-graph/graph/driver"
-	"github.com/ONSdigital/dp-observation-importer/models"
+	graph "github.com/ONSdigital/dp-graph/v2/graph/driver"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
 	"github.com/ONSdigital/log.go/log"
-)
-
-const (
-	constraintError      = "Neo.ClientError.Schema.ConstraintValidationFailed"
-	statementErrorPrefix = "Neo.ClientError.Statement"
 )
 
 // DimensionIDCache provides database ID's of dimensions when inserting observations.

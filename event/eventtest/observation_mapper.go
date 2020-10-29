@@ -5,8 +5,8 @@ package eventtest
 
 import (
 	"context"
+	"github.com/ONSdigital/dp-graph/v2/models"
 	"github.com/ONSdigital/dp-observation-importer/event"
-	"github.com/ONSdigital/dp-observation-importer/models"
 	"sync"
 )
 
@@ -14,7 +14,7 @@ var (
 	lockObservationMapperMockMap sync.RWMutex
 )
 
-// Ensure, that ObservationMapperMock does implement event.ObservationMapper.
+// Ensure, that ObservationMapperMock does implement ObservationMapper.
 // If this is not the case, regenerate this file with moq.
 var _ event.ObservationMapper = &ObservationMapperMock{}
 

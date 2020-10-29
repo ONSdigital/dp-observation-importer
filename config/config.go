@@ -35,7 +35,7 @@ func Get() (*Config, error) {
 		ObservationConsumerGroup:   "observation-extracted",
 		ObservationConsumerTopic:   "observation-extracted",
 		DatasetAPIURL:              "http://localhost:22000",
-		BatchSize:                  1000,
+		BatchSize:                  100,
 		BatchWaitTime:              time.Millisecond * 200,
 		ErrorProducerTopic:         "report-events",
 		ResultProducerTopic:        "import-observations-inserted",

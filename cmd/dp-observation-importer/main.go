@@ -10,15 +10,15 @@ import (
 	"syscall"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
-	"github.com/ONSdigital/dp-graph/graph"
+	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka"
+	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/dp-observation-importer/config"
 	"github.com/ONSdigital/dp-observation-importer/dimension"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/initialise"
 	"github.com/ONSdigital/dp-observation-importer/observation"
-	"github.com/ONSdigital/go-ns/server"
 	"github.com/ONSdigital/log.go/log"
 	"github.com/gorilla/mux"
 )
@@ -111,8 +111,13 @@ func run(ctx context.Context) error {
 	// Get graphdb connection for observation store
 	graphDB, err := serviceList.GetGraphDB(ctx)
 	if err != nil {
-		log.Event(ctx, "failed to instantiate neo4j observation store", log.FATAL, log.Error(err))
+		log.Event(ctx, "failed to instantiate graph observation store", log.FATAL, log.Error(err))
 		return err
+	}
+
+	var graphErrorConsumer *graph.ErrorConsumer
+	if serviceList.Graph {
+		graphErrorConsumer = graph.NewLoggingErrorConsumer(ctx, graphDB.Errors)
 	}
 
 	datasetClient := dataset.NewAPIClient(cfg.DatasetAPIURL)
@@ -131,7 +136,7 @@ func run(ctx context.Context) error {
 
 	router := mux.NewRouter()
 	router.Path("/health").HandlerFunc(hc.Handler)
-	httpServer := server.New(cfg.BindAddr, router)
+	httpServer := dphttp.NewServer(cfg.BindAddr, router)
 
 	// Disable auto handling of os signals by the HTTP server. This is handled
 	// in the service so we can gracefully shutdown resources other than just
@@ -214,36 +219,43 @@ func run(ctx context.Context) error {
 
 		// If observation imported kafka producer exists, close it
 		if serviceList.ObservationsImportedProducer {
-			log.Event(shutdownContext, "closing observation imported kafka producer", log.INFO, log.Data{"producer": "DimensionExtracted"})
+			log.Event(shutdownContext, "closing observation imported kafka producer", log.INFO)
 			observationsImportedProducer.Close(shutdownContext)
-			log.Event(shutdownContext, "closed observation imported kafka producer", log.INFO, log.Data{"producer": "DimensionExtracted"})
+			log.Event(shutdownContext, "closed observation imported kafka producer", log.INFO)
 		}
 
 		// If observation imported error kafka producer exists, close it
 		if serviceList.ObservationsImportedErrProducer {
-			log.Event(shutdownContext, "closing observation imported error kafka producer", log.INFO, log.Data{"producer": "DimensionExtracted"})
+			log.Event(shutdownContext, "closing observation imported error kafka producer", log.INFO)
 			observationsImportedErrProducer.Close(shutdownContext)
-			log.Event(shutdownContext, "closed observation imported error kafka producer", log.INFO, log.Data{"producer": "DimensionExtracted"})
+			log.Event(shutdownContext, "closed observation imported error kafka producer", log.INFO)
 		}
 
 		// Attempting to close event consumer
 		log.Event(shutdownContext, "closing event wrapper", log.INFO)
 		eventConsumer.Close(shutdownContext)
-		log.Event(shutdownContext, "closing event wrapper", log.INFO)
+		log.Event(shutdownContext, "closed event wrapper", log.INFO)
 
 		// If kafka consumer exists, close it.
 		if serviceList.Consumer {
-			log.Event(shutdownContext, "closing kafka consumer", log.INFO, log.Data{"consumer": "SyncConsumerGroup"})
+			log.Event(shutdownContext, "closing kafka consumer", log.INFO)
 			syncConsumerGroup.Close(shutdownContext)
-			log.Event(shutdownContext, "closed kafka consumer", log.INFO, log.Data{"consumer": "SyncConsumerGroup"})
+			log.Event(shutdownContext, "closed kafka consumer", log.INFO)
 		}
 
 		if serviceList.Graph {
+			log.Event(ctx, "closing graph db", log.INFO)
 			err = graphDB.Close(ctx)
 			if err != nil {
 				log.Event(ctx, "failed to close graph db", log.ERROR, log.Error(err))
 				hasShutdownError = true
 			}
+			err = graphErrorConsumer.Close(ctx)
+			if err != nil {
+				log.Event(ctx, "failed to close graph db error consumer", log.ERROR, log.Error(err))
+				hasShutdownError = true
+			}
+			log.Event(ctx, "closed graph db", log.INFO)
 		}
 
 		if !hasShutdownError {
@@ -301,7 +313,7 @@ func registerCheckers(ctx context.Context, hc *healthcheck.HealthCheck,
 	}
 
 	if hasErrors {
-		return errors.New("Error(s) registering checkers for healthcheck")
+		return errors.New("error registering checkers for health check")
 	}
 	return nil
 }
