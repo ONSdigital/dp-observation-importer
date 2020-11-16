@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	kafka "github.com/ONSdigital/dp-kafka"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/schema"
 	"github.com/ONSdigital/log.go/log"
@@ -16,9 +16,16 @@ func main() {
 	var brokers []string
 	brokers = append(brokers, "localhost:9092")
 
-	pChannels := kafka.CreateProducerChannels()
+	var maxBytes = int(2000000)
+	var kafkaVersion = "1.0.2"
 
-	producer, err := kafka.NewProducer(ctx, brokers, "observation-extracted", int(2000000), pChannels)
+	pChannels := kafka.CreateProducerChannels()
+	pConfig := &kafka.ProducerConfig{
+		MaxMessageBytes: &maxBytes,
+		KafkaVersion:    &kafkaVersion,
+	}
+
+	producer, err := kafka.NewProducer(ctx, brokers, "observation-extracted", pChannels, pConfig)
 	if err != nil {
 		log.Event(ctx, "failed to create kafka prodecer", log.FATAL, log.Error(err))
 		os.Exit(1)
