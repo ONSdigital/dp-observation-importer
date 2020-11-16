@@ -64,7 +64,7 @@ func (batch *Batch) IsEmpty() bool {
 	return len(batch.events) == 0
 }
 
-// Commit is called when the batch has been processed.
+// Commit is called when the batch has been processed. The last message has been released already, so at this point we just need to commit
 func (batch *Batch) Commit() {
 	batch.lastMessageInBatch.Commit()
 	batch.Clear()

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ONSdigital/dp-kafka/kafkatest"
+	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/event/eventtest"
 	. "github.com/smartystreets/goconvey/convey"
@@ -86,7 +86,7 @@ func TestConsume_Timeout(t *testing.T) {
 
 			message := kafkatest.NewMessage([]byte(marshal(expectedEvent)), 0)
 			messageConsumer.Channels().Upstream <- message
-			<-messageConsumer.Channels().UpstreamDone
+			<-message.UpstreamDone()
 
 			<-eventHandler.EventUpdated
 
@@ -123,8 +123,10 @@ func TestConsume_DelayedMessages(t *testing.T) {
 
 			go consumer.Consume(messageConsumer, batchSize, eventHandler, batchWaitTime, exit)
 
-			message := kafkatest.NewMessage([]byte(marshal(expectedEvent)), 0)
-			go SendMessagesWithDelay(messageConsumer, []*kafkatest.Message{message, message, message}, messageDelay)
+			messageOne := kafkatest.NewMessage([]byte(marshal(expectedEvent)), 0)
+			messageTwo := kafkatest.NewMessage([]byte(marshal(expectedEvent)), 0)
+			messageThree := kafkatest.NewMessage([]byte(marshal(expectedEvent)), 0)
+			go SendMessagesWithDelay(messageConsumer, []*kafkatest.Message{messageOne, messageTwo, messageThree}, messageDelay)
 
 			// wait for event updated channel to receive event from the mock event handler
 			<-eventHandler.EventUpdated
@@ -145,6 +147,6 @@ func SendMessagesWithDelay(messageConsumer *kafkatest.MessageConsumer, messages 
 	for _, message := range messages {
 		time.Sleep(messageDelay)
 		messageConsumer.Channels().Upstream <- message
-		<-messageConsumer.Channels().UpstreamDone
+		<-message.UpstreamDone()
 	}
 }

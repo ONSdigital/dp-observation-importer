@@ -3,7 +3,7 @@ package observation
 import (
 	"context"
 
-	kafka "github.com/ONSdigital/dp-kafka"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-observation-importer/schema"
 	"github.com/ONSdigital/log.go/log"
 )

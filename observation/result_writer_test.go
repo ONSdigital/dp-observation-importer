@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	kafka "github.com/ONSdigital/dp-kafka"
-	"github.com/ONSdigital/dp-kafka/kafkatest"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
+	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-observation-importer/schema"
 	. "github.com/smartystreets/goconvey/convey"

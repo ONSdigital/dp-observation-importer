@@ -24,6 +24,7 @@ type Config struct {
 	ZebedeeURL                 string        `envconfig:"ZEBEDEE_URL"`
 	HealthCheckInterval        time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	HealthCheckCriticalTimeout time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
+	KafkaVersion               string        `envconfig:"KAFKA_VERSION"`
 }
 
 // Get the configuration values from the environment or provide the defaults.
@@ -46,6 +47,7 @@ func Get() (*Config, error) {
 		ZebedeeURL:                 "http://localhost:8082",
 		HealthCheckInterval:        30 * time.Second,
 		HealthCheckCriticalTimeout: 90 * time.Second,
+		KafkaVersion:               "1.0.2",
 	}
 
 	if err := envconfig.Process("", cfg); err != nil {
