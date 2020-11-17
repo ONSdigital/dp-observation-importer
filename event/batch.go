@@ -9,14 +9,15 @@ import (
 
 // Batch handles adding raw messages to a batch of ObservationExtracted events.
 type Batch struct {
-	maxSize            int
-	events             []*ObservationExtracted
-	lastMessageInBatch Message
+	maxSize  int
+	events   []*ObservationExtracted
+	messages []Message
 }
 
 // Message represents a single message to be added to the batch.
 type Message interface {
 	GetData() []byte
+	Mark()
 	Commit()
 }
 
@@ -39,7 +40,7 @@ func (batch *Batch) Add(ctx context.Context, message Message) {
 		return
 	}
 
-	batch.lastMessageInBatch = message
+	batch.messages = append(batch.messages, message)
 	batch.events = append(batch.events, event)
 
 }
@@ -66,7 +67,13 @@ func (batch *Batch) IsEmpty() bool {
 
 // Commit is called when the batch has been processed. The last message has been released already, so at this point we just need to commit
 func (batch *Batch) Commit() {
-	batch.lastMessageInBatch.Commit()
+	for i, msg := range batch.messages {
+		if i < len(batch.messages)-1 {
+			msg.Mark()
+		} else {
+			msg.Commit()
+		}
+	}
 	batch.Clear()
 }
 

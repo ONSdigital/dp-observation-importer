@@ -58,7 +58,6 @@ func (consumer *Consumer) Consume(messageConsumer MessageConsumer,
 				ctx := context.Background()
 
 				AddMessageToBatch(ctx, batch, msg, handler, errChan)
-				msg.Mark()
 				msg.Release()
 
 			case <-time.After(batchWaitTime):
