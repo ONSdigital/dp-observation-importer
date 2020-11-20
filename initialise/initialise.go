@@ -64,9 +64,12 @@ func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Confi
 	return
 }
 
+const base = 10
+const bitSize = 32
+
 // GetProducer returns a kafka producer, which might not be initialised yet.
 func (e *ExternalServiceList) GetProducer(ctx context.Context, kafkaBrokers []string, topic string, name KafkaProducerName, cfg *config.Config) (kafkaProducer *kafka.Producer, err error) {
-	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, 10, 32)
+	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, base, bitSize)
 	if err != nil {
 		log.Event(ctx, "encountered error parsing kafka max bytes", log.FATAL, log.Error(err))
 		return nil, err

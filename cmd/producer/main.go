@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"os"
+	"strconv"
 	"time"
 
 	kafka "github.com/ONSdigital/dp-kafka/v2"
+	"github.com/ONSdigital/dp-observation-importer/config"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/schema"
 	"github.com/ONSdigital/log.go/log"
@@ -16,13 +18,28 @@ func main() {
 	var brokers []string
 	brokers = append(brokers, "localhost:9092")
 
-	var maxBytes = int(2000000)
-	var kafkaVersion = "1.0.2"
+	var cfg *config.Config
+
+	cfg, err := config.Get()
+	if err != nil {
+		log.Event(ctx, "failed to retrieve configuration", log.FATAL, log.Error(err))
+		os.Exit(1)
+	}
+
+	const base = 10
+	const bitSize = 32
+
+	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, base, bitSize)
+	if err != nil {
+		log.Event(ctx, "encountered error parsing kafka max bytes", log.FATAL, log.Error(err))
+		os.Exit(1)
+	}
+	var maxBytes = int(envMax)
 
 	pChannels := kafka.CreateProducerChannels()
 	pConfig := &kafka.ProducerConfig{
 		MaxMessageBytes: &maxBytes,
-		KafkaVersion:    &kafkaVersion,
+		KafkaVersion:    &cfg.KafkaVersion,
 	}
 
 	producer, err := kafka.NewProducer(ctx, brokers, "observation-extracted", pChannels, pConfig)

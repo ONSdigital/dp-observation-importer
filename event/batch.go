@@ -70,9 +70,9 @@ func (batch *Batch) Commit() {
 	for i, msg := range batch.messages {
 		if i < len(batch.messages)-1 {
 			msg.Mark()
-		} else {
-			msg.Commit()
+			continue
 		}
+		msg.Commit()
 	}
 	batch.Clear()
 }
