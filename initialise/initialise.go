@@ -32,6 +32,9 @@ const (
 	ObservationsImportedErr
 )
 
+const base = 10
+const bitSize = 32
+
 var kafkaProducerNames = []string{"ObservationsImported", "ObservationsImportedErr"}
 
 var kafkaOffset = kafka.OffsetOldest
@@ -63,9 +66,6 @@ func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Confi
 	e.Consumer = true
 	return
 }
-
-const base = 10
-const bitSize = 32
 
 // GetProducer returns a kafka producer, which might not be initialised yet.
 func (e *ExternalServiceList) GetProducer(ctx context.Context, kafkaBrokers []string, topic string, name KafkaProducerName, cfg *config.Config) (kafkaProducer *kafka.Producer, err error) {
