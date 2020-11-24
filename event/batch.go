@@ -80,6 +80,7 @@ func (batch *Batch) Commit() {
 // Clear will reset to batch to contain no events.
 func (batch *Batch) Clear() {
 	batch.events = batch.events[0:0]
+	batch.messages = batch.messages[0:0]
 }
 
 // Unmarshal converts an event instance to []byte.
