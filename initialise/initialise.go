@@ -3,12 +3,14 @@ package initialise
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	kafka "github.com/ONSdigital/dp-kafka"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-observation-importer/config"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
+	"github.com/ONSdigital/log.go/log"
 )
 
 // ExternalServiceList represents a list of services
@@ -30,7 +32,12 @@ const (
 	ObservationsImportedErr
 )
 
+const base = 10
+const bitSize = 32
+
 var kafkaProducerNames = []string{"ObservationsImported", "ObservationsImportedErr"}
+
+var kafkaOffset = kafka.OffsetOldest
 
 // Values of the kafka producers names
 func (k KafkaProducerName) String() string {
@@ -39,15 +46,18 @@ func (k KafkaProducerName) String() string {
 
 // GetConsumer returns a kafka consumer, which might not be initialised yet.
 func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Config) (kafkaConsumer *kafka.ConsumerGroup, err error) {
-	cgChannels := kafka.CreateConsumerGroupChannels(true)
+	cgChannels := kafka.CreateConsumerGroupChannels(cfg.BatchSize)
+	cgConfig := &kafka.ConsumerGroupConfig{
+		Offset:       &kafkaOffset,
+		KafkaVersion: &cfg.KafkaVersion,
+	}
 	kafkaConsumer, err = kafka.NewConsumerGroup(
 		ctx,
 		cfg.Brokers,
 		cfg.ObservationConsumerTopic,
 		cfg.ObservationConsumerGroup,
-		kafka.OffsetNewest,
-		true,
 		cgChannels,
+		cgConfig,
 	)
 	if err != nil {
 		return
@@ -58,9 +68,19 @@ func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Confi
 }
 
 // GetProducer returns a kafka producer, which might not be initialised yet.
-func (e *ExternalServiceList) GetProducer(ctx context.Context, kafkaBrokers []string, topic string, name KafkaProducerName, envMax int) (kafkaProducer *kafka.Producer, err error) {
+func (e *ExternalServiceList) GetProducer(ctx context.Context, kafkaBrokers []string, topic string, name KafkaProducerName, cfg *config.Config) (kafkaProducer *kafka.Producer, err error) {
+	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, base, bitSize)
+	if err != nil {
+		log.Event(ctx, "encountered error parsing kafka max bytes", log.FATAL, log.Error(err))
+		return nil, err
+	}
+	envMaxInt := int(envMax)
 	pChannels := kafka.CreateProducerChannels()
-	kafkaProducer, err = kafka.NewProducer(ctx, kafkaBrokers, topic, envMax, pChannels)
+	pConfig := &kafka.ProducerConfig{
+		KafkaVersion:    &cfg.KafkaVersion,
+		MaxMessageBytes: &envMaxInt,
+	}
+	kafkaProducer, err = kafka.NewProducer(ctx, kafkaBrokers, topic, pChannels, pConfig)
 	if err != nil {
 		return
 	}

@@ -6,14 +6,13 @@ import (
 	"time"
 
 	graph "github.com/ONSdigital/dp-graph/v2/graph/driver"
-	kafka "github.com/ONSdigital/dp-kafka"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/log.go/log"
 )
 
 // MessageConsumer provides a generic interface for consuming []byte messages (from Kafka)
 type MessageConsumer interface {
 	Channels() *kafka.ConsumerGroupChannels
-	CommitAndRelease(msg kafka.Message)
 }
 
 // Handler represents a handler for processing a batch of events.
@@ -59,7 +58,7 @@ func (consumer *Consumer) Consume(messageConsumer MessageConsumer,
 				ctx := context.Background()
 
 				AddMessageToBatch(ctx, batch, msg, handler, errChan)
-				messageConsumer.CommitAndRelease(msg)
+				msg.Release()
 
 			case <-time.After(batchWaitTime):
 				if batch.IsEmpty() {

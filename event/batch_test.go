@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/ONSdigital/dp-kafka/kafkatest"
+	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/schema"
 	. "github.com/smartystreets/goconvey/convey"
@@ -32,7 +32,7 @@ func TestIsEmpty(t *testing.T) {
 
 			batch.Add(ctx, message)
 
-			Convey("The batch is now empty", func() {
+			Convey("The batch is not empty", func() {
 				So(batch.IsEmpty(), ShouldBeFalse)
 			})
 		})
@@ -84,6 +84,12 @@ func TestCommit(t *testing.T) {
 		batch.Commit()
 
 		Convey("When commit is called", func() {
+
+			Convey("All messages that were present in batch are marked, and last one is committed", func() {
+				So(message1.IsMarked(), ShouldBeTrue)
+				So(message2.IsMarked(), ShouldBeTrue)
+				So(message2.IsCommitted(), ShouldBeTrue)
+			})
 
 			Convey("The batch is emptied.", func() {
 				So(batch.IsEmpty(), ShouldBeTrue)

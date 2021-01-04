@@ -6,13 +6,12 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 
 	"github.com/ONSdigital/dp-api-clients-go/dataset"
 	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
-	kafka "github.com/ONSdigital/dp-kafka"
+	kafka "github.com/ONSdigital/dp-kafka/v2"
 	dphttp "github.com/ONSdigital/dp-net/http"
 	"github.com/ONSdigital/dp-observation-importer/config"
 	"github.com/ONSdigital/dp-observation-importer/dimension"
@@ -58,13 +57,6 @@ func run(ctx context.Context) error {
 	// Sensitive fields are omitted from config.String()
 	log.Event(ctx, "loaded config", log.INFO, log.Data{"config": cfg})
 
-	// Attempt to parse envMax from config. Exit on failure.
-	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, 10, 32)
-	if err != nil {
-		log.Event(ctx, "encountered error parsing kafka max bytes", log.FATAL, log.Error(err))
-		return err
-	}
-
 	// External services and their initialization state
 	var serviceList initialise.ExternalServiceList
 
@@ -81,7 +73,7 @@ func run(ctx context.Context) error {
 		cfg.Brokers,
 		cfg.ResultProducerTopic,
 		initialise.ObservationsImported,
-		int(envMax),
+		cfg,
 	)
 	if err != nil {
 		log.Event(ctx, "could not obtain observations inserted producer", log.FATAL, log.Error(err))
@@ -94,7 +86,7 @@ func run(ctx context.Context) error {
 		cfg.Brokers,
 		cfg.ErrorProducerTopic,
 		initialise.ObservationsImportedErr,
-		int(envMax),
+		cfg,
 	)
 	if err != nil {
 		log.Event(ctx, "could not obtain observations inserted error producer", log.FATAL, log.Error(err))
