@@ -21,6 +21,15 @@ type ExternalServiceList struct {
 	Graph                           bool
 	ErrorReporter                   bool
 	HealthCheck                     bool
+	Init                            Initialiser
+}
+
+type Initialiser interface {
+	DoGetConsumer(context.Context, *config.Config) (*kafka.ConsumerGroup, error)
+	DoGetProducer(context.Context, []string, string, KafkaProducerName, *config.Config) (*kafka.Producer, error)
+	DoGetImportErrorReporter(reporter.KafkaProducer, string) (reporter.ImportErrorReporter, error)
+	DoGetHealthCheck(*config.Config, string, string, string) (healthcheck.HealthCheck, error)
+	DoGetGraphDB(context.Context) (*graph.DB, error)
 }
 
 // KafkaProducerName : Type for kafka producer name used by iota constants
@@ -31,6 +40,16 @@ const (
 	ObservationsImported = iota
 	ObservationsImportedErr
 )
+
+// NewServiceList creates a new service list with the provided initialiser
+func NewServiceList(initialiser Initialiser) ExternalServiceList {
+	return ExternalServiceList{
+		Init: initialiser,
+	}
+}
+
+// Init implements the Initialiser interface to initialise dependencies
+type Init struct{}
 
 const base = 10
 const bitSize = 32
@@ -46,45 +65,20 @@ func (k KafkaProducerName) String() string {
 
 // GetConsumer returns a kafka consumer, which might not be initialised yet.
 func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Config) (kafkaConsumer *kafka.ConsumerGroup, err error) {
-	cgChannels := kafka.CreateConsumerGroupChannels(cfg.BatchSize)
-	cgConfig := &kafka.ConsumerGroupConfig{
-		Offset:       &kafkaOffset,
-		KafkaVersion: &cfg.KafkaVersion,
-	}
-	kafkaConsumer, err = kafka.NewConsumerGroup(
-		ctx,
-		cfg.Brokers,
-		cfg.ObservationConsumerTopic,
-		cfg.ObservationConsumerGroup,
-		cgChannels,
-		cgConfig,
-	)
+	kafkaConsumer, err = e.Init.DoGetConsumer(ctx, cfg)
 	if err != nil {
 		return
 	}
-
 	e.Consumer = true
 	return
 }
 
 // GetProducer returns a kafka producer, which might not be initialised yet.
 func (e *ExternalServiceList) GetProducer(ctx context.Context, kafkaBrokers []string, topic string, name KafkaProducerName, cfg *config.Config) (kafkaProducer *kafka.Producer, err error) {
-	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, base, bitSize)
-	if err != nil {
-		log.Event(ctx, "encountered error parsing kafka max bytes", log.FATAL, log.Error(err))
-		return nil, err
-	}
-	envMaxInt := int(envMax)
-	pChannels := kafka.CreateProducerChannels()
-	pConfig := &kafka.ProducerConfig{
-		KafkaVersion:    &cfg.KafkaVersion,
-		MaxMessageBytes: &envMaxInt,
-	}
-	kafkaProducer, err = kafka.NewProducer(ctx, kafkaBrokers, topic, pChannels, pConfig)
+	kafkaProducer, err = e.Init.DoGetProducer(ctx, kafkaBrokers, topic, name, cfg)
 	if err != nil {
 		return
 	}
-
 	switch {
 	case name == ObservationsImported:
 		e.ObservationsImportedProducer = true
@@ -104,7 +98,7 @@ func (e *ExternalServiceList) GetImportErrorReporter(ObservationsImportedErrProd
 			fmt.Errorf("Cannot create ImportErrorReporter because kafka producer '%s' is not available", kafkaProducerNames[ObservationsImportedErr])
 	}
 
-	errorReporter, err = reporter.NewImportErrorReporter(ObservationsImportedErrProducer, serviceName)
+	errorReporter, err = e.Init.DoGetImportErrorReporter(ObservationsImportedErrProducer, serviceName)
 	if err != nil {
 		return
 	}
@@ -115,28 +109,75 @@ func (e *ExternalServiceList) GetImportErrorReporter(ObservationsImportedErrProd
 
 // GetHealthCheck creates a healthcheck with versionInfo
 func (e *ExternalServiceList) GetHealthCheck(cfg *config.Config, buildTime, gitCommit, version string) (healthcheck.HealthCheck, error) {
-
-	// Create healthcheck object with versionInfo
-	versionInfo, err := healthcheck.NewVersionInfo(buildTime, gitCommit, version)
+	hc, err := e.Init.DoGetHealthCheck(cfg, buildTime, gitCommit, version)
 	if err != nil {
 		return healthcheck.HealthCheck{}, err
 	}
-	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
-
 	e.HealthCheck = true
-
 	return hc, nil
 }
 
 // GetGraphDB returns a graphDB
 func (e *ExternalServiceList) GetGraphDB(ctx context.Context) (*graph.DB, error) {
+	graphDB, err := e.Init.DoGetGraphDB(ctx)
+	if err != nil {
+		return nil, err
+	}
+	e.Graph = true
+	return graphDB, err
+}
 
+func (i *Init) DoGetGraphDB(ctx context.Context) (*graph.DB, error) {
 	graphDB, err := graph.NewObservationStore(ctx)
 	if err != nil {
 		return nil, err
 	}
-
-	e.Graph = true
-
 	return graphDB, nil
+}
+
+func (i *Init) DoGetHealthCheck(cfg *config.Config, buildTime, gitCommit, version string) (healthcheck.HealthCheck, error) {
+	versionInfo, err := healthcheck.NewVersionInfo(buildTime, gitCommit, version)
+	if err != nil {
+		return healthcheck.HealthCheck{}, err
+	}
+	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
+	return hc, nil
+}
+
+func (i *Init) DoGetImportErrorReporter(ObservationsImportedErrProducer reporter.KafkaProducer, serviceName string) (errorReporter reporter.ImportErrorReporter, err error) {
+	errorReporter, err = reporter.NewImportErrorReporter(ObservationsImportedErrProducer, serviceName)
+	return
+}
+
+func (i *Init) DoGetProducer(ctx context.Context, kafkaBrokers []string, topic string, name KafkaProducerName, cfg *config.Config) (kafkaProducer *kafka.Producer, err error) {
+	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, base, bitSize)
+	if err != nil {
+		log.Event(ctx, "encountered error parsing kafka max bytes", log.FATAL, log.Error(err))
+		return nil, err
+	}
+	envMaxInt := int(envMax)
+	pChannels := kafka.CreateProducerChannels()
+	pConfig := &kafka.ProducerConfig{
+		KafkaVersion:    &cfg.KafkaVersion,
+		MaxMessageBytes: &envMaxInt,
+	}
+	kafkaProducer, err = kafka.NewProducer(ctx, kafkaBrokers, topic, pChannels, pConfig)
+	return
+}
+
+func (i *Init) DoGetConsumer(ctx context.Context, cfg *config.Config) (kafkaConsumer *kafka.ConsumerGroup, err error) {
+	cgChannels := kafka.CreateConsumerGroupChannels(cfg.BatchSize)
+	cgConfig := &kafka.ConsumerGroupConfig{
+		Offset:       &kafkaOffset,
+		KafkaVersion: &cfg.KafkaVersion,
+	}
+	kafkaConsumer, err = kafka.NewConsumerGroup(
+		ctx,
+		cfg.Brokers,
+		cfg.ObservationConsumerTopic,
+		cfg.ObservationConsumerGroup,
+		cgChannels,
+		cgConfig,
+	)
+	return
 }

@@ -35,7 +35,19 @@ func main() {
 	log.Namespace = "dp-observation-importer"
 	ctx := context.Background()
 
-	if err := run(ctx); err != nil {
+	cfg, err := config.Get()
+	if err != nil {
+		log.Event(ctx, "failed to retrieve configuration", log.FATAL, log.Error(err))
+		os.Exit(1)
+	}
+	// External services and their initialization state
+	// var serviceList initialise.ExternalServiceList
+	serviceList := initialise.NewServiceList(&initialise.Init{})
+
+	// Sensitive fields are omitted from config.String()
+	log.Event(ctx, "loaded config", log.INFO, log.Data{"config": cfg})
+
+	if err := run(ctx, cfg, serviceList); err != nil {
 		log.Event(ctx, "application unexpectedly failed", log.ERROR, log.Error(err))
 		os.Exit(1)
 	}
@@ -43,22 +55,12 @@ func main() {
 	os.Exit(0)
 }
 
-func run(ctx context.Context) error {
+// Run starts the application
+func run(ctx context.Context, cfg *config.Config, serviceList initialise.ExternalServiceList) error {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
 	log.Event(ctx, "starting observation importer", log.INFO)
-
-	cfg, err := config.Get()
-	if err != nil {
-		log.Event(ctx, "failed to retrieve configuration", log.FATAL, log.Error(err))
-		return err
-	}
-	// Sensitive fields are omitted from config.String()
-	log.Event(ctx, "loaded config", log.INFO, log.Data{"config": cfg})
-
-	// External services and their initialization state
-	var serviceList initialise.ExternalServiceList
 
 	// Get syncConsumerGroup Kafka Consumer
 	syncConsumerGroup, err := serviceList.GetConsumer(ctx, cfg)

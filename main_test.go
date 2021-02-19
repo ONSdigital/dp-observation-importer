@@ -2,9 +2,10 @@ package main
 
 import (
 	"flag"
-	feature "github.com/ONSdigital/dp-observation-importer/features/steps"
 	"os"
 	"testing"
+
+	feature "github.com/ONSdigital/dp-observation-importer/features/steps"
 
 	featuretest "github.com/armakuni/dp-go-featuretest"
 	"github.com/cucumber/godog"
