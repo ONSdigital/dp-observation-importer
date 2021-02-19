@@ -273,9 +273,9 @@ func run(ctx context.Context, cfg *config.Config, serviceList initialise.Externa
 
 // registerCheckers adds the checkers for the provided clients to the healthcheck object
 func registerCheckers(ctx context.Context, hc *healthcheck.HealthCheck,
-	kafkaConsumer *kafka.ConsumerGroup,
-	observationsImportedProducer *kafka.Producer,
-	observationsImportedErrProducer *kafka.Producer,
+	kafkaConsumer kafka.IConsumerGroup,
+	observationsImportedProducer kafka.IProducer,
+	observationsImportedErrProducer kafka.IProducer,
 	datasetClient dataset.Client,
 	graphDB *graph.DB) (err error) {
 

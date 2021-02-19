@@ -6,6 +6,7 @@ import (
 	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
+	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	"github.com/ONSdigital/dp-observation-importer/config"
 	"github.com/ONSdigital/dp-observation-importer/initialise"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
@@ -71,11 +72,20 @@ func (i *InitMock) DoGetImportErrorReporter(ObservationsImportedErrProducer repo
 	return
 }
 
-func (i *InitMock) DoGetProducer(ctx context.Context, kafkaBrokers []string, topic string, name initialise.KafkaProducerName, cfg *config.Config) (kafkaProducer *kafka.Producer, err error) {
-	return &kafka.Producer{}, nil
+func funcClose(ctx context.Context) error {
+	return nil
 }
 
-func (i *InitMock) DoGetConsumer(ctx context.Context, cfg *config.Config) (kafkaConsumer *kafka.ConsumerGroup, err error) {
+func (i *InitMock) DoGetProducer(ctx context.Context, kafkaBrokers []string, topic string, name initialise.KafkaProducerName, cfg *config.Config) (kafkaProducer kafka.IProducer, err error) {
+	return &kafkatest.IProducerMock{
+		ChannelsFunc: func() *kafka.ProducerChannels {
+			return &kafka.ProducerChannels{}
+		},
+		CloseFunc: funcClose,
+	}, nil
+}
+
+func (i *InitMock) DoGetConsumer(ctx context.Context, cfg *config.Config) (kafkaConsumer kafka.IConsumerGroup, err error) {
 	cgChannels := kafka.CreateConsumerGroupChannels(cfg.BatchSize)
 	var kafkaOffset = kafka.OffsetOldest
 

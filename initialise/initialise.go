@@ -25,8 +25,8 @@ type ExternalServiceList struct {
 }
 
 type Initialiser interface {
-	DoGetConsumer(context.Context, *config.Config) (*kafka.ConsumerGroup, error)
-	DoGetProducer(context.Context, []string, string, KafkaProducerName, *config.Config) (*kafka.Producer, error)
+	DoGetConsumer(context.Context, *config.Config) (kafka.IConsumerGroup, error)
+	DoGetProducer(context.Context, []string, string, KafkaProducerName, *config.Config) (kafka.IProducer, error)
 	DoGetImportErrorReporter(reporter.KafkaProducer, string) (reporter.ImportErrorReporter, error)
 	DoGetHealthCheck(*config.Config, string, string, string) (healthcheck.HealthCheck, error)
 	DoGetGraphDB(context.Context) (*graph.DB, error)
@@ -64,7 +64,7 @@ func (k KafkaProducerName) String() string {
 }
 
 // GetConsumer returns a kafka consumer, which might not be initialised yet.
-func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Config) (kafkaConsumer *kafka.ConsumerGroup, err error) {
+func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Config) (kafkaConsumer kafka.IConsumerGroup, err error) {
 	kafkaConsumer, err = e.Init.DoGetConsumer(ctx, cfg)
 	if err != nil {
 		return
@@ -74,7 +74,7 @@ func (e *ExternalServiceList) GetConsumer(ctx context.Context, cfg *config.Confi
 }
 
 // GetProducer returns a kafka producer, which might not be initialised yet.
-func (e *ExternalServiceList) GetProducer(ctx context.Context, kafkaBrokers []string, topic string, name KafkaProducerName, cfg *config.Config) (kafkaProducer *kafka.Producer, err error) {
+func (e *ExternalServiceList) GetProducer(ctx context.Context, kafkaBrokers []string, topic string, name KafkaProducerName, cfg *config.Config) (kafkaProducer kafka.IProducer, err error) {
 	kafkaProducer, err = e.Init.DoGetProducer(ctx, kafkaBrokers, topic, name, cfg)
 	if err != nil {
 		return
@@ -149,7 +149,7 @@ func (i *Init) DoGetImportErrorReporter(ObservationsImportedErrProducer reporter
 	return
 }
 
-func (i *Init) DoGetProducer(ctx context.Context, kafkaBrokers []string, topic string, name KafkaProducerName, cfg *config.Config) (kafkaProducer *kafka.Producer, err error) {
+func (i *Init) DoGetProducer(ctx context.Context, kafkaBrokers []string, topic string, name KafkaProducerName, cfg *config.Config) (kafkaProducer kafka.IProducer, err error) {
 	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, base, bitSize)
 	if err != nil {
 		log.Event(ctx, "encountered error parsing kafka max bytes", log.FATAL, log.Error(err))
@@ -165,7 +165,7 @@ func (i *Init) DoGetProducer(ctx context.Context, kafkaBrokers []string, topic s
 	return
 }
 
-func (i *Init) DoGetConsumer(ctx context.Context, cfg *config.Config) (kafkaConsumer *kafka.ConsumerGroup, err error) {
+func (i *Init) DoGetConsumer(ctx context.Context, cfg *config.Config) (kafkaConsumer kafka.IConsumerGroup, err error) {
 	cgChannels := kafka.CreateConsumerGroupChannels(cfg.BatchSize)
 	cgConfig := &kafka.ConsumerGroupConfig{
 		Offset:       &kafkaOffset,
