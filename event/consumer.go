@@ -3,6 +3,7 @@ package event
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	graph "github.com/ONSdigital/dp-graph/v2/graph/driver"
@@ -50,12 +51,15 @@ func (consumer *Consumer) Consume(messageConsumer MessageConsumer,
 
 		batch := NewBatch(batchSize)
 
+		fmt.Println("INSIDE CONSUME GOROUTINE")
+
 		// Wait a batch full of messages.
 		// If we do not get any messages for a time, just process the messages already in the batch.
 		for {
 			select {
 			case msg := <-messageConsumer.Channels().Upstream:
 				ctx := context.Background()
+				fmt.Println("MESSAGE PICKED UP")
 
 				AddMessageToBatch(ctx, batch, msg, handler, errChan)
 				msg.Release()

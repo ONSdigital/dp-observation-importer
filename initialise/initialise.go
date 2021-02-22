@@ -35,7 +35,7 @@ type Initialiser interface {
 // KafkaProducerName : Type for kafka producer name used by iota constants
 type KafkaProducerName int
 
-// Possible names of Kafa Producers
+// Possible names of Kafka Producers
 const (
 	ObservationsImported = iota
 	ObservationsImportedErr

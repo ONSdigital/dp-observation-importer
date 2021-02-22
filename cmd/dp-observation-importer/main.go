@@ -1,4 +1,4 @@
-package main
+package runner
 
 import (
 	"context"
@@ -47,7 +47,7 @@ func main() {
 	// Sensitive fields are omitted from config.String()
 	log.Event(ctx, "loaded config", log.INFO, log.Data{"config": cfg})
 
-	if err := run(ctx, cfg, serviceList); err != nil {
+	if err := Run(ctx, cfg, serviceList); err != nil {
 		log.Event(ctx, "application unexpectedly failed", log.ERROR, log.Error(err))
 		os.Exit(1)
 	}
@@ -56,7 +56,7 @@ func main() {
 }
 
 // Run starts the application
-func run(ctx context.Context, cfg *config.Config, serviceList initialise.ExternalServiceList) error {
+func Run(ctx context.Context, cfg *config.Config, serviceList initialise.ExternalServiceList) error {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 

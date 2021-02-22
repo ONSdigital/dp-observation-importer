@@ -17,6 +17,8 @@ require (
 	github.com/gorilla/mux v1.8.0
 	github.com/johnnadratowski/golang-neo4j-bolt-driver v0.0.0-20181101021923-6b24c0085aae
 	github.com/kelseyhightower/envconfig v1.4.0
+	github.com/matryer/moq v0.2.1 // indirect
+	github.com/maxcnunes/httpfake v1.2.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/smartystreets/goconvey v1.6.4
 )
