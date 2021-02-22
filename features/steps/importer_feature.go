@@ -2,6 +2,7 @@ package feature
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"syscall"
@@ -88,8 +89,10 @@ func (f *ImporterFeature) forInstanceIDTheDatasetApiHasHeaders(instanceId string
 }
 
 func (f *ImporterFeature) theFollowingDataIsInsertedIntoTheGraph(data *godog.DocString) error {
-	fmt.Println(f.ObservationDB.InsertObservationBatchCalls()[0].Observations[0].Row)
-	return godog.ErrPending
+	if f.ObservationDB.InsertObservationBatchCalls()[0].Observations[0].Row != data.Content {
+		return errors.New("inserted row does not match expected, expected = " + data.Content)
+	}
+	return nil
 }
 
 func (f *ImporterFeature) thisObservationIsConsumed(messageContent *godog.DocString) error {

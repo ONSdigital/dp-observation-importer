@@ -17,5 +17,5 @@ Feature: Batching messages from Kafka
         # And the batching timeout limit has passed
         Then the following data is inserted into the graph
             """
-            1,2,Helloworld
+            5,,sex,male,age,30
             """
