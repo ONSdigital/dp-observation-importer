@@ -47,7 +47,10 @@ func main() {
 	// Sensitive fields are omitted from config.String()
 	log.Event(ctx, "loaded config", log.INFO, log.Data{"config": cfg})
 
-	if err := Run(ctx, cfg, serviceList); err != nil {
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+
+	if err := Run(ctx, cfg, serviceList, signals); err != nil {
 		log.Event(ctx, "application unexpectedly failed", log.ERROR, log.Error(err))
 		os.Exit(1)
 	}
@@ -56,9 +59,7 @@ func main() {
 }
 
 // Run starts the application
-func Run(ctx context.Context, cfg *config.Config, serviceList initialise.ExternalServiceList) error {
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+func Run(ctx context.Context, cfg *config.Config, serviceList initialise.ExternalServiceList, signals chan os.Signal) error {
 
 	log.Event(ctx, "starting observation importer", log.INFO)
 

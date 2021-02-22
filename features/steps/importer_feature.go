@@ -2,9 +2,18 @@ package feature
 
 import (
 	"context"
+	"fmt"
 	"os"
+	"syscall"
+	"time"
 
+	"os/signal"
+
+	graphConfig "github.com/ONSdigital/dp-graph/v2/config"
 	"github.com/ONSdigital/dp-graph/v2/graph"
+	"github.com/ONSdigital/dp-graph/v2/graph/driver"
+	graphMock "github.com/ONSdigital/dp-graph/v2/mock"
+	"github.com/ONSdigital/dp-graph/v2/models"
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
@@ -13,6 +22,7 @@ import (
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/initialise"
 	initialiserMock "github.com/ONSdigital/dp-observation-importer/initialise/mock"
+	"github.com/ONSdigital/dp-observation-importer/observation/mock"
 	"github.com/ONSdigital/dp-observation-importer/schema"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
 	"github.com/cucumber/godog"
@@ -23,6 +33,7 @@ type ImporterFeature struct {
 	service        initialise.ExternalServiceList
 	KafkaConsumer  kafka.IConsumerGroup
 	FakeDatasetAPI *httpfake.HTTPFake
+	ObservationDB  *mock.ObservationMock
 }
 
 func NewObservationImporterFeature(url string) *ImporterFeature {
@@ -33,6 +44,13 @@ func NewObservationImporterFeature(url string) *ImporterFeature {
 	os.Setenv("DATASET_API_URL", f.FakeDatasetAPI.ResolveURL(""))
 	os.Setenv("GRAPH_DRIVER_TYPE", "mock")
 	f.KafkaConsumer = kafkatest.NewMessageConsumer(false)
+
+	f.ObservationDB = &mock.ObservationMock{
+		InsertObservationBatchFunc: func(ctx context.Context, attempt int, instanceID string, observations []*models.Observation, dimensionIDs map[string]string) error {
+			fmt.Println("inside insert function")
+			return nil
+		},
+	}
 
 	initMock := &initialiserMock.InitialiserMock{
 		DoGetConsumerFunc:            f.DoGetConsumer,
@@ -69,7 +87,8 @@ func (f *ImporterFeature) forInstanceIDTheDatasetApiHasHeaders(instanceId string
 	return nil
 }
 
-func (f *ImporterFeature) theFollowingDataIsInsertedIntoTheGraph(arg1 *godog.DocString) error {
+func (f *ImporterFeature) theFollowingDataIsInsertedIntoTheGraph(data *godog.DocString) error {
+	fmt.Println(f.ObservationDB.InsertObservationBatchCalls()[0].Observations[0].Row)
 	return godog.ErrPending
 }
 
@@ -82,27 +101,58 @@ func (f *ImporterFeature) thisObservationIsConsumed(messageContent *godog.DocStr
 		return err
 	}
 	message := kafkatest.NewMessage(bytes, 0)
+
+	signals := make(chan os.Signal, 1)
+	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		runner.Run(context.Background(), config, f.service, signals)
+	}()
+
 	f.KafkaConsumer.Channels().Upstream <- message
 
-	runner.Run(context.Background(), config, f.service)
+	time.Sleep(1 * time.Second)
+
+	signals <- os.Interrupt
 
 	return nil
 }
 
-// func (f *ImporterFeature) InitialiseService() (http.Handler, error) {
-// 	if err := f.svc.Run(context.Background(), "1", "", "", f.errorChan); err != nil {
-// 		return nil, err
-// 	}
-// 	f.ServiceRunning = true
-// 	return f.HTTPServer.Handler, nil
-// }
+func fakeInsert(ctx context.Context, attempt int, instanceID string, observations []*models.Observation, dimensionIDs map[string]string) error {
+	fmt.Println("inside insert function")
+	return nil
+}
 
 func (f *ImporterFeature) DoGetGraphDB(ctx context.Context) (*graph.DB, error) {
-	graphDB, err := graph.NewObservationStore(ctx)
+	errs := make(chan error)
+
+	cfg, err := graphConfig.Get(errs)
 	if err != nil {
 		return nil, err
 	}
-	return graphDB, nil
+
+	cfg.Driver = &graphMock.Mock{
+		IsBackendReachable: true,
+		IsQueryValid:       true,
+		IsContentFound:     true,
+	}
+
+	var codelist driver.CodeList
+	var hierarchy driver.Hierarchy
+	var instance driver.Instance
+
+	var observation driver.Observation = f.ObservationDB
+	var dimension driver.Dimension
+
+	return &graph.DB{
+		Driver:      cfg.Driver,
+		CodeList:    codelist,
+		Hierarchy:   hierarchy,
+		Instance:    instance,
+		Observation: observation,
+		Dimension:   dimension,
+		Errors:      errs,
+	}, nil
 }
 
 func (f *ImporterFeature) DoGetHealthCheck(cfg *config.Config, buildTime, gitCommit, version string) (healthcheck.HealthCheck, error) {
@@ -111,6 +161,7 @@ func (f *ImporterFeature) DoGetHealthCheck(cfg *config.Config, buildTime, gitCom
 		return healthcheck.HealthCheck{}, err
 	}
 	hc := healthcheck.New(versionInfo, cfg.HealthCheckCriticalTimeout, cfg.HealthCheckInterval)
+	hc.Status = "200"
 	return hc, nil
 }
 
@@ -123,12 +174,17 @@ func funcClose(ctx context.Context) error {
 	return nil
 }
 
+func funcCheck(ctx context.Context, state *healthcheck.CheckState) error {
+	return nil
+}
+
 func (f *ImporterFeature) DoGetProducer(ctx context.Context, kafkaBrokers []string, topic string, name initialise.KafkaProducerName, cfg *config.Config) (kafkaProducer kafka.IProducer, err error) {
 	return &kafkatest.IProducerMock{
 		ChannelsFunc: func() *kafka.ProducerChannels {
 			return &kafka.ProducerChannels{}
 		},
-		CloseFunc: funcClose,
+		CloseFunc:   funcClose,
+		CheckerFunc: funcCheck,
 	}, nil
 }
 
