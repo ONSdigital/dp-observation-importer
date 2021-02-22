@@ -30,8 +30,10 @@ func NewObservationImporterFeature(url string) *ImporterFeature {
 	return f
 }
 
-func (f *ImporterFeature) RegisterSteps(context *godog.ScenarioContext) {
-
+func (f *ImporterFeature) RegisterSteps(ctx *godog.ScenarioContext) {
+	ctx.Step(`^I send a message with content$`, f.iSendAMessageWithContent)
+	ctx.Step(`^the batching timeout limit has passed$`, f.theBatchingTimeoutLimitHasPassed)
+	ctx.Step(`^the message sent to kafka looks like:$`, f.theMessageSentToKafkaLooksLike)
 }
 
 func (f *ImporterFeature) Close() {
@@ -40,6 +42,18 @@ func (f *ImporterFeature) Close() {
 
 func (f *ImporterFeature) Reset() {
 
+}
+
+func (f *ImporterFeature) iSendAMessageWithContent(arg1 *godog.DocString) error {
+	return godog.ErrPending
+}
+
+func (f *ImporterFeature) theBatchingTimeoutLimitHasPassed() error {
+	return godog.ErrPending
+}
+
+func (f *ImporterFeature) theMessageSentToKafkaLooksLike(arg1 *godog.DocString) error {
+	return godog.ErrPending
 }
 
 // func (f *ImporterFeature) InitialiseService() (http.Handler, error) {
