@@ -8,7 +8,7 @@ import (
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
-	"github.com/ONSdigital/dp-observation-importer/cmd/dp-observation-importer/runner"
+	runner "github.com/ONSdigital/dp-observation-importer/cmd/dp-observation-importer"
 	"github.com/ONSdigital/dp-observation-importer/config"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/initialise"
@@ -31,6 +31,7 @@ func NewObservationImporterFeature(url string) *ImporterFeature {
 
 	f.FakeDatasetAPI = httpfake.New()
 	os.Setenv("DATASET_API_URL", f.FakeDatasetAPI.ResolveURL(""))
+	os.Setenv("GRAPH_DRIVER_TYPE", "mock")
 	f.KafkaConsumer = kafkatest.NewMessageConsumer(false)
 
 	initMock := &initialiserMock.InitialiserMock{
@@ -62,6 +63,9 @@ func (f *ImporterFeature) Reset() {
 
 func (f *ImporterFeature) forInstanceIDTheDatasetApiHasHeaders(instanceId string, headersString *godog.DocString) error {
 	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceId).Reply(200).BodyString(headersString.Content)
+	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceId + "/dimensions").Reply(200).BodyString(headersString.Content)
+	f.FakeDatasetAPI.NewHandler().Get("/health").Reply(200)
+	f.FakeDatasetAPI.NewHandler().Get("/healthcheck").Reply(200)
 	return nil
 }
 
@@ -70,7 +74,8 @@ func (f *ImporterFeature) theFollowingDataIsInsertedIntoTheGraph(arg1 *godog.Doc
 }
 
 func (f *ImporterFeature) thisObservationIsConsumed(messageContent *godog.DocString) error {
-	runner.Run(context.Background(), config.Get(), f.service)
+	config, err := config.Get()
+
 	observation := event.ObservationExtracted{InstanceID: "7", Row: "5,,sex,male,age,30"}
 	bytes, err := schema.ObservationExtractedEvent.Marshal(observation)
 	if err != nil {
@@ -78,6 +83,8 @@ func (f *ImporterFeature) thisObservationIsConsumed(messageContent *godog.DocStr
 	}
 	message := kafkatest.NewMessage(bytes, 0)
 	f.KafkaConsumer.Channels().Upstream <- message
+
+	runner.Run(context.Background(), config, f.service)
 
 	return nil
 }
@@ -99,7 +106,7 @@ func (f *ImporterFeature) DoGetGraphDB(ctx context.Context) (*graph.DB, error) {
 }
 
 func (f *ImporterFeature) DoGetHealthCheck(cfg *config.Config, buildTime, gitCommit, version string) (healthcheck.HealthCheck, error) {
-	versionInfo, err := healthcheck.NewVersionInfo(buildTime, gitCommit, version)
+	versionInfo, err := healthcheck.NewVersionInfo("1234", "gitCommit", "version")
 	if err != nil {
 		return healthcheck.HealthCheck{}, err
 	}

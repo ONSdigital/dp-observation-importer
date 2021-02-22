@@ -32,3 +32,7 @@ test:
 	go test -cover -race ./...
 
 .PHONY: build debug test
+
+.PHONY: test-component
+test-component:
+	go test -component
