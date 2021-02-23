@@ -20,10 +20,8 @@ Feature: Batching messages from Kafka
             """
             {InstanceID: "7", Row: "5,,sex,male,age,30"}
             """
-        Then the following data is inserted into the graph for instance ID "7":
-            """
-            5,,sex,male,age,30
-            """
+        Then observation "5,,sex,male,age,30" is inserted into the graph for instance ID "7"
+
 
 
     Scenario: Consuming one observation whose instance has headers and one dimension
@@ -52,7 +50,6 @@ Feature: Batching messages from Kafka
             """
             {InstanceID: "7", Row: "5,,sex,male,age,30"}
             """
-        Then the following data is inserted into the graph for instance ID "7":
-            """
-            5,,sex,male,age,30
-            """
+        Then observation "5,,sex,male,age,30" is inserted into the graph for instance ID "7"
+        And dimension key "7_10_someoption" is mapped to "111"
+        And a message containing "7" is output

@@ -22,6 +22,7 @@ import (
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/initialise"
 	initialiserMock "github.com/ONSdigital/dp-observation-importer/initialise/mock"
+	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-observation-importer/observation/mock"
 	"github.com/ONSdigital/dp-observation-importer/schema"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
@@ -35,8 +36,10 @@ type ImporterFeature struct {
 	ErrorFeature   featuretest.ErrorFeature
 	service        initialise.ExternalServiceList
 	KafkaConsumer  kafka.IConsumerGroup
+	KafkaProducer  kafka.IProducer
 	FakeDatasetAPI *httpfake.HTTPFake
 	ObservationDB  *mock.ObservationMock
+	killChannel    chan os.Signal
 }
 
 func NewObservationImporterFeature(url string) *ImporterFeature {
@@ -57,6 +60,16 @@ func NewObservationImporterFeature(url string) *ImporterFeature {
 			return nil
 		},
 	}
+	channels := &kafka.ProducerChannels{
+		Output: make(chan []byte),
+	}
+	f.KafkaProducer = &kafkatest.IProducerMock{
+		ChannelsFunc: func() *kafka.ProducerChannels {
+			return channels
+		},
+		CloseFunc:   funcClose,
+		CheckerFunc: funcCheck,
+	}
 
 	initMock := &initialiserMock.InitialiserMock{
 		DoGetConsumerFunc:            f.DoGetConsumer,
@@ -74,8 +87,10 @@ func NewObservationImporterFeature(url string) *ImporterFeature {
 func (f *ImporterFeature) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^dataset instance "([^"]*)" has dimensions:$`, f.datasetInstanceHasDimensions)
 	ctx.Step(`^dataset instance "([^"]*)" has headers:$`, f.datasetInstanceHasHeaders)
-	ctx.Step(`^the following data is inserted into the graph for instance ID "([^"]*)":$`, f.theFollowingDataIsInsertedIntoTheGraph)
+	ctx.Step(`^observation "([^"]*)" is inserted into the graph for instance ID "([^"]*)"$`, f.observationIsInsertedIntoTheGraphForInstanceID)
+	ctx.Step(`^dimension key "([^"]*)" is mapped to "([^"]*)"$`, f.dimensionKeyIsMappedTo)
 	ctx.Step(`^this observation is consumed:$`, f.thisObservationIsConsumed)
+	ctx.Step(`^a message containing "([^"]*)" is output$`, f.aMessageContainingIsOutput)
 }
 
 func (f *ImporterFeature) Close() {
@@ -88,20 +103,34 @@ func (f *ImporterFeature) Reset() {
 	// f.KafkaConsumer = kafkatest.NewMessageConsumer(true)
 }
 
-func (f *ImporterFeature) datasetInstanceHasDimensions(instanceId string, dimensions *godog.DocString) error {
-	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceId + "/dimensions").Reply(200).BodyString(dimensions.Content)
+func (f *ImporterFeature) datasetInstanceHasDimensions(instanceID string, dimensions *godog.DocString) error {
+	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceID + "/dimensions").Reply(200).BodyString(dimensions.Content)
 	return nil
 }
 
-func (f *ImporterFeature) datasetInstanceHasHeaders(instanceId string, headers *godog.DocString) error {
-	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceId).Reply(200).BodyString(headers.Content)
+func (f *ImporterFeature) datasetInstanceHasHeaders(instanceID string, headers *godog.DocString) error {
+	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceID).Reply(200).BodyString(headers.Content)
 	return nil
 }
 
-func (f *ImporterFeature) theFollowingDataIsInsertedIntoTheGraph(ID string, data *godog.DocString) error {
+func (f *ImporterFeature) observationIsInsertedIntoTheGraphForInstanceID(data string, ID string) error {
 	calls := f.ObservationDB.InsertObservationBatchCalls()
-	assert.Equal(&f.ErrorFeature, data.Content, calls[0].Observations[0].Row)
+	assert.Equal(&f.ErrorFeature, data, calls[0].Observations[0].Row)
+	if f.ErrorFeature.StepError() != nil {
+		return f.ErrorFeature.StepError()
+	}
 	assert.Equal(&f.ErrorFeature, ID, calls[0].Observations[0].InstanceID)
+
+	return f.ErrorFeature.StepError()
+}
+
+func (f *ImporterFeature) dimensionKeyIsMappedTo(key, value string) error {
+	calls := f.ObservationDB.InsertObservationBatchCalls()
+	assert.Contains(&f.ErrorFeature, calls[0].DimensionIDs, key)
+	if f.ErrorFeature.StepError() != nil {
+		return f.ErrorFeature.StepError()
+	}
+	assert.Equal(&f.ErrorFeature, value, calls[0].DimensionIDs[key])
 
 	return f.ErrorFeature.StepError()
 }
@@ -119,17 +148,29 @@ func (f *ImporterFeature) thisObservationIsConsumed(messageContent *godog.DocStr
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
-	f.KafkaConsumer.Channels().Upstream <- message
-
 	go func() {
 		runner.Run(context.Background(), config, f.service, signals)
 	}()
+
+	f.KafkaConsumer.Channels().Upstream <- message
 
 	time.Sleep(300 * time.Millisecond)
 
 	signals <- os.Interrupt
 
 	return nil
+}
+
+func (f *ImporterFeature) aMessageContainingIsOutput(expectedMessage string) error {
+
+	message := <-f.KafkaProducer.Channels().Output
+	var unmarshalledMessage observation.InsertedEvent
+
+	schema.ObservationsInsertedEvent.Unmarshal(message, &unmarshalledMessage)
+
+	assert.Equal(&f.ErrorFeature, expectedMessage, unmarshalledMessage.InstanceID)
+	assert.Equal(&f.ErrorFeature, int32(1), unmarshalledMessage.ObservationsInserted)
+	return f.ErrorFeature.StepError()
 }
 
 func fakeInsert(ctx context.Context, attempt int, instanceID string, observations []*models.Observation, dimensionIDs map[string]string) error {
@@ -193,13 +234,7 @@ func funcCheck(ctx context.Context, state *healthcheck.CheckState) error {
 }
 
 func (f *ImporterFeature) DoGetProducer(ctx context.Context, kafkaBrokers []string, topic string, name initialise.KafkaProducerName, cfg *config.Config) (kafkaProducer kafka.IProducer, err error) {
-	return &kafkatest.IProducerMock{
-		ChannelsFunc: func() *kafka.ProducerChannels {
-			return &kafka.ProducerChannels{}
-		},
-		CloseFunc:   funcClose,
-		CheckerFunc: funcCheck,
-	}, nil
+	return f.KafkaProducer, nil
 }
 
 func (f *ImporterFeature) DoGetConsumer(ctx context.Context, cfg *config.Config) (kafkaConsumer kafka.IConsumerGroup, err error) {
