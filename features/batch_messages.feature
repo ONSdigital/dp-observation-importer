@@ -10,16 +10,10 @@ Feature: Batching messages from Kafka
                 ]
             }
             """
-        And dataset instance "7" has dimensions:
-            """
-            {
-                "items": []
-            }
-            """
-        When this observation is consumed:
-            """
-            {InstanceID: "7", Row: "5,,sex,male,age,30"}
-            """
+        And dataset instance "7" has no dimensions
+        When these observations are consumed:
+            | InstanceID | Row                |
+            | 7          | 5,,sex,male,age,30 |
         Then observation "5,,sex,male,age,30" is inserted into the graph for instance ID "7"
 
 
@@ -35,21 +29,11 @@ Feature: Batching messages from Kafka
             }
             """
         And dataset instance "7" has dimensions:
-            """
-            {
-                "items": [
-                    {
-                        "dimension": "10",
-                        "node_id": "111",
-                        "option": "someoption"
-                    }
-                ]
-            }
-            """
-        When this observation is consumed:
-            """
-            {InstanceID: "7", Row: "5,,sex,male,age,30"}
-            """
+            | DimensionName | NodeID | Option     |
+            | 10            | 111    | someoption |
+        When these observations are consumed:
+            | InstanceID | Row                |
+            | 7          | 5,,sex,male,age,30 |
         Then observation "5,,sex,male,age,30" is inserted into the graph for instance ID "7"
         And dimension key "7_10_someoption" is mapped to "111"
-        And a message containing "7" is output
+        And a message stating "1" observation(s) inserted for instance ID "7" is sent

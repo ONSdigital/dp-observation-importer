@@ -22,6 +22,7 @@ require (
 	github.com/matryer/moq v0.2.1 // indirect
 	github.com/maxcnunes/httpfake v1.2.1
 	github.com/patrickmn/go-cache v2.1.0+incompatible
+	github.com/rdumont/assistdog v0.0.0-20201106100018-168b06230d14
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/stretchr/testify v1.6.1
 	upspin.io v0.0.0-20200124224713-5ddde7b8e6ff

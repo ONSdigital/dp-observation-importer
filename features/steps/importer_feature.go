@@ -2,6 +2,7 @@ package feature
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"syscall"
@@ -19,6 +20,7 @@ import (
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
 	runner "github.com/ONSdigital/dp-observation-importer/cmd/dp-observation-importer"
 	"github.com/ONSdigital/dp-observation-importer/config"
+	"github.com/ONSdigital/dp-observation-importer/dimension"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/initialise"
 	initialiserMock "github.com/ONSdigital/dp-observation-importer/initialise/mock"
@@ -29,6 +31,7 @@ import (
 	featuretest "github.com/armakuni/dp-go-featuretest"
 	"github.com/cucumber/godog"
 	"github.com/maxcnunes/httpfake"
+	"github.com/rdumont/assistdog"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -86,11 +89,12 @@ func NewObservationImporterFeature(url string) *ImporterFeature {
 
 func (f *ImporterFeature) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^dataset instance "([^"]*)" has dimensions:$`, f.datasetInstanceHasDimensions)
+	ctx.Step(`^dataset instance "([^"]*)" has no dimensions$`, f.datasetInstanceHasNoDimensions)
 	ctx.Step(`^dataset instance "([^"]*)" has headers:$`, f.datasetInstanceHasHeaders)
 	ctx.Step(`^observation "([^"]*)" is inserted into the graph for instance ID "([^"]*)"$`, f.observationIsInsertedIntoTheGraphForInstanceID)
 	ctx.Step(`^dimension key "([^"]*)" is mapped to "([^"]*)"$`, f.dimensionKeyIsMappedTo)
-	ctx.Step(`^this observation is consumed:$`, f.thisObservationIsConsumed)
-	ctx.Step(`^a message containing "([^"]*)" is output$`, f.aMessageContainingIsOutput)
+	ctx.Step(`^these observations are consumed:$`, f.theseObservationsAreConsumed)
+	ctx.Step(`^a message stating "([^"]*)" observation\(s\) inserted for instance ID "([^"]*)" is sent$`, f.aMessageStatingObservationsInsertedForInstanceIDIsSent)
 }
 
 func (f *ImporterFeature) Close() {
@@ -103,8 +107,23 @@ func (f *ImporterFeature) Reset() {
 	// f.KafkaConsumer = kafkatest.NewMessageConsumer(true)
 }
 
-func (f *ImporterFeature) datasetInstanceHasDimensions(instanceID string, dimensions *godog.DocString) error {
-	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceID + "/dimensions").Reply(200).BodyString(dimensions.Content)
+func (f *ImporterFeature) datasetInstanceHasDimensions(instanceID string, table *godog.Table) error {
+	assist := assistdog.NewDefault()
+	var dimensionItem = &dimension.Dimension{}
+	dimensions, err := assist.CreateSlice(dimensionItem, table)
+	if err != nil {
+		return err
+	}
+	resultJSON, err := json.Marshal(dimensions)
+	if err != nil {
+		return err
+	}
+	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceID + "/dimensions").Reply(200).BodyString("{\"Items\": " + string(resultJSON) + "}")
+	return nil
+}
+
+func (f *ImporterFeature) datasetInstanceHasNoDimensions(instanceID string) error {
+	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceID + "/dimensions").Reply(200).BodyString("{\"Items\": [] }")
 	return nil
 }
 
@@ -135,16 +154,11 @@ func (f *ImporterFeature) dimensionKeyIsMappedTo(key, value string) error {
 	return f.ErrorFeature.StepError()
 }
 
-func (f *ImporterFeature) thisObservationIsConsumed(messageContent *godog.DocString) error {
+func (f *ImporterFeature) theseObservationsAreConsumed(table *godog.Table) error {
 	config, err := config.Get()
-
-	observation := event.ObservationExtracted{InstanceID: "7", Row: "5,,sex,male,age,30"}
-	bytes, err := schema.ObservationExtractedEvent.Marshal(observation)
 	if err != nil {
 		return err
 	}
-	message := kafkatest.NewMessage(bytes, 0)
-
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
@@ -152,7 +166,22 @@ func (f *ImporterFeature) thisObservationIsConsumed(messageContent *godog.DocStr
 		runner.Run(context.Background(), config, f.service, signals)
 	}()
 
-	f.KafkaConsumer.Channels().Upstream <- message
+	assist := assistdog.NewDefault()
+	observation := &event.ObservationExtracted{}
+	events, err := assist.CreateSlice(observation, table)
+	if err != nil {
+		return err
+	}
+
+	for _, event := range events.([]*event.ObservationExtracted) {
+		bytes, err := schema.ObservationExtractedEvent.Marshal(event)
+		if err != nil {
+			return err
+		}
+		message := kafkatest.NewMessage(bytes, 0)
+
+		f.KafkaConsumer.Channels().Upstream <- message
+	}
 
 	time.Sleep(300 * time.Millisecond)
 
@@ -161,15 +190,15 @@ func (f *ImporterFeature) thisObservationIsConsumed(messageContent *godog.DocStr
 	return nil
 }
 
-func (f *ImporterFeature) aMessageContainingIsOutput(expectedMessage string) error {
+func (f *ImporterFeature) aMessageStatingObservationsInsertedForInstanceIDIsSent(count int32, instanceID string) error {
 
 	message := <-f.KafkaProducer.Channels().Output
 	var unmarshalledMessage observation.InsertedEvent
 
 	schema.ObservationsInsertedEvent.Unmarshal(message, &unmarshalledMessage)
 
-	assert.Equal(&f.ErrorFeature, expectedMessage, unmarshalledMessage.InstanceID)
-	assert.Equal(&f.ErrorFeature, int32(1), unmarshalledMessage.ObservationsInserted)
+	assert.Equal(&f.ErrorFeature, instanceID, unmarshalledMessage.InstanceID)
+	assert.Equal(&f.ErrorFeature, count, unmarshalledMessage.ObservationsInserted)
 	return f.ErrorFeature.StepError()
 }
 
