@@ -2,7 +2,6 @@ package feature
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"syscall"
@@ -26,11 +25,14 @@ import (
 	"github.com/ONSdigital/dp-observation-importer/observation/mock"
 	"github.com/ONSdigital/dp-observation-importer/schema"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
+	featuretest "github.com/armakuni/dp-go-featuretest"
 	"github.com/cucumber/godog"
 	"github.com/maxcnunes/httpfake"
+	"github.com/stretchr/testify/assert"
 )
 
 type ImporterFeature struct {
+	ErrorFeature   featuretest.ErrorFeature
 	service        initialise.ExternalServiceList
 	KafkaConsumer  kafka.IConsumerGroup
 	FakeDatasetAPI *httpfake.HTTPFake
@@ -44,11 +46,14 @@ func NewObservationImporterFeature(url string) *ImporterFeature {
 	f.FakeDatasetAPI = httpfake.New()
 	os.Setenv("DATASET_API_URL", f.FakeDatasetAPI.ResolveURL(""))
 	os.Setenv("GRAPH_DRIVER_TYPE", "mock")
+	os.Setenv("BATCH_SIZE", "1")
 	f.KafkaConsumer = kafkatest.NewMessageConsumer(false)
 
 	f.ObservationDB = &mock.ObservationMock{
 		InsertObservationBatchFunc: func(ctx context.Context, attempt int, instanceID string, observations []*models.Observation, dimensionIDs map[string]string) error {
 			fmt.Println("inside insert function")
+			fmt.Println("observations: ", observations)
+			fmt.Println("dimensions received: ", dimensionIDs)
 			return nil
 		},
 	}
@@ -67,32 +72,38 @@ func NewObservationImporterFeature(url string) *ImporterFeature {
 }
 
 func (f *ImporterFeature) RegisterSteps(ctx *godog.ScenarioContext) {
-	ctx.Step(`^for instance ID "([^"]*)" the dataset api has headers$`, f.forInstanceIDTheDatasetApiHasHeaders)
-	ctx.Step(`^the following data is inserted into the graph$`, f.theFollowingDataIsInsertedIntoTheGraph)
+	ctx.Step(`^dataset instance "([^"]*)" has dimensions:$`, f.datasetInstanceHasDimensions)
+	ctx.Step(`^dataset instance "([^"]*)" has headers:$`, f.datasetInstanceHasHeaders)
+	ctx.Step(`^the following data is inserted into the graph for instance ID "([^"]*)":$`, f.theFollowingDataIsInsertedIntoTheGraph)
 	ctx.Step(`^this observation is consumed:$`, f.thisObservationIsConsumed)
 }
 
 func (f *ImporterFeature) Close() {
-
+	f.FakeDatasetAPI.Close()
+	// f.KafkaConsumer.Close(context.Background())
 }
 
 func (f *ImporterFeature) Reset() {
-
+	f.FakeDatasetAPI.Reset()
+	// f.KafkaConsumer = kafkatest.NewMessageConsumer(true)
 }
 
-func (f *ImporterFeature) forInstanceIDTheDatasetApiHasHeaders(instanceId string, headersString *godog.DocString) error {
-	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceId).Reply(200).BodyString(headersString.Content)
-	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceId + "/dimensions").Reply(200).BodyString(headersString.Content)
-	f.FakeDatasetAPI.NewHandler().Get("/health").Reply(200)
-	f.FakeDatasetAPI.NewHandler().Get("/healthcheck").Reply(200)
+func (f *ImporterFeature) datasetInstanceHasDimensions(instanceId string, dimensions *godog.DocString) error {
+	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceId + "/dimensions").Reply(200).BodyString(dimensions.Content)
 	return nil
 }
 
-func (f *ImporterFeature) theFollowingDataIsInsertedIntoTheGraph(data *godog.DocString) error {
-	if f.ObservationDB.InsertObservationBatchCalls()[0].Observations[0].Row != data.Content {
-		return errors.New("inserted row does not match expected, expected = " + data.Content)
-	}
+func (f *ImporterFeature) datasetInstanceHasHeaders(instanceId string, headers *godog.DocString) error {
+	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceId).Reply(200).BodyString(headers.Content)
 	return nil
+}
+
+func (f *ImporterFeature) theFollowingDataIsInsertedIntoTheGraph(ID string, data *godog.DocString) error {
+	calls := f.ObservationDB.InsertObservationBatchCalls()
+	assert.Equal(&f.ErrorFeature, data.Content, calls[0].Observations[0].Row)
+	assert.Equal(&f.ErrorFeature, ID, calls[0].Observations[0].InstanceID)
+
+	return f.ErrorFeature.StepError()
 }
 
 func (f *ImporterFeature) thisObservationIsConsumed(messageContent *godog.DocString) error {
@@ -108,13 +119,13 @@ func (f *ImporterFeature) thisObservationIsConsumed(messageContent *godog.DocStr
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
+	f.KafkaConsumer.Channels().Upstream <- message
+
 	go func() {
 		runner.Run(context.Background(), config, f.service, signals)
 	}()
 
-	f.KafkaConsumer.Channels().Upstream <- message
-
-	time.Sleep(1 * time.Second)
+	time.Sleep(300 * time.Millisecond)
 
 	signals <- os.Interrupt
 

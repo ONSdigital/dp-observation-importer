@@ -24,9 +24,11 @@ func (f *FeatureTest) InitializeScenario(ctx *godog.ScenarioContext) {
 
 	ctx.BeforeScenario(func(*godog.Scenario) {
 		importerFeature.Reset()
+		authorizationFeature.Reset()
 	})
 
 	ctx.AfterScenario(func(*godog.Scenario, error) {
+		authorizationFeature.Close()
 		importerFeature.Close()
 	})
 
