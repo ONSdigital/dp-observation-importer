@@ -21,15 +21,16 @@ Feature: Batching messages from Kafka
                 }
             ]
         """
+        And a message stating "1" observation(s) inserted for instance ID "7" is sent
 
-
-    Scenario: Consuming one observation whose instance has headers and one dimension
+    Scenario: Consuming one observation whose instance has several dimensions
         Given dataset instance "7" has headers "V1,Code,,Age"
         And dataset instance "7" has dimensions:
-            | DimensionName | NodeID | Option     |
-            | 10            | 111    | someoption |
+            | DimensionName | NodeID | Option |
+            | age           | 111    | 29     |
+            | sex           | 111    | male   |
         When these observations are consumed:
-            | InstanceID | Row              |
+            | InstanceID | Row                  |
             | 7          | 5,AK101,29,male,30,5 |
         Then these observations should be inserted into the database for batch "0":
         """
@@ -46,6 +47,7 @@ Feature: Batching messages from Kafka
             ]
         """
         And these dimensions should be inserted into the database for batch "0":
-            | NodeID | Dimension       |
-            | 111    | 7_10_someoption |
+            | NodeID | Dimension  |
+            | 111    | 7_age_29   |
+            | 111    | 7_sex_male |
         And a message stating "1" observation(s) inserted for instance ID "7" is sent
