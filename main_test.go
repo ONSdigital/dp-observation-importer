@@ -49,6 +49,7 @@ func TestComponent(t *testing.T) {
 		var opts = godog.Options{
 			Output: colors.Colored(os.Stdout),
 			Format: "pretty",
+			Paths:  flag.Args(),
 		}
 
 		f := &FeatureTest{}

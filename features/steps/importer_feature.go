@@ -59,7 +59,7 @@ func NewObservationImporterFeature(url string) *ImporterFeature {
 	f.ObservationDB = &mock.ObservationMock{
 		InsertObservationBatchFunc: func(ctx context.Context, attempt int, instanceID string, observations []*models.Observation, dimensionIDs map[string]string) error {
 			fmt.Println("inside insert function")
-			fmt.Println("observations: ", observations)
+			fmt.Println("dimensions received: ", observations[0].DimensionOptions[0].DimensionName)
 			fmt.Println("dimensions received: ", dimensionIDs)
 			return nil
 		},
@@ -143,29 +143,15 @@ func (f *ImporterFeature) datasetInstanceHasHeaders(instanceID string, headers s
 	return nil
 }
 
-func (f *ImporterFeature) theseObservationsShouldBeInsertedIntoTheDatabaseForBatch(batch int, table *godog.Table) error {
-	type observation struct {
-		InstanceID  string
-		Observation string
-	}
-	assist := assistdog.NewDefault()
-	obs := &observation{}
-	observations, err := assist.CreateSlice(obs, table)
+func (f *ImporterFeature) theseObservationsShouldBeInsertedIntoTheDatabaseForBatch(batch int, observasionsJson *godog.DocString) error {
+
+	actualObservations := f.ObservationDB.InsertObservationBatchCalls()[batch].Observations
+
+	actualObservationsJson, err := json.Marshal(actualObservations)
 	if err != nil {
 		return err
 	}
-
-	for i, ob := range observations.([]*observation) {
-		calls := f.ObservationDB.InsertObservationBatchCalls()
-		assert.Equal(&f.ErrorFeature, ob.Observation, calls[batch].Observations[i].Row)
-		if f.ErrorFeature.StepError() != nil {
-			return f.ErrorFeature.StepError()
-		}
-		assert.Equal(&f.ErrorFeature, ob.InstanceID, calls[batch].Observations[i].InstanceID)
-		if f.ErrorFeature.StepError() != nil {
-			return f.ErrorFeature.StepError()
-		}
-	}
+	assert.JSONEq(&f.ErrorFeature, observasionsJson.Content, string(actualObservationsJson))
 
 	return f.ErrorFeature.StepError()
 }
