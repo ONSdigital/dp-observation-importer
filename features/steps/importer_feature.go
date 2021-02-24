@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strings"
 	"syscall"
 	"time"
 
@@ -90,9 +91,9 @@ func NewObservationImporterFeature(url string) *ImporterFeature {
 func (f *ImporterFeature) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^dataset instance "([^"]*)" has dimensions:$`, f.datasetInstanceHasDimensions)
 	ctx.Step(`^dataset instance "([^"]*)" has no dimensions$`, f.datasetInstanceHasNoDimensions)
-	ctx.Step(`^dataset instance "([^"]*)" has headers:$`, f.datasetInstanceHasHeaders)
-	ctx.Step(`^observation "([^"]*)" is inserted into the graph for instance ID "([^"]*)"$`, f.observationIsInsertedIntoTheGraphForInstanceID)
-	ctx.Step(`^dimension key "([^"]*)" is mapped to "([^"]*)"$`, f.dimensionKeyIsMappedTo)
+	ctx.Step(`^dataset instance "([^"]*)" has headers "([^"]*)"$`, f.datasetInstanceHasHeaders)
+	ctx.Step(`^these dimensions should be inserted into the database for batch "([^"]*)":$`, f.theseDimensionsShouldBeInsertedIntoTheDatabaseForBatch)
+	ctx.Step(`^these observations should be inserted into the database for batch "([^"]*)":$`, f.theseObservationsShouldBeInsertedIntoTheDatabaseForBatch)
 	ctx.Step(`^these observations are consumed:$`, f.theseObservationsAreConsumed)
 	ctx.Step(`^a message stating "([^"]*)" observation\(s\) inserted for instance ID "([^"]*)" is sent$`, f.aMessageStatingObservationsInsertedForInstanceIDIsSent)
 }
@@ -127,30 +128,70 @@ func (f *ImporterFeature) datasetInstanceHasNoDimensions(instanceID string) erro
 	return nil
 }
 
-func (f *ImporterFeature) datasetInstanceHasHeaders(instanceID string, headers *godog.DocString) error {
-	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceID).Reply(200).BodyString(headers.Content)
+func (f *ImporterFeature) datasetInstanceHasHeaders(instanceID string, headers string) error {
+	type csvHeaders struct {
+		Headers []string `json:"headers"`
+	}
+	data := csvHeaders{
+		Headers: strings.Split(headers, ","),
+	}
+	b, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceID).Reply(200).BodyString(string(b))
 	return nil
 }
 
-func (f *ImporterFeature) observationIsInsertedIntoTheGraphForInstanceID(data string, ID string) error {
-	calls := f.ObservationDB.InsertObservationBatchCalls()
-	assert.Equal(&f.ErrorFeature, data, calls[0].Observations[0].Row)
-	if f.ErrorFeature.StepError() != nil {
-		return f.ErrorFeature.StepError()
+func (f *ImporterFeature) theseObservationsShouldBeInsertedIntoTheDatabaseForBatch(batch int, table *godog.Table) error {
+	type observation struct {
+		InstanceID  string
+		Observation string
 	}
-	assert.Equal(&f.ErrorFeature, ID, calls[0].Observations[0].InstanceID)
+	assist := assistdog.NewDefault()
+	obs := &observation{}
+	observations, err := assist.CreateSlice(obs, table)
+	if err != nil {
+		return err
+	}
+
+	for i, ob := range observations.([]*observation) {
+		calls := f.ObservationDB.InsertObservationBatchCalls()
+		assert.Equal(&f.ErrorFeature, ob.Observation, calls[batch].Observations[i].Row)
+		if f.ErrorFeature.StepError() != nil {
+			return f.ErrorFeature.StepError()
+		}
+		assert.Equal(&f.ErrorFeature, ob.InstanceID, calls[batch].Observations[i].InstanceID)
+		if f.ErrorFeature.StepError() != nil {
+			return f.ErrorFeature.StepError()
+		}
+	}
 
 	return f.ErrorFeature.StepError()
 }
-
-func (f *ImporterFeature) dimensionKeyIsMappedTo(key, value string) error {
-	calls := f.ObservationDB.InsertObservationBatchCalls()
-	assert.Contains(&f.ErrorFeature, calls[0].DimensionIDs, key)
-	if f.ErrorFeature.StepError() != nil {
-		return f.ErrorFeature.StepError()
+func (f *ImporterFeature) theseDimensionsShouldBeInsertedIntoTheDatabaseForBatch(batch int, table *godog.Table) error {
+	type dimension struct {
+		Dimension string
+		NodeID    string
 	}
-	assert.Equal(&f.ErrorFeature, value, calls[0].DimensionIDs[key])
+	assist := assistdog.NewDefault()
+	d := &dimension{}
+	dims, err := assist.CreateSlice(d, table)
+	if err != nil {
+		return err
+	}
 
+	for _, dim := range dims.([]*dimension) {
+		calls := f.ObservationDB.InsertObservationBatchCalls()
+		assert.Contains(&f.ErrorFeature, calls[batch].DimensionIDs, dim.Dimension)
+		if f.ErrorFeature.StepError() != nil {
+			return f.ErrorFeature.StepError()
+		}
+		assert.Equal(&f.ErrorFeature, dim.NodeID, calls[batch].DimensionIDs[dim.Dimension])
+		if f.ErrorFeature.StepError() != nil {
+			return f.ErrorFeature.StepError()
+		}
+	}
 	return f.ErrorFeature.StepError()
 }
 
