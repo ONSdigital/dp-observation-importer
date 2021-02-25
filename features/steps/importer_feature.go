@@ -2,14 +2,6 @@ package feature
 
 import (
 	"context"
-	"encoding/json"
-	"os"
-	"strings"
-	"syscall"
-	"time"
-
-	"os/signal"
-
 	graphConfig "github.com/ONSdigital/dp-graph/v2/config"
 	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-graph/v2/graph/driver"
@@ -18,26 +10,19 @@ import (
 	"github.com/ONSdigital/dp-healthcheck/healthcheck"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
-	runner "github.com/ONSdigital/dp-observation-importer/cmd/dp-observation-importer"
 	"github.com/ONSdigital/dp-observation-importer/config"
-	"github.com/ONSdigital/dp-observation-importer/dimension"
-	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/initialise"
 	initialiserMock "github.com/ONSdigital/dp-observation-importer/initialise/mock"
-	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-observation-importer/observation/mock"
-	"github.com/ONSdigital/dp-observation-importer/schema"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
 	featuretest "github.com/armakuni/dp-go-featuretest"
-	"github.com/cucumber/godog"
 	"github.com/maxcnunes/httpfake"
-	"github.com/rdumont/assistdog"
-	"github.com/stretchr/testify/assert"
+	"os"
 )
 
 type ImporterFeature struct {
 	ErrorFeature   featuretest.ErrorFeature
-	service        initialise.ExternalServiceList
+	serviceList    initialise.ExternalServiceList
 	KafkaConsumer  kafka.IConsumerGroup
 	KafkaProducer  kafka.IProducer
 	FakeDatasetAPI *httpfake.HTTPFake
@@ -81,19 +66,9 @@ func NewObservationImporterFeature(url string) *ImporterFeature {
 		DoGetGraphDBFunc:             f.DoGetGraphDB,
 	}
 
-	f.service = initialise.NewServiceList(initMock)
+	f.serviceList = initialise.NewServiceList(initMock)
 
 	return f
-}
-
-func (f *ImporterFeature) RegisterSteps(ctx *godog.ScenarioContext) {
-	ctx.Step(`^dataset instance "([^"]*)" has dimensions:$`, f.datasetInstanceHasDimensions)
-	ctx.Step(`^dataset instance "([^"]*)" has no dimensions$`, f.datasetInstanceHasNoDimensions)
-	ctx.Step(`^dataset instance "([^"]*)" has headers "([^"]*)"$`, f.datasetInstanceHasHeaders)
-	ctx.Step(`^these dimensions should be inserted into the database for batch "([^"]*)":$`, f.theseDimensionsShouldBeInsertedIntoTheDatabaseForBatch)
-	ctx.Step(`^these observations should be inserted into the database for batch "([^"]*)":$`, f.theseObservationsShouldBeInsertedIntoTheDatabaseForBatch)
-	ctx.Step(`^these observations are consumed:$`, f.theseObservationsAreConsumed)
-	ctx.Step(`^a message stating "([^"]*)" observation\(s\) inserted for instance ID "([^"]*)" is sent$`, f.aMessageStatingObservationsInsertedForInstanceIDIsSent)
 }
 
 func (f *ImporterFeature) Close() {
@@ -104,126 +79,6 @@ func (f *ImporterFeature) Close() {
 func (f *ImporterFeature) Reset() {
 	f.FakeDatasetAPI.Reset()
 	// f.KafkaConsumer = kafkatest.NewMessageConsumer(true)
-}
-
-func (f *ImporterFeature) datasetInstanceHasDimensions(instanceID string, table *godog.Table) error {
-	assist := assistdog.NewDefault()
-	var dimensionItem = &dimension.Dimension{}
-	dimensions, err := assist.CreateSlice(dimensionItem, table)
-	if err != nil {
-		return err
-	}
-	resultJSON, err := json.Marshal(dimensions)
-	if err != nil {
-		return err
-	}
-	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceID + "/dimensions").Reply(200).BodyString("{\"Items\": " + string(resultJSON) + "}")
-	return nil
-}
-
-func (f *ImporterFeature) datasetInstanceHasNoDimensions(instanceID string) error {
-	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceID + "/dimensions").Reply(200).BodyString("{\"Items\": [] }")
-	return nil
-}
-
-func (f *ImporterFeature) datasetInstanceHasHeaders(instanceID string, headers string) error {
-	type csvHeaders struct {
-		Headers []string `json:"headers"`
-	}
-	data := csvHeaders{
-		Headers: strings.Split(headers, ","),
-	}
-	b, err := json.Marshal(data)
-	if err != nil {
-		return err
-	}
-	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceID).Reply(200).BodyString(string(b))
-	return nil
-}
-
-func (f *ImporterFeature) theseObservationsShouldBeInsertedIntoTheDatabaseForBatch(batch int, observasionsJson *godog.DocString) error {
-
-	actualObservations := f.ObservationDB.InsertObservationBatchCalls()[batch].Observations
-
-	actualObservationsJson, err := json.Marshal(actualObservations)
-	if err != nil {
-		return err
-	}
-	assert.JSONEq(&f.ErrorFeature, observasionsJson.Content, string(actualObservationsJson))
-
-	return f.ErrorFeature.StepError()
-}
-func (f *ImporterFeature) theseDimensionsShouldBeInsertedIntoTheDatabaseForBatch(batch int, table *godog.Table) error {
-	type dimension struct {
-		Dimension string
-		NodeID    string
-	}
-	assist := assistdog.NewDefault()
-	dimensions, err := assist.CreateSlice(&dimension{}, table)
-	if err != nil {
-		return err
-	}
-
-	for _, dim := range dimensions.([]*dimension) {
-		calls := f.ObservationDB.InsertObservationBatchCalls()
-		assert.Contains(&f.ErrorFeature, calls[batch].DimensionIDs, dim.Dimension)
-		if f.ErrorFeature.StepError() != nil {
-			return f.ErrorFeature.StepError()
-		}
-		assert.Equal(&f.ErrorFeature, dim.NodeID, calls[batch].DimensionIDs[dim.Dimension])
-		if f.ErrorFeature.StepError() != nil {
-			return f.ErrorFeature.StepError()
-		}
-	}
-	return f.ErrorFeature.StepError()
-}
-
-func (f *ImporterFeature) theseObservationsAreConsumed(table *godog.Table) error {
-	config, err := config.Get()
-	if err != nil {
-		return err
-	}
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-
-	go func() {
-		runner.Run(context.Background(), config, f.service, signals)
-	}()
-
-	assist := assistdog.NewDefault()
-	observation := &event.ObservationExtracted{}
-	events, err := assist.CreateSlice(observation, table)
-	if err != nil {
-		return err
-	}
-
-	for _, event := range events.([]*event.ObservationExtracted) {
-		bytes, err := schema.ObservationExtractedEvent.Marshal(event)
-		if err != nil {
-			return err
-		}
-		message := kafkatest.NewMessage(bytes, 0)
-
-		f.KafkaConsumer.Channels().Upstream <- message
-	}
-
-	time.Sleep(300 * time.Millisecond)
-
-	signals <- os.Interrupt
-
-	return nil
-}
-
-func (f *ImporterFeature) aMessageStatingObservationsInsertedForInstanceIDIsSent(count int32, instanceID string) error {
-
-	message := <-f.KafkaProducer.Channels().Output
-	var unmarshalledMessage observation.InsertedEvent
-
-	schema.ObservationsInsertedEvent.Unmarshal(message, &unmarshalledMessage)
-
-	assert.Equal(&f.ErrorFeature, instanceID, unmarshalledMessage.InstanceID)
-	assert.Equal(&f.ErrorFeature, count, unmarshalledMessage.ObservationsInserted)
-	return f.ErrorFeature.StepError()
 }
 
 func (f *ImporterFeature) DoGetGraphDB(ctx context.Context) (*graph.DB, error) {
