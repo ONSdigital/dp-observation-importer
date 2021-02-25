@@ -3,7 +3,6 @@ package feature
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"os"
 	"strings"
 	"syscall"
@@ -56,14 +55,13 @@ func NewObservationImporterFeature(url string) *ImporterFeature {
 	os.Setenv("BATCH_SIZE", "1")
 	f.KafkaConsumer = kafkatest.NewMessageConsumer(false)
 
+	// setup fake InsertObservationBatch function so we can record calls made to it
 	f.ObservationDB = &mock.ObservationMock{
 		InsertObservationBatchFunc: func(ctx context.Context, attempt int, instanceID string, observations []*models.Observation, dimensionIDs map[string]string) error {
-			fmt.Println("inside insert function")
-			fmt.Println("dimensions received: ", observations[0].DimensionOptions[0].DimensionName)
-			fmt.Println("dimensions received: ", dimensionIDs)
 			return nil
 		},
 	}
+
 	channels := &kafka.ProducerChannels{
 		Output: make(chan []byte),
 	}
@@ -161,13 +159,12 @@ func (f *ImporterFeature) theseDimensionsShouldBeInsertedIntoTheDatabaseForBatch
 		NodeID    string
 	}
 	assist := assistdog.NewDefault()
-	d := &dimension{}
-	dims, err := assist.CreateSlice(d, table)
+	dimensions, err := assist.CreateSlice(&dimension{}, table)
 	if err != nil {
 		return err
 	}
 
-	for _, dim := range dims.([]*dimension) {
+	for _, dim := range dimensions.([]*dimension) {
 		calls := f.ObservationDB.InsertObservationBatchCalls()
 		assert.Contains(&f.ErrorFeature, calls[batch].DimensionIDs, dim.Dimension)
 		if f.ErrorFeature.StepError() != nil {
@@ -227,11 +224,6 @@ func (f *ImporterFeature) aMessageStatingObservationsInsertedForInstanceIDIsSent
 	assert.Equal(&f.ErrorFeature, instanceID, unmarshalledMessage.InstanceID)
 	assert.Equal(&f.ErrorFeature, count, unmarshalledMessage.ObservationsInserted)
 	return f.ErrorFeature.StepError()
-}
-
-func fakeInsert(ctx context.Context, attempt int, instanceID string, observations []*models.Observation, dimensionIDs map[string]string) error {
-	fmt.Println("inside insert function")
-	return nil
 }
 
 func (f *ImporterFeature) DoGetGraphDB(ctx context.Context) (*graph.DB, error) {
