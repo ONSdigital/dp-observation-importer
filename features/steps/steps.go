@@ -3,21 +3,22 @@ package feature
 import (
 	"context"
 	"encoding/json"
-	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
-	runner "github.com/ONSdigital/dp-observation-importer/cmd/dp-observation-importer"
-	"github.com/ONSdigital/dp-observation-importer/config"
-	"github.com/ONSdigital/dp-observation-importer/dimension"
-	"github.com/ONSdigital/dp-observation-importer/event"
-	"github.com/ONSdigital/dp-observation-importer/observation"
-	"github.com/ONSdigital/dp-observation-importer/schema"
-	"github.com/cucumber/godog"
-	"github.com/rdumont/assistdog"
-	"github.com/stretchr/testify/assert"
 	"os"
 	"os/signal"
 	"strings"
 	"syscall"
 	"time"
+
+	"github.com/ONSdigital/dp-kafka/v2/kafkatest"
+	"github.com/ONSdigital/dp-observation-importer/config"
+	"github.com/ONSdigital/dp-observation-importer/dimension"
+	"github.com/ONSdigital/dp-observation-importer/event"
+	"github.com/ONSdigital/dp-observation-importer/observation"
+	"github.com/ONSdigital/dp-observation-importer/schema"
+	"github.com/ONSdigital/dp-observation-importer/service"
+	"github.com/cucumber/godog"
+	"github.com/rdumont/assistdog"
+	"github.com/stretchr/testify/assert"
 )
 
 func (f *ImporterFeature) RegisterSteps(ctx *godog.ScenarioContext) {
@@ -76,7 +77,7 @@ func (f *ImporterFeature) theseObservationsAreConsumed(table *godog.Table) error
 
 	// run application in separate goroutine
 	go func() {
-		_ = runner.Run(context.Background(), cfg, f.serviceList, signals)
+		_ = service.Run(context.Background(), cfg, f.serviceList, signals, "", "", "")
 	}()
 
 	// consume extracted observations
