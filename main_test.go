@@ -14,11 +14,7 @@ import (
 
 var componentFlag = flag.Bool("component", false, "perform component tests")
 
-type FeatureTest struct {
-	Mongo *featuretest.MongoCapability
-}
-
-func (f *FeatureTest) InitializeScenario(ctx *godog.ScenarioContext) {
+func InitializeScenario(ctx *godog.ScenarioContext) {
 	authorizationFeature := featuretest.NewAuthorizationFeature()
 	importerFeature := feature.NewObservationImporterFeature(authorizationFeature.FakeAuthService.ResolveURL(""))
 
@@ -36,7 +32,7 @@ func (f *FeatureTest) InitializeScenario(ctx *godog.ScenarioContext) {
 	authorizationFeature.RegisterSteps(ctx)
 }
 
-func (f *FeatureTest) InitializeTestSuite(ctx *godog.TestSuiteContext) {
+func InitializeTestSuite(ctx *godog.TestSuiteContext) {
 	ctx.BeforeSuite(func() {
 	})
 	ctx.AfterSuite(func() {
@@ -46,22 +42,24 @@ func (f *FeatureTest) InitializeTestSuite(ctx *godog.TestSuiteContext) {
 func TestComponent(t *testing.T) {
 	if *componentFlag {
 		status := 0
+
 		var opts = godog.Options{
 			Output: colors.Colored(os.Stdout),
 			Format: "pretty",
 			Paths:  flag.Args(),
 		}
 
-		f := &FeatureTest{}
-
 		status = godog.TestSuite{
 			Name:                 "feature_tests",
-			ScenarioInitializer:  f.InitializeScenario,
-			TestSuiteInitializer: f.InitializeTestSuite,
+			ScenarioInitializer:  InitializeScenario,
+			TestSuiteInitializer: InitializeTestSuite,
 			Options:              &opts,
 		}.Run()
 
-		os.Exit(status)
+		if status > 0 {
+			t.Fail()
+		}
+
 	} else {
 		t.Skip("component flag required to run component tests")
 	}
