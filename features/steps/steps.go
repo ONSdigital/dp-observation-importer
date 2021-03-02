@@ -22,17 +22,18 @@ import (
 )
 
 func (f *ImporterFeature) RegisterSteps(ctx *godog.ScenarioContext) {
-	ctx.Step(`^dataset instance "([^"]*)" has dimensions:$`, f.datasetInstanceHasDimensions)
-	ctx.Step(`^dataset instance "([^"]*)" has no dimensions$`, f.datasetInstanceHasNoDimensions)
-	ctx.Step(`^dataset instance "([^"]*)" has headers "([^"]*)"$`, f.datasetInstanceHasHeaders)
 	ctx.Step(`^these observations are consumed:$`, f.theseObservationsAreConsumed)
 	ctx.Step(`^these dimensions should be inserted into the database for batch "([^"]*)":$`, f.theseDimensionsShouldBeInsertedIntoTheDatabaseForBatch)
 	ctx.Step(`^these observations should be inserted into the database for batch "([^"]*)":$`, f.theseObservationsShouldBeInsertedIntoTheDatabaseForBatch)
-	ctx.Step(`^a message stating "([^"]*)" observation\(s\) inserted for instance ID "([^"]*)" is sent$`, f.aMessageStatingObservationsInsertedForInstanceIDIsSent)
+	ctx.Step(`^a message stating "([^"]*)" observation\(s\) inserted for instance ID "([^"]*)" is produced$`, f.aMessageStatingObservationsInsertedForInstanceIDIsProduced)
 	ctx.Step(`^the observation batch size is set to "([^"]*)"$`, f.theObservationBatchSizeIsSetTo)
+
+	ctx.Step(`^instance "([^"]*)" on dataset-api has dimensions:$`, f.instanceOnDatasetapiHasDimensions)
+	ctx.Step(`^instance "([^"]*)" on dataset-api has headers "([^"]*)"$`, f.instanceOnDatasetapiHasHeaders)
+	ctx.Step(`^instance "([^"]*)" on dataset-api has no dimensions$`, f.instanceOnDatasetapiHasNoDimensions)
 }
 
-func (f *ImporterFeature) datasetInstanceHasDimensions(instanceID string, table *godog.Table) error {
+func (f *ImporterFeature) instanceOnDatasetapiHasDimensions(instanceID string, table *godog.Table) error {
 	dimensions, err := f.convertToDimensionsJson(table)
 	if err != nil {
 		return err
@@ -42,12 +43,12 @@ func (f *ImporterFeature) datasetInstanceHasDimensions(instanceID string, table 
 	return nil
 }
 
-func (f *ImporterFeature) datasetInstanceHasNoDimensions(instanceID string) error {
+func (f *ImporterFeature) instanceOnDatasetapiHasNoDimensions(instanceID string) error {
 	f.FakeDatasetAPI.NewHandler().Get("/instances/" + instanceID + "/dimensions").Reply(200).BodyString("{\"Items\": [] }")
 	return nil
 }
 
-func (f *ImporterFeature) datasetInstanceHasHeaders(instanceID string, headers string) error {
+func (f *ImporterFeature) instanceOnDatasetapiHasHeaders(instanceID string, headers string) error {
 	type csvHeaders struct {
 		Headers []string `json:"headers"`
 	}
@@ -150,7 +151,7 @@ func (f *ImporterFeature) theseDimensionsShouldBeInsertedIntoTheDatabaseForBatch
 	return f.ErrorFeature.StepError()
 }
 
-func (f *ImporterFeature) aMessageStatingObservationsInsertedForInstanceIDIsSent(count int32, instanceID string) error {
+func (f *ImporterFeature) aMessageStatingObservationsInsertedForInstanceIDIsProduced(count int32, instanceID string) error {
 
 	message := <-f.KafkaProducer.Channels().Output
 	var unmarshalledMessage observation.InsertedEvent

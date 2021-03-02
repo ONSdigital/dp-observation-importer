@@ -31,7 +31,6 @@ func main() {
 		os.Exit(1)
 	}
 	// External services and their initialization state
-	// var serviceList initialise.ExternalServiceList
 	serviceList := initialise.NewServiceList(&initialise.Init{})
 
 	// Sensitive fields are omitted from config.String()
