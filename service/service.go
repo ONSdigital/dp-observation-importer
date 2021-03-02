@@ -146,12 +146,17 @@ func Run(ctx context.Context, cfg *config.Config, serviceList initialise.Externa
 	observationsImportedProducer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+cfg.ResultProducerTopic)
 	observationsImportedErrProducer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+cfg.ErrorProducerTopic)
 
+	go func() {
+		select {
+		case apiError := <-errorChannel:
+			log.Event(ctx, "error received from http server", log.ERROR, log.Error(apiError))
+		}
+	}()
+
 	// block until a fatal error occurs
 	select {
 	case <-signals:
 		log.Event(ctx, "os signal received", log.INFO)
-	case err = <-errorChannel:
-		log.Event(ctx, "error received from http server, shutting down application", log.ERROR, log.Error(err))
 	}
 
 	log.Event(ctx, fmt.Sprintf("shutdown with timeout: %s", cfg.GracefulShutdownTimeout), log.INFO)
@@ -169,7 +174,7 @@ func Run(ctx context.Context, cfg *config.Config, serviceList initialise.Externa
 		}
 
 		var hasShutdownError bool
-		err = httpServer.Shutdown(shutdownContext)
+		err := httpServer.Shutdown(shutdownContext)
 		if err != nil {
 			log.Event(ctx, "failed to shutdown http server", log.ERROR, log.Error(err))
 			hasShutdownError = true

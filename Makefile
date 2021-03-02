@@ -25,14 +25,12 @@ build:
 
 .PHONY: debug
 debug: build
-	HUMAN_LOG=1 go run $(LDFLAGS) cmd/dp-observation-importer/main.go
+	HUMAN_LOG=1 go run -race $(LDFLAGS) cmd/dp-observation-importer/main.go
 
 .PHONY: test
 test:
 	go test -cover -race ./...
 
-.PHONY: build debug test
-
 .PHONY: test-component
 test-component:
-	go test -component
+	go test -cover -race -component
