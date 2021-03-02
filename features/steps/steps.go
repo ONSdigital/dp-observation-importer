@@ -29,6 +29,7 @@ func (f *ImporterFeature) RegisterSteps(ctx *godog.ScenarioContext) {
 	ctx.Step(`^these dimensions should be inserted into the database for batch "([^"]*)":$`, f.theseDimensionsShouldBeInsertedIntoTheDatabaseForBatch)
 	ctx.Step(`^these observations should be inserted into the database for batch "([^"]*)":$`, f.theseObservationsShouldBeInsertedIntoTheDatabaseForBatch)
 	ctx.Step(`^a message stating "([^"]*)" observation\(s\) inserted for instance ID "([^"]*)" is sent$`, f.aMessageStatingObservationsInsertedForInstanceIDIsSent)
+	ctx.Step(`^the observation batch size is set to "([^"]*)"$`, f.theObservationBatchSizeIsSetTo)
 }
 
 func (f *ImporterFeature) datasetInstanceHasDimensions(instanceID string, table *godog.Table) error {
@@ -87,7 +88,7 @@ func (f *ImporterFeature) theseObservationsAreConsumed(table *godog.Table) error
 		}
 	}
 
-	time.Sleep(300 * time.Millisecond)
+	time.Sleep(800 * time.Millisecond)
 
 	// kill application
 	signals <- os.Interrupt
@@ -179,4 +180,10 @@ func (f *ImporterFeature) convertToObservationEvents(table *godog.Table) ([]*eve
 		return nil, err
 	}
 	return events.([]*event.ObservationExtracted), nil
+}
+
+func (f *ImporterFeature) theObservationBatchSizeIsSetTo(batchSize string) error {
+	os.Setenv("BATCH_SIZE", batchSize)
+
+	return nil
 }

@@ -1,5 +1,8 @@
 Feature: Batching messages from Kafka
 
+    Background:
+        Given the observation batch size is set to "2"
+
     Scenario: Consuming one observation whose instance has only headrs
         Given dataset instance "7" has headers "V4_1,H1,H2,Time,,Code,,Age"
         And dataset instance "7" has no dimensions
@@ -51,3 +54,38 @@ Feature: Batching messages from Kafka
             | 111    | 7_age_29   |
             | 111    | 7_sex_male |
         And a message stating "1" observation(s) inserted for instance ID "7" is sent
+
+
+    Scenario: Consuming more than one observation whose instances have only headrs
+        Given dataset instance "7" has headers "V4_1,H1,H2,Time,,Code,,Age"
+        And dataset instance "7" has no dimensions
+        When these observations are consumed:
+            | InstanceID | Row                              |
+            | 7          | 128,,Month,Aug-16,K02000001,0,29 |
+            | 7          | 129,,Month,Aug-17,K02000002,0,31 |
+        Then these observations should be inserted into the database for batch "0":
+        """
+            [
+                {
+                    "Row": "128,,Month,Aug-16,K02000001,0,29",
+                    "RowIndex": 0,
+                    "InstanceID": "7",
+                    "DimensionOptions": [
+                        {"DimensionName":"Time", "Name":"Aug-16"},
+                        {"DimensionName":"Code", "Name":"K02000001"},
+                        {"DimensionName":"Age", "Name":"29"}
+                    ]
+                },
+                {
+                    "Row": "129,,Month,Aug-17,K02000002,0,31",
+                    "RowIndex": 0,
+                    "InstanceID": "7",
+                    "DimensionOptions": [
+                        {"DimensionName":"Time", "Name":"Aug-17"},
+                        {"DimensionName":"Code", "Name":"K02000002"},
+                        {"DimensionName":"Age", "Name":"31"}
+                    ]
+                }
+            ]
+        """
+        And a message stating "2" observation(s) inserted for instance ID "7" is sent

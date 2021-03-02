@@ -2,6 +2,8 @@ package feature
 
 import (
 	"context"
+	"os"
+
 	graphConfig "github.com/ONSdigital/dp-graph/v2/config"
 	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-graph/v2/graph/driver"
@@ -17,7 +19,6 @@ import (
 	"github.com/ONSdigital/dp-reporter-client/reporter"
 	featuretest "github.com/armakuni/dp-go-featuretest"
 	"github.com/maxcnunes/httpfake"
-	"os"
 )
 
 type ImporterFeature struct {
@@ -37,8 +38,9 @@ func NewObservationImporterFeature(url string) *ImporterFeature {
 	f.FakeDatasetAPI = httpfake.New()
 	os.Setenv("DATASET_API_URL", f.FakeDatasetAPI.ResolveURL(""))
 	os.Setenv("GRAPH_DRIVER_TYPE", "mock")
-	os.Setenv("BATCH_SIZE", "1")
-	f.KafkaConsumer = kafkatest.NewMessageConsumer(false)
+	consumer := kafkatest.NewMessageConsumer(false)
+	consumer.CheckerFunc = funcCheck
+	f.KafkaConsumer = consumer
 
 	// setup fake InsertObservationBatch function so we can record calls made to it
 	f.ObservationDB = &mock.ObservationMock{
