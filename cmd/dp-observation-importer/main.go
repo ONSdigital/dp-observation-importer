@@ -43,9 +43,6 @@ func run(ctx context.Context) error {
 		return err
 	}
 
-	// External services and their initialization state
-	serviceList := initialise.NewServiceList(&initialise.Init{})
-
 	// Sensitive fields are omitted from config.String()
 	log.Event(ctx, "loaded config", log.INFO, log.Data{"config": cfg})
 
