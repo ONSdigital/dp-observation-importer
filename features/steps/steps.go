@@ -89,7 +89,7 @@ func (f *ImporterFeature) theseObservationsAreConsumed(table *godog.Table) error
 		}
 	}
 
-	time.Sleep(800 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
 
 	// kill application
 	signals <- os.Interrupt
