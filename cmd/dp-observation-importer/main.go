@@ -47,7 +47,6 @@ func run(ctx context.Context) error {
 	log.Event(ctx, "loaded config", log.INFO, log.Data{"config": cfg})
 
 	// External services and their initialization state
-	// var serviceList initialise.ExternalServiceList
 	serviceList := initialise.NewServiceList(&initialise.Init{})
 
 	if err := service.Run(ctx, cfg, serviceList, signals, BuildTime, GitCommit, Version); err != nil {

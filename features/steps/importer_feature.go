@@ -31,7 +31,7 @@ type ImporterFeature struct {
 	killChannel    chan os.Signal
 }
 
-func NewObservationImporterFeature(url string) *ImporterFeature {
+func NewObservationImporterFeature() *ImporterFeature {
 
 	f := &ImporterFeature{}
 
@@ -75,12 +75,10 @@ func NewObservationImporterFeature(url string) *ImporterFeature {
 
 func (f *ImporterFeature) Close() {
 	f.FakeDatasetAPI.Close()
-	// f.KafkaConsumer.Close(context.Background())
 }
 
 func (f *ImporterFeature) Reset() {
 	f.FakeDatasetAPI.Reset()
-	// f.KafkaConsumer = kafkatest.NewMessageConsumer(true)
 }
 
 func (f *ImporterFeature) DoGetGraphDB(ctx context.Context) (*graph.DB, error) {
@@ -130,18 +128,18 @@ func (f *ImporterFeature) DoGetImportErrorReporter(ObservationsImportedErrProduc
 	return
 }
 
-func funcClose(ctx context.Context) error {
-	return nil
-}
-
-func funcCheck(ctx context.Context, state *healthcheck.CheckState) error {
-	return nil
-}
-
 func (f *ImporterFeature) DoGetProducer(ctx context.Context, kafkaBrokers []string, topic string, name initialise.KafkaProducerName, cfg *config.Config) (kafkaProducer kafka.IProducer, err error) {
 	return f.KafkaProducer, nil
 }
 
 func (f *ImporterFeature) DoGetConsumer(ctx context.Context, cfg *config.Config) (kafkaConsumer kafka.IConsumerGroup, err error) {
 	return f.KafkaConsumer, nil
+}
+
+func funcClose(ctx context.Context) error {
+	return nil
+}
+
+func funcCheck(ctx context.Context, state *healthcheck.CheckState) error {
+	return nil
 }

@@ -7,7 +7,6 @@ import (
 
 	feature "github.com/ONSdigital/dp-observation-importer/features/steps"
 
-	featuretest "github.com/armakuni/dp-go-featuretest"
 	"github.com/cucumber/godog"
 	"github.com/cucumber/godog/colors"
 )
@@ -15,21 +14,17 @@ import (
 var componentFlag = flag.Bool("component", false, "perform component tests")
 
 func InitializeScenario(ctx *godog.ScenarioContext) {
-	authorizationFeature := featuretest.NewAuthorizationFeature()
-	importerFeature := feature.NewObservationImporterFeature(authorizationFeature.FakeAuthService.ResolveURL(""))
+	importerFeature := feature.NewObservationImporterFeature()
 
 	ctx.BeforeScenario(func(*godog.Scenario) {
 		importerFeature.Reset()
-		authorizationFeature.Reset()
 	})
 
 	ctx.AfterScenario(func(*godog.Scenario, error) {
-		authorizationFeature.Close()
 		importerFeature.Close()
 	})
 
 	importerFeature.RegisterSteps(ctx)
-	authorizationFeature.RegisterSteps(ctx)
 }
 
 func InitializeTestSuite(ctx *godog.TestSuiteContext) {
@@ -41,7 +36,6 @@ func InitializeTestSuite(ctx *godog.TestSuiteContext) {
 
 func TestComponent(t *testing.T) {
 	if *componentFlag {
-		status := 0
 
 		var opts = godog.Options{
 			Output: colors.Colored(os.Stdout),
@@ -49,7 +43,7 @@ func TestComponent(t *testing.T) {
 			Paths:  flag.Args(),
 		}
 
-		status = godog.TestSuite{
+		status := godog.TestSuite{
 			Name:                 "feature_tests",
 			ScenarioInitializer:  InitializeScenario,
 			TestSuiteInitializer: InitializeTestSuite,

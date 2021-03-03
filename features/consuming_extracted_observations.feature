@@ -3,7 +3,7 @@ Feature: Batching messages from Kafka
     Background:
         Given the observation batch size is set to "2"
 
-    Scenario: Consuming one observation whose instance has only headrs
+    Scenario: Consuming one observation whose instance has only headers
         Given instance "7" on dataset-api has headers "V4_1,H1,Time_code,Time,Code_code,Code,Age_code,Age"
         And instance "7" on dataset-api has no dimensions
         When these observations are consumed:
@@ -56,7 +56,7 @@ Feature: Batching messages from Kafka
         And a message stating "1" observation(s) inserted for instance ID "7" is produced
 
 
-    Scenario: Consuming more than one observation whose instances have only headrs
+    Scenario: Consuming more than one observation whose instances have only headers
         Given instance "7" on dataset-api has headers "V4_1,H1,Time_code,Time,Code_code,Code,Age_code,Age"
         And instance "7" on dataset-api has no dimensions
         When these observations are consumed:
