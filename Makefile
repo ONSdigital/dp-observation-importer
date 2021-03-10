@@ -33,4 +33,4 @@ test:
 
 .PHONY: test-component
 test-component:
-	go test -cover -race -component
+	go test -race -cover -coverpkg=github.com/ONSdigital/dp-observation-importer/... -component
