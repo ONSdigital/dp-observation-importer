@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 
+	componenttest "github.com/ONSdigital/dp-component-test"
 	graphConfig "github.com/ONSdigital/dp-graph/v2/config"
 	"github.com/ONSdigital/dp-graph/v2/graph"
 	"github.com/ONSdigital/dp-graph/v2/graph/driver"
@@ -17,12 +18,11 @@ import (
 	initialiserMock "github.com/ONSdigital/dp-observation-importer/initialise/mock"
 	"github.com/ONSdigital/dp-observation-importer/observation/mock"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
-	featuretest "github.com/armakuni/dp-go-featuretest"
 	"github.com/maxcnunes/httpfake"
 )
 
 type ImporterFeature struct {
-	ErrorFeature   featuretest.ErrorFeature
+	ErrorFeature   componenttest.ErrorFeature
 	serviceList    initialise.ExternalServiceList
 	KafkaConsumer  kafka.IConsumerGroup
 	KafkaProducer  kafka.IProducer
