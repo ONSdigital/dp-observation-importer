@@ -38,6 +38,8 @@ func TestSpec(t *testing.T) {
 				So(cfg.ZebedeeURL, ShouldEqual, "http://localhost:8082")
 				So(cfg.HealthCheckInterval, ShouldEqual, 30*time.Second)
 				So(cfg.HealthCheckCriticalTimeout, ShouldEqual, 90*time.Second)
+				So(cfg.GraphDriverChoice, ShouldEqual, "neo4j")
+				So(cfg.EnableGetGraphDimensionID, ShouldBeTrue)
 			})
 		})
 	})

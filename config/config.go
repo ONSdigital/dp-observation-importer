@@ -25,6 +25,8 @@ type Config struct {
 	HealthCheckInterval        time.Duration `envconfig:"HEALTHCHECK_INTERVAL"`
 	HealthCheckCriticalTimeout time.Duration `envconfig:"HEALTHCHECK_CRITICAL_TIMEOUT"`
 	KafkaVersion               string        `envconfig:"KAFKA_VERSION"`
+	GraphDriverChoice          string        `envconfig:"GRAPH_DRIVER_TYPE"`
+	EnableGetGraphDimensionID  bool          `envconfig:"ENABLE_GET_GRAPH_DIMENSION_ID"`
 }
 
 // Get the configuration values from the environment or provide the defaults.
@@ -48,6 +50,8 @@ func Get() (*Config, error) {
 		HealthCheckInterval:        30 * time.Second,
 		HealthCheckCriticalTimeout: 90 * time.Second,
 		KafkaVersion:               "1.0.2",
+		GraphDriverChoice:          "neo4j",
+		EnableGetGraphDimensionID:  true,
 	}
 
 	if err := envconfig.Process("", cfg); err != nil {

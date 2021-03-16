@@ -129,7 +129,7 @@ func Run(ctx context.Context, cfg *config.Config, serviceList initialise.Externa
 	observationMapper := observation.NewMapper(dimensionOrderCache)
 
 	// stores observations in the DB.
-	observationStore := observation.NewStore(dimensionIDCache, graphDB, errorReporter)
+	observationStore := observation.NewStore(dimensionIDCache, graphDB, errorReporter, true)
 
 	// write import results to kafka topic.
 	resultWriter := observation.NewResultWriter(observationsImportedProducer)
