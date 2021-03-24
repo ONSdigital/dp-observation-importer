@@ -8,12 +8,12 @@ Feature: Batching messages from Kafka
         And instance "7" on dataset-api has no dimensions
         When these observations are consumed:
             | InstanceID | Row                              |
-            | 7          | 128,,Month,Aug-16,K02000001,0,29 |
+            | 7          | 128,,Aug-16,,K02000001,0,29 |
         Then these observations should be inserted into the database for batch "0":
         """
             [
                 {
-                    "Row": "128,,Month,Aug-16,K02000001,0,29",
+                    "Row": "128,,Aug-16,,K02000001,0,29",
                     "RowIndex": 0,
                     "InstanceID": "7",
                     "DimensionOptions": [
@@ -43,7 +43,7 @@ Feature: Batching messages from Kafka
                     "RowIndex": 0,
                     "InstanceID": "7",
                     "DimensionOptions": [
-                        {"DimensionName":"Code", "Name":"AK101"},
+                        {"DimensionName":"Code", "Name":"5"},
                         {"DimensionName":"Age", "Name":"29"}
                     ]
                 }
@@ -61,13 +61,13 @@ Feature: Batching messages from Kafka
         And instance "7" on dataset-api has no dimensions
         When these observations are consumed:
             | InstanceID | Row                              |
-            | 7          | 128,,Month,Aug-16,K02000001,0,29 |
-            | 7          | 129,,Month,Aug-17,K02000002,0,31 |
+            | 7          | 128,,Aug-16,,K02000001,0,29 |
+            | 7          | 129,,Aug-17,,K02000002,0,31 |
         Then these observations should be inserted into the database for batch "0":
         """
             [
                 {
-                    "Row": "128,,Month,Aug-16,K02000001,0,29",
+                    "Row": "128,,Aug-16,,K02000001,0,29",
                     "RowIndex": 0,
                     "InstanceID": "7",
                     "DimensionOptions": [
@@ -77,7 +77,7 @@ Feature: Batching messages from Kafka
                     ]
                 },
                 {
-                    "Row": "129,,Month,Aug-17,K02000002,0,31",
+                    "Row": "129,,Aug-17,,K02000002,0,31",
                     "RowIndex": 0,
                     "InstanceID": "7",
                     "DimensionOptions": [
