@@ -21,7 +21,7 @@ func TestMapper_Map(t *testing.T) {
 
 		Convey("When map is called with an example csv line", func() {
 
-			csvRow := "128,,Month,Aug-16,K02000001,,cpi1dim1A0,CPI (overall index)"
+			csvRow := "128,,aug-16,Aug-16,K02000001,,cpi1dim1A0,CPI (overall index)"
 			rowIndex := int64(453)
 			instanceID := "123321"
 			observation, err := mapper.Map(ctx, csvRow, rowIndex, instanceID)
@@ -35,7 +35,7 @@ func TestMapper_Map(t *testing.T) {
 
 				So(len(observation.DimensionOptions), ShouldEqual, 3)
 				So(observation.DimensionOptions[0].DimensionName, ShouldEqual, "Time")
-				So(observation.DimensionOptions[0].Name, ShouldEqual, "Aug-16")
+				So(observation.DimensionOptions[0].Name, ShouldEqual, "aug-16")
 				So(observation.DimensionOptions[1].DimensionName, ShouldEqual, "Geography")
 				So(observation.DimensionOptions[1].Name, ShouldEqual, "K02000001")
 				So(observation.DimensionOptions[2].DimensionName, ShouldEqual, "Aggregate")
