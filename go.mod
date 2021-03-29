@@ -13,6 +13,7 @@ require (
 	github.com/ONSdigital/log.go v1.0.1
 	github.com/armakuni/dp-go-featuretest v0.0.0-20210211115457-6586e232612a
 	github.com/cucumber/godog v0.10.0
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/mock v1.4.4
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.1 // indirect
@@ -24,6 +25,5 @@ require (
 	github.com/rdumont/assistdog v0.0.0-20201106100018-168b06230d14
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/stretchr/testify v1.6.1
-	golang.org/x/sync v0.0.0-20200625203802-6e8e738ad208 // indirect
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
 )
