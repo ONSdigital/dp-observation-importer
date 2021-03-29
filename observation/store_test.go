@@ -39,7 +39,7 @@ func TestStore_SaveAll(t *testing.T) {
 		db := graph.Test(true, true, true)
 
 		errorReporterMock := reportertest.NewImportErrorReporterMock(nil)
-		s := store.NewStore(idCache, db, errorReporterMock)
+		s := store.NewStore(idCache, db, errorReporterMock, true)
 
 		Convey("When save all is called", func() {
 
@@ -72,7 +72,7 @@ func TestStore_SaveAll_GetNodeIDError(t *testing.T) {
 
 		db := graph.Test(true, true, true)
 
-		s := store.NewStore(idCache, db, errorReporterMock)
+		s := store.NewStore(idCache, db, errorReporterMock, true)
 
 		Convey("When save all is called", func() {
 

@@ -2,6 +2,7 @@ package observation
 
 import (
 	"context"
+
 	"github.com/ONSdigital/dp-graph/v2/models"
 
 	graph "github.com/ONSdigital/dp-graph/v2/graph/driver"
@@ -16,17 +17,19 @@ type DimensionIDCache interface {
 
 // Store provides persistence for observations.
 type Store struct {
-	dimensionIDCache DimensionIDCache
-	graph            graph.Observation
-	errorReporter    reporter.ErrorReporter
+	dimensionIDCache    DimensionIDCache
+	graph               graph.Observation
+	errorReporter       reporter.ErrorReporter
+	getGraphDimensionID bool
 }
 
 // NewStore returns a new Observation store instance that uses the given dimension ID cache and db connection.
-func NewStore(dimensionIDCache DimensionIDCache, db graph.Observation, errorReporter reporter.ErrorReporter) *Store {
+func NewStore(dimensionIDCache DimensionIDCache, db graph.Observation, errorReporter reporter.ErrorReporter, getGraphDimensionID bool) *Store {
 	return &Store{
-		dimensionIDCache: dimensionIDCache,
-		graph:            db,
-		errorReporter:    errorReporter,
+		dimensionIDCache:    dimensionIDCache,
+		graph:               db,
+		errorReporter:       errorReporter,
+		getGraphDimensionID: getGraphDimensionID,
 	}
 }
 
@@ -44,10 +47,14 @@ func (store *Store) SaveAll(ctx context.Context, observations []*models.Observat
 	instanceObservations := mapObservationsToInstances(observations)
 
 	for instanceID, observations := range instanceObservations {
-		dimensionIds, err := store.dimensionIDCache.GetNodeIDs(ctx, instanceID)
-		if err != nil {
-			store.reportError(ctx, instanceID, "failed to get dimension node id's for batch", err)
-			return results, err
+		var dimensionIds map[string]string
+		var err error
+		if store.getGraphDimensionID {
+			dimensionIds, err = store.dimensionIDCache.GetNodeIDs(ctx, instanceID)
+			if err != nil {
+				store.reportError(ctx, instanceID, "failed to get dimension node id's for batch", err)
+				return results, err
+			}
 		}
 
 		if err := store.graph.InsertObservationBatch(context.Background(), 1, instanceID, observations, dimensionIds); err != nil {

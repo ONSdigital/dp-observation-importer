@@ -14,6 +14,7 @@ require (
 	github.com/ONSdigital/log.go v1.0.1
 	github.com/cucumber/godog v0.10.0
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
+	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/mock v1.5.0
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2 // indirect
