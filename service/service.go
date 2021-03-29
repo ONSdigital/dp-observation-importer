@@ -33,6 +33,13 @@ func Run(ctx context.Context, cfg *config.Config, serviceList initialise.Externa
 
 	log.Event(ctx, "starting observation importer", log.INFO)
 
+	if cfg.GraphDriverChoice == "neo4j" && !cfg.EnableGetGraphDimensionID {
+		errStr := "Invalid flag combination, getGraphDimensionID must not be false for Neo4j"
+		err := errors.New(errStr)
+		log.Event(ctx, errStr, log.FATAL, log.Error(err))
+		return err
+	}
+
 	// Get syncConsumerGroup Kafka Consumer
 	syncConsumerGroup, err := serviceList.GetConsumer(ctx, cfg)
 	if err != nil {
@@ -129,7 +136,7 @@ func Run(ctx context.Context, cfg *config.Config, serviceList initialise.Externa
 	observationMapper := observation.NewMapper(dimensionOrderCache)
 
 	// stores observations in the DB.
-	observationStore := observation.NewStore(dimensionIDCache, graphDB, errorReporter, true)
+	observationStore := observation.NewStore(dimensionIDCache, graphDB, errorReporter, cfg.EnableGetGraphDimensionID)
 
 	// write import results to kafka topic.
 	resultWriter := observation.NewResultWriter(observationsImportedProducer)

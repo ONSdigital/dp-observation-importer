@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"os"
 	"os/signal"
 	"syscall"
@@ -46,13 +45,6 @@ func run(ctx context.Context) error {
 
 	// Sensitive fields are omitted from config.String()
 	log.Event(ctx, "loaded config", log.INFO, log.Data{"config": cfg})
-
-	if cfg.GraphDriverChoice == "neo4j" && !cfg.EnableGetGraphDimensionID {
-		errStr := "Invalid flag combination, getGraphDimensionID must not be false for Neo4j"
-		err = errors.New(errStr)
-		log.Event(ctx, errStr, log.FATAL, log.Error(err))
-		return err
-	}
 
 	// External services and their initialization state
 	serviceList := initialise.NewServiceList(&initialise.Init{})
