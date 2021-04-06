@@ -3,8 +3,10 @@ package observation
 import (
 	"context"
 	"encoding/csv"
-	"github.com/ONSdigital/dp-graph/v2/models"
+	"fmt"
 	"strings"
+
+	"github.com/ONSdigital/dp-graph/v2/models"
 
 	inputcsv "github.com/ONSdigital/dp-observation-importer/csv"
 )
@@ -47,29 +49,14 @@ func (mapper *Mapper) Map(ctx context.Context, row string, rowIndex int64, insta
 		return nil, err
 	}
 
-	// if we want to support time being in any column we need to look at the header to see what column time is in.
-	// TODO review whether this is safe to assume. If there are a lot of rows it could be a lot of CPU to determine
-	// this for every row.
-	timeDimensionOffset := dimensionOffset // Assume time is always first
-
+	// Populate DimensionOptions map assuming that the code always corresponds to the first column.
+	// Empty options will return an error, although in this scenario, dimension importer should already have failed.
 	for i := dimensionOffset; i < len(headerRow); i += 2 {
-
-		var dimensionName, dimensionOption string
-
-		if i == timeDimensionOffset {
-			dimensionOption = csvRow[i+1] // code list value
-		} else {
-
-			dimensionOption = csvRow[i] // code list value
-
-			// if there is no code provided, use the label
-			if len(dimensionOption) == 0 {
-				dimensionOption = csvRow[i+1] // dimension option value
-			}
+		dimensionOption := csvRow[i] // code list value
+		if len(dimensionOption) == 0 {
+			return nil, fmt.Errorf("dimension option was empty, it was expected in the first column. Csv row: %v", csvRow)
 		}
-
-		dimensionName = headerRow[i+1]
-
+		dimensionName := headerRow[i+1]
 		dimensions = append(dimensions,
 			&models.DimensionOption{DimensionName: dimensionName, Name: dimensionOption})
 	}
