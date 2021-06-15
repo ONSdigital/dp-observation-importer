@@ -27,6 +27,10 @@ build:
 debug: build
 	HUMAN_LOG=1 go run -race $(LDFLAGS) cmd/dp-observation-importer/main.go
 
+.PHONY: lint
+lint:
+	exit
+
 .PHONY: test
 test:
 	go test -cover -race ./...
