@@ -16,7 +16,7 @@ all: audit test build
 
 .PHONY: audit
 audit:
-	go list -json -m all | nancy sleuth --exclude-vulnerability-file ./.nancy-ignore
+	go list -json -m all | nancy sleuth
 
 .PHONY: build
 build:
@@ -26,6 +26,10 @@ build:
 .PHONY: debug
 debug: build
 	HUMAN_LOG=1 go run -race $(LDFLAGS) cmd/dp-observation-importer/main.go
+
+.PHONY: lint
+lint:
+	exit
 
 .PHONY: test
 test:
