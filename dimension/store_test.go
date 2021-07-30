@@ -8,7 +8,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 	"github.com/ONSdigital/dp-observation-importer/dimension/dimensiontest"
 	"github.com/golang/mock/gomock"
 	. "github.com/smartystreets/goconvey/convey"
@@ -33,7 +34,7 @@ func TestStore_GetOrder(t *testing.T) {
 			if err != nil {
 				t.Errorf("unable to json marshal test data: %v", data)
 			}
-			mockDatasetClient.EXPECT().GetInstanceBytes(ctx, "", authToken, "", "1").Return(b, nil)
+			mockDatasetClient.EXPECT().GetInstanceBytes(ctx, "", authToken, "", "1", headers.IfMatchAnyETag).Return(b, "", nil)
 
 			Convey("Then the CSV headers are returned", func() {
 				dataStore := &DatasetStore{
@@ -64,7 +65,7 @@ func TestStore_GetOrderReturnAnError(t *testing.T) {
 
 		// Setup mocked dataset client
 		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
-		mockDatasetClient.EXPECT().GetInstanceBytes(ctx, "", authToken, "", "1").Return(nil, errDatasetAPICodeServerError)
+		mockDatasetClient.EXPECT().GetInstanceBytes(ctx, "", authToken, "", "1", headers.IfMatchAnyETag).Return(nil, "", errDatasetAPICodeServerError)
 
 		dataStore := &DatasetStore{
 			authToken:        authToken,
@@ -91,7 +92,7 @@ func TestStore_GetOrderReturnAnError(t *testing.T) {
 		)
 		// Setup mocked dataset client
 		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
-		mockDatasetClient.EXPECT().GetInstanceBytes(ctx, "", authToken, "", "1").Return(nil, errDatasetAPICodeServerError)
+		mockDatasetClient.EXPECT().GetInstanceBytes(ctx, "", authToken, "", "1", headers.IfMatchAnyETag).Return(nil, "", errDatasetAPICodeServerError)
 
 		dataStore := &DatasetStore{
 			authToken:        authToken,
@@ -115,7 +116,7 @@ func TestStore_GetOrderReturnAnError(t *testing.T) {
 		)
 		// Setup mocked dataset client
 		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
-		mockDatasetClient.EXPECT().GetInstanceBytes(ctx, "", "", "", "1").Return(nil, errDatasetAPICodeServerError)
+		mockDatasetClient.EXPECT().GetInstanceBytes(ctx, "", "", "", "1", headers.IfMatchAnyETag).Return(nil, "", errDatasetAPICodeServerError)
 
 		dataStore := &DatasetStore{
 			authToken:        "",
@@ -163,7 +164,7 @@ func TestIDCache_GetIDsReturnError(t *testing.T) {
 		if err != nil {
 			t.Errorf("unable to json marshal test data: %v", data)
 		}
-		mockDatasetClient.EXPECT().GetInstanceDimensionsBytes(ctx, "", authToken, "1").Return(b, nil)
+		mockDatasetClient.EXPECT().GetInstanceDimensionsBytes(ctx, authToken, "1", &dataset.QueryParams{}, headers.IfMatchAnyETag).Return(b, "", nil)
 
 		Convey("When the client api is called ", func() {
 			Convey("A list of dimensions are returned", func() {
@@ -187,7 +188,7 @@ func TestStore_GetIDsReturnAnError(t *testing.T) {
 
 		// Setup mocked dataset client
 		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
-		mockDatasetClient.EXPECT().GetInstanceDimensionsBytes(ctx, "", authToken, "1").Return(nil, errDatasetAPICodeServerError)
+		mockDatasetClient.EXPECT().GetInstanceDimensionsBytes(ctx, authToken, "1", &dataset.QueryParams{}, headers.IfMatchAnyETag).Return(nil, "", errDatasetAPICodeServerError)
 
 		dataStore := &DatasetStore{
 			authToken:        authToken,
@@ -215,7 +216,7 @@ func TestStore_GetIDsReturnAnError(t *testing.T) {
 
 		// Setup mocked dataset client
 		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
-		mockDatasetClient.EXPECT().GetInstanceDimensionsBytes(ctx, "", authToken, "1").Return(nil, errDatasetAPICodeServerError)
+		mockDatasetClient.EXPECT().GetInstanceDimensionsBytes(ctx, authToken, "1", &dataset.QueryParams{}, headers.IfMatchAnyETag).Return(nil, "", errDatasetAPICodeServerError)
 
 		dataStore := &DatasetStore{
 			authToken:        authToken,
@@ -239,7 +240,7 @@ func TestStore_GetIDsReturnAnError(t *testing.T) {
 		)
 		// Setup mocked dataset client
 		mockDatasetClient := dimensiontest.NewMockDatasetClient(mockCtrl)
-		mockDatasetClient.EXPECT().GetInstanceDimensionsBytes(ctx, "", "", "1").Return(nil, errDatasetAPICodeServerError)
+		mockDatasetClient.EXPECT().GetInstanceDimensionsBytes(ctx, "", "1", &dataset.QueryParams{}, headers.IfMatchAnyETag).Return(nil, "", errDatasetAPICodeServerError)
 
 		dataStore := &DatasetStore{
 			authToken:        "",
