@@ -10,29 +10,25 @@ import (
 	"sync"
 )
 
-var (
-	lockObservationMapperMockMap sync.RWMutex
-)
-
-// Ensure, that ObservationMapperMock does implement ObservationMapper.
+// Ensure, that ObservationMapperMock does implement event.ObservationMapper.
 // If this is not the case, regenerate this file with moq.
 var _ event.ObservationMapper = &ObservationMapperMock{}
 
 // ObservationMapperMock is a mock implementation of event.ObservationMapper.
 //
-//     func TestSomethingThatUsesObservationMapper(t *testing.T) {
+// 	func TestSomethingThatUsesObservationMapper(t *testing.T) {
 //
-//         // make and configure a mocked event.ObservationMapper
-//         mockedObservationMapper := &ObservationMapperMock{
-//             MapFunc: func(ctx context.Context, row string, rowIndex int64, instanceID string) (*models.Observation, error) {
-// 	               panic("mock out the Map method")
-//             },
-//         }
+// 		// make and configure a mocked event.ObservationMapper
+// 		mockedObservationMapper := &ObservationMapperMock{
+// 			MapFunc: func(ctx context.Context, row string, rowIndex int64, instanceID string) (*models.Observation, error) {
+// 				panic("mock out the Map method")
+// 			},
+// 		}
 //
-//         // use mockedObservationMapper in code that requires event.ObservationMapper
-//         // and then make assertions.
+// 		// use mockedObservationMapper in code that requires event.ObservationMapper
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type ObservationMapperMock struct {
 	// MapFunc mocks the Map method.
 	MapFunc func(ctx context.Context, row string, rowIndex int64, instanceID string) (*models.Observation, error)
@@ -51,6 +47,7 @@ type ObservationMapperMock struct {
 			InstanceID string
 		}
 	}
+	lockMap sync.RWMutex
 }
 
 // Map calls MapFunc.
@@ -69,9 +66,9 @@ func (mock *ObservationMapperMock) Map(ctx context.Context, row string, rowIndex
 		RowIndex:   rowIndex,
 		InstanceID: instanceID,
 	}
-	lockObservationMapperMockMap.Lock()
+	mock.lockMap.Lock()
 	mock.calls.Map = append(mock.calls.Map, callInfo)
-	lockObservationMapperMockMap.Unlock()
+	mock.lockMap.Unlock()
 	return mock.MapFunc(ctx, row, rowIndex, instanceID)
 }
 
@@ -90,8 +87,8 @@ func (mock *ObservationMapperMock) MapCalls() []struct {
 		RowIndex   int64
 		InstanceID string
 	}
-	lockObservationMapperMockMap.RLock()
+	mock.lockMap.RLock()
 	calls = mock.calls.Map
-	lockObservationMapperMockMap.RUnlock()
+	mock.lockMap.RUnlock()
 	return calls
 }

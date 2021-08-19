@@ -8,8 +8,11 @@ import (
 
 	"errors"
 
-	"github.com/ONSdigital/dp-api-clients-go/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/dataset"
+	"github.com/ONSdigital/dp-api-clients-go/v2/headers"
 )
+
+//go:generate mockgen -destination dimensiontest/dataset_client.go -package dimensiontest github.com/ONSdigital/dp-observation-importer/dimension DatasetClient
 
 const authorizationHeader = "Authorization"
 
@@ -47,8 +50,8 @@ type DatasetStore struct {
 
 // DatasetClient represents the dataset client for dataset API
 type DatasetClient interface {
-	GetInstanceBytes(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID string) ([]byte, error)
-	GetInstanceDimensionsBytes(ctx context.Context, userAuthToken, serviceAuthToken, instanceID string) (b []byte, err error)
+	GetInstanceBytes(ctx context.Context, userAuthToken, serviceAuthToken, collectionID, instanceID, ifMatch string) (b []byte, eTag string, err error)
+	GetInstanceDimensionsBytes(ctx context.Context, serviceAuthToken, instanceID string, q *dataset.QueryParams, ifMatch string) (b []byte, eTag string, err error)
 }
 
 // NewStore returns a new instance of a dimension store.
@@ -62,7 +65,7 @@ func NewStore(authToken, datasetAPIURL string, client DatasetClient) *DatasetSto
 
 // GetOrder returns list of dimension names in the order they are stored in the input file.
 func (store *DatasetStore) GetOrder(ctx context.Context, instanceID string) ([]string, error) {
-	b, clientErr := store.datasetAPIClient.GetInstanceBytes(ctx, "", store.authToken, "", instanceID)
+	b, _, clientErr := store.datasetAPIClient.GetInstanceBytes(ctx, "", store.authToken, "", instanceID, headers.IfMatchAnyETag)
 	if err := checkResponse(clientErr); err != nil {
 		return nil, err
 	}
@@ -77,7 +80,7 @@ func (store *DatasetStore) GetOrder(ctx context.Context, instanceID string) ([]s
 
 // GetIDs returns all dimensions for a given instanceID
 func (store *DatasetStore) GetIDs(ctx context.Context, instanceID string) (map[string]string, error) {
-	b, clientErr := store.datasetAPIClient.GetInstanceDimensionsBytes(ctx, "", store.authToken, instanceID)
+	b, _, clientErr := store.datasetAPIClient.GetInstanceDimensionsBytes(ctx, store.authToken, instanceID, &dataset.QueryParams{}, headers.IfMatchAnyETag)
 	if err := checkResponse(clientErr); err != nil {
 		return nil, err
 	}

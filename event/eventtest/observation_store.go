@@ -11,29 +11,25 @@ import (
 	"sync"
 )
 
-var (
-	lockObservationStoreMockSaveAll sync.RWMutex
-)
-
-// Ensure, that ObservationStoreMock does implement ObservationStore.
+// Ensure, that ObservationStoreMock does implement event.ObservationStore.
 // If this is not the case, regenerate this file with moq.
 var _ event.ObservationStore = &ObservationStoreMock{}
 
 // ObservationStoreMock is a mock implementation of event.ObservationStore.
 //
-//     func TestSomethingThatUsesObservationStore(t *testing.T) {
+// 	func TestSomethingThatUsesObservationStore(t *testing.T) {
 //
-//         // make and configure a mocked event.ObservationStore
-//         mockedObservationStore := &ObservationStoreMock{
-//             SaveAllFunc: func(ctx context.Context, observations []*models.Observation) ([]*observation.Result, error) {
-// 	               panic("mock out the SaveAll method")
-//             },
-//         }
+// 		// make and configure a mocked event.ObservationStore
+// 		mockedObservationStore := &ObservationStoreMock{
+// 			SaveAllFunc: func(ctx context.Context, observations []*models.Observation) ([]*observation.Result, error) {
+// 				panic("mock out the SaveAll method")
+// 			},
+// 		}
 //
-//         // use mockedObservationStore in code that requires event.ObservationStore
-//         // and then make assertions.
+// 		// use mockedObservationStore in code that requires event.ObservationStore
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type ObservationStoreMock struct {
 	// SaveAllFunc mocks the SaveAll method.
 	SaveAllFunc func(ctx context.Context, observations []*models.Observation) ([]*observation.Result, error)
@@ -48,6 +44,7 @@ type ObservationStoreMock struct {
 			Observations []*models.Observation
 		}
 	}
+	lockSaveAll sync.RWMutex
 }
 
 // SaveAll calls SaveAllFunc.
@@ -62,9 +59,9 @@ func (mock *ObservationStoreMock) SaveAll(ctx context.Context, observations []*m
 		Ctx:          ctx,
 		Observations: observations,
 	}
-	lockObservationStoreMockSaveAll.Lock()
+	mock.lockSaveAll.Lock()
 	mock.calls.SaveAll = append(mock.calls.SaveAll, callInfo)
-	lockObservationStoreMockSaveAll.Unlock()
+	mock.lockSaveAll.Unlock()
 	return mock.SaveAllFunc(ctx, observations)
 }
 
@@ -79,8 +76,8 @@ func (mock *ObservationStoreMock) SaveAllCalls() []struct {
 		Ctx          context.Context
 		Observations []*models.Observation
 	}
-	lockObservationStoreMockSaveAll.RLock()
+	mock.lockSaveAll.RLock()
 	calls = mock.calls.SaveAll
-	lockObservationStoreMockSaveAll.RUnlock()
+	mock.lockSaveAll.RUnlock()
 	return calls
 }

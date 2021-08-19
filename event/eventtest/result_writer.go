@@ -10,29 +10,25 @@ import (
 	"sync"
 )
 
-var (
-	lockResultWriterMockWrite sync.RWMutex
-)
-
-// Ensure, that ResultWriterMock does implement ResultWriter.
+// Ensure, that ResultWriterMock does implement event.ResultWriter.
 // If this is not the case, regenerate this file with moq.
 var _ event.ResultWriter = &ResultWriterMock{}
 
 // ResultWriterMock is a mock implementation of event.ResultWriter.
 //
-//     func TestSomethingThatUsesResultWriter(t *testing.T) {
+// 	func TestSomethingThatUsesResultWriter(t *testing.T) {
 //
-//         // make and configure a mocked event.ResultWriter
-//         mockedResultWriter := &ResultWriterMock{
-//             WriteFunc: func(ctx context.Context, results []*observation.Result)  {
-// 	               panic("mock out the Write method")
-//             },
-//         }
+// 		// make and configure a mocked event.ResultWriter
+// 		mockedResultWriter := &ResultWriterMock{
+// 			WriteFunc: func(ctx context.Context, results []*observation.Result)  {
+// 				panic("mock out the Write method")
+// 			},
+// 		}
 //
-//         // use mockedResultWriter in code that requires event.ResultWriter
-//         // and then make assertions.
+// 		// use mockedResultWriter in code that requires event.ResultWriter
+// 		// and then make assertions.
 //
-//     }
+// 	}
 type ResultWriterMock struct {
 	// WriteFunc mocks the Write method.
 	WriteFunc func(ctx context.Context, results []*observation.Result)
@@ -47,6 +43,7 @@ type ResultWriterMock struct {
 			Results []*observation.Result
 		}
 	}
+	lockWrite sync.RWMutex
 }
 
 // Write calls WriteFunc.
@@ -61,9 +58,9 @@ func (mock *ResultWriterMock) Write(ctx context.Context, results []*observation.
 		Ctx:     ctx,
 		Results: results,
 	}
-	lockResultWriterMockWrite.Lock()
+	mock.lockWrite.Lock()
 	mock.calls.Write = append(mock.calls.Write, callInfo)
-	lockResultWriterMockWrite.Unlock()
+	mock.lockWrite.Unlock()
 	mock.WriteFunc(ctx, results)
 }
 
@@ -78,8 +75,8 @@ func (mock *ResultWriterMock) WriteCalls() []struct {
 		Ctx     context.Context
 		Results []*observation.Result
 	}
-	lockResultWriterMockWrite.RLock()
+	mock.lockWrite.RLock()
 	calls = mock.calls.Write
-	lockResultWriterMockWrite.RUnlock()
+	mock.lockWrite.RUnlock()
 	return calls
 }

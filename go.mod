@@ -3,7 +3,7 @@ module github.com/ONSdigital/dp-observation-importer
 go 1.16
 
 require (
-	github.com/ONSdigital/dp-api-clients-go v1.34.2
+	github.com/ONSdigital/dp-api-clients-go/v2 v2.0.6-beta
 	github.com/ONSdigital/dp-component-test v0.2.0
 	github.com/ONSdigital/dp-graph/v2 v2.7.3
 	github.com/ONSdigital/dp-healthcheck v1.0.5
@@ -15,13 +15,12 @@ require (
 	github.com/cucumber/godog v0.10.0
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
-	github.com/golang/mock v1.5.0
+	github.com/golang/mock v1.6.0
 	github.com/gorilla/mux v1.8.0
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hashicorp/go-memdb v1.3.0 // indirect
 	github.com/johnnadratowski/golang-neo4j-bolt-driver v0.0.0-20200323142034-807201386efa
 	github.com/kelseyhightower/envconfig v1.4.0
-	github.com/mattn/go-isatty v0.0.12 // indirect
 	github.com/maxcnunes/httpfake v1.2.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/rdumont/assistdog v0.0.0-20201106100018-168b06230d14
