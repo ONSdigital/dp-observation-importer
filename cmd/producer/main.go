@@ -10,7 +10,7 @@ import (
 	"github.com/ONSdigital/dp-observation-importer/config"
 	"github.com/ONSdigital/dp-observation-importer/event"
 	"github.com/ONSdigital/dp-observation-importer/schema"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 func main() {
@@ -22,7 +22,7 @@ func main() {
 
 	cfg, err := config.Get()
 	if err != nil {
-		log.Event(ctx, "failed to retrieve configuration", log.FATAL, log.Error(err))
+		log.Fatal(ctx, "failed to retrieve configuration", err)
 		os.Exit(1)
 	}
 
@@ -31,7 +31,7 @@ func main() {
 
 	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, base, bitSize)
 	if err != nil {
-		log.Event(ctx, "encountered error parsing kafka max bytes", log.FATAL, log.Error(err))
+		log.Fatal(ctx, "encountered error parsing kafka max bytes", err)
 		os.Exit(1)
 	}
 	var maxBytes = int(envMax)
@@ -44,7 +44,7 @@ func main() {
 
 	producer, err := kafka.NewProducer(ctx, brokers, "observation-extracted", pChannels, pConfig)
 	if err != nil {
-		log.Event(ctx, "failed to create kafka prodecer", log.FATAL, log.Error(err))
+		log.Fatal(ctx, "failed to create kafka prodecer", err)
 		os.Exit(1)
 	}
 

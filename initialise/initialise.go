@@ -10,7 +10,7 @@ import (
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-observation-importer/config"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 // ExternalServiceList represents a list of services
@@ -152,7 +152,7 @@ func (i *Init) DoGetImportErrorReporter(ObservationsImportedErrProducer reporter
 func (i *Init) DoGetProducer(ctx context.Context, kafkaBrokers []string, topic string, name KafkaProducerName, cfg *config.Config) (kafkaProducer kafka.IProducer, err error) {
 	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, base, bitSize)
 	if err != nil {
-		log.Event(ctx, "encountered error parsing kafka max bytes", log.FATAL, log.Error(err))
+		log.Fatal(ctx, "encountered error parsing kafka max bytes", err)
 		return nil, err
 	}
 	envMaxInt := int(envMax)

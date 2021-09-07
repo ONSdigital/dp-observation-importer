@@ -11,7 +11,7 @@ require (
 	github.com/ONSdigital/dp-net v1.0.12
 	github.com/ONSdigital/dp-reporter-client v1.0.1
 	github.com/ONSdigital/go-ns v0.0.0-20200902154605-290c8b5ba5eb
-	github.com/ONSdigital/log.go v1.0.1
+	github.com/ONSdigital/log.go/v2 v2.0.9
 	github.com/cucumber/godog v0.10.0
 	github.com/gofrs/uuid v3.3.0+incompatible // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
@@ -26,7 +26,6 @@ require (
 	github.com/rdumont/assistdog v0.0.0-20201106100018-168b06230d14
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/stretchr/testify v1.7.0
-	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
 )

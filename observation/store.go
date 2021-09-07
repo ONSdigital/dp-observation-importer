@@ -7,7 +7,7 @@ import (
 
 	graph "github.com/ONSdigital/dp-graph/v2/graph/driver"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 // DimensionIDCache provides database ID's of dimensions when inserting observations.
@@ -77,7 +77,7 @@ func (store *Store) SaveAll(ctx context.Context, observations []*models.Observat
 
 func (store *Store) reportError(ctx context.Context, instanceID string, message string, cause error) {
 	if err := store.errorReporter.Notify(instanceID, message, cause); err != nil {
-		log.Event(ctx, "errorReporter.Notify returned unexpected error while attempting to report error", log.ERROR, log.Error(err), log.Data{
+		log.Error(ctx, "errorReporter.Notify returned unexpected error while attempting to report error", err, log.Data{
 			"reportedError": message,
 		})
 	}

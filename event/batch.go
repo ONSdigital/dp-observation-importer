@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/ONSdigital/dp-observation-importer/schema"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 // Batch handles adding raw messages to a batch of ObservationExtracted events.
@@ -36,7 +36,7 @@ func (batch *Batch) Add(ctx context.Context, message Message) {
 
 	event, err := Unmarshal(message)
 	if err != nil {
-		log.Event(ctx, "failed to unmarshal event", log.ERROR, log.Error(err))
+		log.Error(ctx, "failed to unmarshal event", err)
 		return
 	}
 

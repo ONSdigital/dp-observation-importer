@@ -6,7 +6,7 @@ import (
 
 	"github.com/ONSdigital/dp-observation-importer/observation"
 	"github.com/ONSdigital/dp-reporter-client/reporter"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 //go:generate moq -out eventtest/observation_mapper.go -pkg eventtest . ObservationMapper
@@ -61,7 +61,7 @@ func (handler BatchHandler) Handle(ctx context.Context, events []*ObservationExt
 		observation, err := handler.observationMapper.Map(ctx, event.Row, event.RowIndex, event.InstanceID)
 		if err != nil {
 			if err := handler.errorReporter.Notify(event.InstanceID, "error while attempting to convert from row data to observation instances", err); err != nil {
-				log.Event(ctx, "error reporter notify returned an unexpected error", log.ERROR, log.Error(err))
+				log.Error(ctx, "error reporter notify returned an unexpected error", err)
 			}
 			continue // do not add this error'd event to the batch
 		}
