@@ -31,7 +31,7 @@ job "dp-observation-importer" {
       driver = "docker"
 
       artifact {
-        source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-observation-importer/{{REVISION}}.tar.gz"
+        source = "s3::https://s3-eu-west-1.amazonaws.com/{{DEPLOYMENT_BUCKET}}/dp-observation-importer/{{PROFILE}}/{{RELEASE}}.tar.gz"
       }
 
       config {

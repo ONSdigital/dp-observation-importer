@@ -37,7 +37,7 @@ func run(ctx context.Context) error {
 	signals := make(chan os.Signal, 1)
 	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
 
-	cfg, err := config.Get()
+	cfg, err := config.Get(ctx)
 	if err != nil {
 		log.Fatal(ctx, "failed to retrieve configuration", err)
 		return err
