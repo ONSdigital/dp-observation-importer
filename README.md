@@ -23,7 +23,7 @@ Scripts for updating and debugging Kafka can be found [here](https://github.com/
 | BIND_ADDR                     | :21700                               | The port to bind to
 | DATASET_API_URL               | `http://localhost:21800`             | The URL of the dataset API
 | SERVICE_AUTH_TOKEN            | AA78C45F-DD64-4631-BED9-FEAE29200620 | The service authorization token
-| KAFKA_ADDR                    | `http://localhost:9092`              | The addresses of the Kafka instances (comma-separated)
+| KAFKA_ADDR                    | `localhost:9092`                     | The addresses of the Kafka instances (comma-separated)
 | KAFKA_VERSION                 | `1.0.2`                              | The kafka version that this service expects to connect to
 | KAFKA_OFFSET_OLDEST           | true                                 | sets the kafka offset to be oldest if true
 | KAFKA_SEC_PROTO               | _unset_                              | if set to `TLS`, kafka connections will use TLS ([ref-1])
