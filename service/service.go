@@ -34,7 +34,7 @@ func Run(ctx context.Context, cfg *config.Config, serviceList initialise.Externa
 	log.Info(ctx, "starting observation importer")
 
 	if cfg.GraphDriverChoice == "neo4j" && !cfg.EnableGetGraphDimensionID {
-		errStr := "Invalid flag combination, getGraphDimensionID must not be false for Neo4j"
+		errStr := "invalid flag combination, getGraphDimensionID must not be false for Neo4j"
 		err := errors.New(errStr)
 		log.Fatal(ctx, errStr, err)
 		return err
@@ -50,8 +50,8 @@ func Run(ctx context.Context, cfg *config.Config, serviceList initialise.Externa
 	// Get observations inserted Kafka Producer
 	observationsImportedProducer, err := serviceList.GetProducer(
 		ctx,
-		cfg.Brokers,
-		cfg.ResultProducerTopic,
+		cfg.KafkaConfig.Brokers,
+		cfg.KafkaConfig.ResultProducerTopic,
 		initialise.ObservationsImported,
 		cfg,
 	)
@@ -63,8 +63,8 @@ func Run(ctx context.Context, cfg *config.Config, serviceList initialise.Externa
 	// Get observations inserted error Kafka Producer
 	observationsImportedErrProducer, err := serviceList.GetProducer(
 		ctx,
-		cfg.Brokers,
-		cfg.ErrorProducerTopic,
+		cfg.KafkaConfig.Brokers,
+		cfg.KafkaConfig.ErrorProducerTopic,
 		initialise.ObservationsImportedErr,
 		cfg,
 	)
@@ -147,24 +147,20 @@ func Run(ctx context.Context, cfg *config.Config, serviceList initialise.Externa
 	eventConsumer := event.NewConsumer()
 
 	// Start listening for event messages.
-	eventConsumer.Consume(syncConsumerGroup, cfg.BatchSize, batchHandler, cfg.BatchWaitTime, errorChannel)
+	eventConsumer.Consume(syncConsumerGroup, cfg.KafkaConfig.BatchSize, batchHandler, cfg.KafkaConfig.BatchWaitTime, errorChannel)
 
-	syncConsumerGroup.Channels().LogErrors(ctx, "error received from kafka consumer, topic: "+cfg.ObservationConsumerTopic)
-	observationsImportedProducer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+cfg.ResultProducerTopic)
-	observationsImportedErrProducer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+cfg.ErrorProducerTopic)
+	syncConsumerGroup.Channels().LogErrors(ctx, "error received from kafka consumer, topic: "+cfg.KafkaConfig.ObservationConsumerTopic)
+	observationsImportedProducer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+cfg.KafkaConfig.ResultProducerTopic)
+	observationsImportedErrProducer.Channels().LogErrors(ctx, "error received from kafka producer, topic: "+cfg.KafkaConfig.ErrorProducerTopic)
 
 	go func() {
-		select {
-		case apiError := <-errorChannel:
-			log.Error(ctx, "error received from http server", apiError)
-		}
+		apiError := <-errorChannel
+		log.Error(ctx, "error received from http server", apiError)
 	}()
 
 	// block until a fatal error occurs
-	select {
-	case <-signals:
-		log.Info(ctx, "os signal received")
-	}
+	<-signals
+	log.Info(ctx, "os signal received")
 
 	log.Info(ctx, fmt.Sprintf("shutdown with timeout: %s", cfg.GracefulShutdownTimeout))
 	shutdownContext, cancel := context.WithTimeout(context.Background(), cfg.GracefulShutdownTimeout)

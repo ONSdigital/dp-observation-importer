@@ -128,11 +128,11 @@ func (f *ImporterFeature) DoGetImportErrorReporter(ObservationsImportedErrProduc
 	return
 }
 
-func (f *ImporterFeature) DoGetProducer(ctx context.Context, kafkaBrokers []string, topic string, name initialise.KafkaProducerName, cfg *config.Config) (kafkaProducer kafka.IProducer, err error) {
+func (f *ImporterFeature) DoGetProducer(ctx context.Context, topic string, cfg *config.KafkaConfig) (kafkaProducer kafka.IProducer, err error) {
 	return f.KafkaProducer, nil
 }
 
-func (f *ImporterFeature) DoGetConsumer(ctx context.Context, cfg *config.Config) (kafkaConsumer kafka.IConsumerGroup, err error) {
+func (f *ImporterFeature) DoGetConsumer(ctx context.Context, topic, group string, cfg *config.KafkaConfig) (kafkaConsumer kafka.IConsumerGroup, err error) {
 	return f.KafkaConsumer, nil
 }
 

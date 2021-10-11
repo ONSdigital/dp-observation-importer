@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"os"
-	"strconv"
 	"time"
 
 	kafka "github.com/ONSdigital/dp-kafka/v2"
@@ -20,31 +19,21 @@ func main() {
 
 	var cfg *config.Config
 
-	cfg, err := config.Get()
+	cfg, err := config.Get(ctx)
 	if err != nil {
 		log.Fatal(ctx, "failed to retrieve configuration", err)
 		os.Exit(1)
 	}
 
-	const base = 10
-	const bitSize = 32
-
-	envMax, err := strconv.ParseInt(cfg.KafkaMaxBytes, base, bitSize)
-	if err != nil {
-		log.Fatal(ctx, "encountered error parsing kafka max bytes", err)
-		os.Exit(1)
-	}
-	var maxBytes = int(envMax)
-
 	pChannels := kafka.CreateProducerChannels()
 	pConfig := &kafka.ProducerConfig{
-		MaxMessageBytes: &maxBytes,
-		KafkaVersion:    &cfg.KafkaVersion,
+		MaxMessageBytes: &cfg.KafkaConfig.MaxBytes,
+		KafkaVersion:    &cfg.KafkaConfig.Version,
 	}
 
 	producer, err := kafka.NewProducer(ctx, brokers, "observation-extracted", pChannels, pConfig)
 	if err != nil {
-		log.Fatal(ctx, "failed to create kafka prodecer", err)
+		log.Fatal(ctx, "failed to create kafka producer", err)
 		os.Exit(1)
 	}
 
@@ -54,7 +43,7 @@ func main() {
 	sendEvent(producer, event2)
 	time.Sleep(time.Duration(5000 * time.Millisecond))
 
-	producer.Close(nil)
+	producer.Close(context.TODO())
 }
 
 func sendEvent(producer *kafka.Producer, extracted event.ObservationExtracted) {
