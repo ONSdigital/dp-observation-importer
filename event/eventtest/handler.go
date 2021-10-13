@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/ONSdigital/dp-observation-importer/event"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 var _ event.Handler = (*EventHandler)(nil)
@@ -30,7 +30,7 @@ type EventHandler struct {
 
 // Handle captures the given event and stores it for later assertions
 func (handler *EventHandler) Handle(ctx context.Context, events []*event.ObservationExtracted) error {
-	log.Event(ctx, "handle called", log.INFO)
+	log.Info(ctx, "handle called")
 	handler.Events = events
 
 	handler.EventUpdated <- true

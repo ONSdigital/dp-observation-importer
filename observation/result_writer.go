@@ -5,7 +5,7 @@ import (
 
 	kafka "github.com/ONSdigital/dp-kafka/v2"
 	"github.com/ONSdigital/dp-observation-importer/schema"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 // MessageWriter writes observations as messages
@@ -34,13 +34,13 @@ func (messageWriter MessageWriter) Write(ctx context.Context, results []*Result)
 			ObservationsInserted: result.ObservationsInserted,
 		}
 
-		log.Event(ctx, "observations inserted, producing event message", log.INFO,
+		log.Info(ctx, "observations inserted, producing event message",
 			log.Data{"event": event},
 		)
 
 		b, err := Marshal(event)
 		if err != nil {
-			log.Event(ctx, "failed to marshal observations inserted event", log.ERROR, log.Error(err), log.Data{
+			log.Error(ctx, "failed to marshal observations inserted event", err, log.Data{
 				"schema": "failed to marshal observations inserted event",
 				"event":  event})
 			continue

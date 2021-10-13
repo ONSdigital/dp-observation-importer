@@ -7,7 +7,7 @@ import (
 
 	graph "github.com/ONSdigital/dp-graph/v2/graph/driver"
 	kafka "github.com/ONSdigital/dp-kafka/v2"
-	"github.com/ONSdigital/log.go/log"
+	"github.com/ONSdigital/log.go/v2/log"
 )
 
 // MessageConsumer provides a generic interface for consuming []byte messages (from Kafka)
@@ -67,11 +67,11 @@ func (consumer *Consumer) Consume(messageConsumer MessageConsumer,
 
 				ctx := context.Background()
 
-				log.Event(ctx, "batch wait time reached. proceeding with batch", log.INFO, log.Data{"batchsize": batch.Size()})
+				log.Info(ctx, "batch wait time reached. proceeding with batch", log.Data{"batchsize": batch.Size()})
 				ProcessBatch(ctx, handler, batch, errChan)
 
 			case eventClose := <-consumer.closing:
-				log.Event(eventClose.ctx, "closing event consumer loop", log.INFO)
+				log.Info(eventClose.ctx, "closing event consumer loop")
 				close(consumer.closing)
 				return
 			}
@@ -90,10 +90,10 @@ func (consumer *Consumer) Close(ctx context.Context) (err error) {
 
 	select {
 	case <-consumer.closed:
-		log.Event(ctx, "successfully closed event consumer", log.INFO)
+		log.Info(ctx, "successfully closed event consumer")
 		return nil
 	case <-ctx.Done():
-		log.Event(ctx, "shutdown context time exceeded, skipping graceful shutdown of event consumer", log.INFO)
+		log.Info(ctx, "shutdown context time exceeded, skipping graceful shutdown of event consumer")
 		return errors.New("Shutdown context timed out")
 	}
 }
@@ -102,7 +102,7 @@ func (consumer *Consumer) Close(ctx context.Context) (err error) {
 func AddMessageToBatch(ctx context.Context, batch *Batch, msg kafka.Message, handler Handler, errChan chan error) {
 	batch.Add(ctx, msg)
 	if batch.IsFull() {
-		log.Event(ctx, "batch is full - processing batch", log.INFO, log.Data{"batchsize": batch.Size()})
+		log.Info(ctx, "batch is full - processing batch", log.Data{"batchsize": batch.Size()})
 		ProcessBatch(ctx, handler, batch, errChan)
 	}
 }
@@ -111,7 +111,7 @@ func AddMessageToBatch(ctx context.Context, batch *Batch, msg kafka.Message, han
 func ProcessBatch(ctx context.Context, handler Handler, batch *Batch, errChan chan error) {
 	err := handler.Handle(ctx, batch.Events())
 	if err != nil {
-		log.Event(ctx, "error processing batch", log.ERROR, log.Error(err))
+		log.Error(ctx, "error processing batch", err)
 		errChan <- err
 		// If the error type is non retriable then we should commit the message batch,
 		// because we know it will never succeed

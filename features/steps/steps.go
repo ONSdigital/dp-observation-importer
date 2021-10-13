@@ -72,7 +72,7 @@ func (f *ImporterFeature) theseObservationsAreConsumed(table *godog.Table) error
 
 	signals := f.registerInterrupt()
 
-	cfg, err := config.Get()
+	cfg, err := config.Get(context.Background())
 	if err != nil {
 		return err
 	}

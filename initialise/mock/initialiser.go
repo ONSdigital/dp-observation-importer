@@ -14,17 +14,17 @@ import (
 	"sync"
 )
 
-// Ensure, that InitialiserMock does implement Initialiser.
+// Ensure, that InitialiserMock does implement initialise.Initialiser.
 // If this is not the case, regenerate this file with moq.
 var _ initialise.Initialiser = &InitialiserMock{}
 
-// InitialiserMock is a mock implementation of Initialiser.
+// InitialiserMock is a mock implementation of initialise.Initialiser.
 //
 // 	func TestSomethingThatUsesInitialiser(t *testing.T) {
 //
-// 		// make and configure a mocked Initialiser
+// 		// make and configure a mocked initialise.Initialiser
 // 		mockedInitialiser := &InitialiserMock{
-// 			DoGetConsumerFunc: func(contextMoqParam context.Context, configMoqParam *config.Config) (kafka.IConsumerGroup, error) {
+// 			DoGetConsumerFunc: func(contextMoqParam context.Context, s1 string, s2 string, kafkaConfig *config.KafkaConfig) (kafka.IConsumerGroup, error) {
 // 				panic("mock out the DoGetConsumer method")
 // 			},
 // 			DoGetGraphDBFunc: func(contextMoqParam context.Context) (*graph.DB, error) {
@@ -36,18 +36,18 @@ var _ initialise.Initialiser = &InitialiserMock{}
 // 			DoGetImportErrorReporterFunc: func(kafkaProducer reporter.KafkaProducer, s string) (reporter.ImportErrorReporter, error) {
 // 				panic("mock out the DoGetImportErrorReporter method")
 // 			},
-// 			DoGetProducerFunc: func(contextMoqParam context.Context, strings []string, s string, kafkaProducerName initialise.KafkaProducerName, configMoqParam *config.Config) (kafka.IProducer, error) {
+// 			DoGetProducerFunc: func(contextMoqParam context.Context, s string, kafkaConfig *config.KafkaConfig) (kafka.IProducer, error) {
 // 				panic("mock out the DoGetProducer method")
 // 			},
 // 		}
 //
-// 		// use mockedInitialiser in code that requires Initialiser
+// 		// use mockedInitialiser in code that requires initialise.Initialiser
 // 		// and then make assertions.
 //
 // 	}
 type InitialiserMock struct {
 	// DoGetConsumerFunc mocks the DoGetConsumer method.
-	DoGetConsumerFunc func(contextMoqParam context.Context, configMoqParam *config.Config) (kafka.IConsumerGroup, error)
+	DoGetConsumerFunc func(contextMoqParam context.Context, s1 string, s2 string, kafkaConfig *config.KafkaConfig) (kafka.IConsumerGroup, error)
 
 	// DoGetGraphDBFunc mocks the DoGetGraphDB method.
 	DoGetGraphDBFunc func(contextMoqParam context.Context) (*graph.DB, error)
@@ -59,7 +59,7 @@ type InitialiserMock struct {
 	DoGetImportErrorReporterFunc func(kafkaProducer reporter.KafkaProducer, s string) (reporter.ImportErrorReporter, error)
 
 	// DoGetProducerFunc mocks the DoGetProducer method.
-	DoGetProducerFunc func(contextMoqParam context.Context, strings []string, s string, kafkaProducerName initialise.KafkaProducerName, configMoqParam *config.Config) (kafka.IProducer, error)
+	DoGetProducerFunc func(contextMoqParam context.Context, s string, kafkaConfig *config.KafkaConfig) (kafka.IProducer, error)
 
 	// calls tracks calls to the methods.
 	calls struct {
@@ -67,8 +67,12 @@ type InitialiserMock struct {
 		DoGetConsumer []struct {
 			// ContextMoqParam is the contextMoqParam argument value.
 			ContextMoqParam context.Context
-			// ConfigMoqParam is the configMoqParam argument value.
-			ConfigMoqParam *config.Config
+			// S1 is the s1 argument value.
+			S1 string
+			// S2 is the s2 argument value.
+			S2 string
+			// KafkaConfig is the kafkaConfig argument value.
+			KafkaConfig *config.KafkaConfig
 		}
 		// DoGetGraphDB holds details about calls to the DoGetGraphDB method.
 		DoGetGraphDB []struct {
@@ -97,14 +101,10 @@ type InitialiserMock struct {
 		DoGetProducer []struct {
 			// ContextMoqParam is the contextMoqParam argument value.
 			ContextMoqParam context.Context
-			// Strings is the strings argument value.
-			Strings []string
 			// S is the s argument value.
 			S string
-			// initialise.KafkaProducerName is the kafkaProducerName argument value.
-			KafkaProducerName initialise.KafkaProducerName
-			// ConfigMoqParam is the configMoqParam argument value.
-			ConfigMoqParam *config.Config
+			// KafkaConfig is the kafkaConfig argument value.
+			KafkaConfig *config.KafkaConfig
 		}
 	}
 	lockDoGetConsumer            sync.RWMutex
@@ -115,21 +115,25 @@ type InitialiserMock struct {
 }
 
 // DoGetConsumer calls DoGetConsumerFunc.
-func (mock *InitialiserMock) DoGetConsumer(contextMoqParam context.Context, configMoqParam *config.Config) (kafka.IConsumerGroup, error) {
+func (mock *InitialiserMock) DoGetConsumer(contextMoqParam context.Context, s1 string, s2 string, kafkaConfig *config.KafkaConfig) (kafka.IConsumerGroup, error) {
 	if mock.DoGetConsumerFunc == nil {
 		panic("InitialiserMock.DoGetConsumerFunc: method is nil but Initialiser.DoGetConsumer was just called")
 	}
 	callInfo := struct {
 		ContextMoqParam context.Context
-		ConfigMoqParam  *config.Config
+		S1              string
+		S2              string
+		KafkaConfig     *config.KafkaConfig
 	}{
 		ContextMoqParam: contextMoqParam,
-		ConfigMoqParam:  configMoqParam,
+		S1:              s1,
+		S2:              s2,
+		KafkaConfig:     kafkaConfig,
 	}
 	mock.lockDoGetConsumer.Lock()
 	mock.calls.DoGetConsumer = append(mock.calls.DoGetConsumer, callInfo)
 	mock.lockDoGetConsumer.Unlock()
-	return mock.DoGetConsumerFunc(contextMoqParam, configMoqParam)
+	return mock.DoGetConsumerFunc(contextMoqParam, s1, s2, kafkaConfig)
 }
 
 // DoGetConsumerCalls gets all the calls that were made to DoGetConsumer.
@@ -137,11 +141,15 @@ func (mock *InitialiserMock) DoGetConsumer(contextMoqParam context.Context, conf
 //     len(mockedInitialiser.DoGetConsumerCalls())
 func (mock *InitialiserMock) DoGetConsumerCalls() []struct {
 	ContextMoqParam context.Context
-	ConfigMoqParam  *config.Config
+	S1              string
+	S2              string
+	KafkaConfig     *config.KafkaConfig
 } {
 	var calls []struct {
 		ContextMoqParam context.Context
-		ConfigMoqParam  *config.Config
+		S1              string
+		S2              string
+		KafkaConfig     *config.KafkaConfig
 	}
 	mock.lockDoGetConsumer.RLock()
 	calls = mock.calls.DoGetConsumer
@@ -259,45 +267,37 @@ func (mock *InitialiserMock) DoGetImportErrorReporterCalls() []struct {
 }
 
 // DoGetProducer calls DoGetProducerFunc.
-func (mock *InitialiserMock) DoGetProducer(contextMoqParam context.Context, strings []string, s string, kafkaProducerName initialise.KafkaProducerName, configMoqParam *config.Config) (kafka.IProducer, error) {
+func (mock *InitialiserMock) DoGetProducer(contextMoqParam context.Context, s string, kafkaConfig *config.KafkaConfig) (kafka.IProducer, error) {
 	if mock.DoGetProducerFunc == nil {
 		panic("InitialiserMock.DoGetProducerFunc: method is nil but Initialiser.DoGetProducer was just called")
 	}
 	callInfo := struct {
-		ContextMoqParam   context.Context
-		Strings           []string
-		S                 string
-		KafkaProducerName initialise.KafkaProducerName
-		ConfigMoqParam    *config.Config
+		ContextMoqParam context.Context
+		S               string
+		KafkaConfig     *config.KafkaConfig
 	}{
-		ContextMoqParam:   contextMoqParam,
-		Strings:           strings,
-		S:                 s,
-		KafkaProducerName: kafkaProducerName,
-		ConfigMoqParam:    configMoqParam,
+		ContextMoqParam: contextMoqParam,
+		S:               s,
+		KafkaConfig:     kafkaConfig,
 	}
 	mock.lockDoGetProducer.Lock()
 	mock.calls.DoGetProducer = append(mock.calls.DoGetProducer, callInfo)
 	mock.lockDoGetProducer.Unlock()
-	return mock.DoGetProducerFunc(contextMoqParam, strings, s, kafkaProducerName, configMoqParam)
+	return mock.DoGetProducerFunc(contextMoqParam, s, kafkaConfig)
 }
 
 // DoGetProducerCalls gets all the calls that were made to DoGetProducer.
 // Check the length with:
 //     len(mockedInitialiser.DoGetProducerCalls())
 func (mock *InitialiserMock) DoGetProducerCalls() []struct {
-	ContextMoqParam   context.Context
-	Strings           []string
-	S                 string
-	KafkaProducerName initialise.KafkaProducerName
-	ConfigMoqParam    *config.Config
+	ContextMoqParam context.Context
+	S               string
+	KafkaConfig     *config.KafkaConfig
 } {
 	var calls []struct {
-		ContextMoqParam   context.Context
-		Strings           []string
-		S                 string
-		KafkaProducerName initialise.KafkaProducerName
-		ConfigMoqParam    *config.Config
+		ContextMoqParam context.Context
+		S               string
+		KafkaConfig     *config.KafkaConfig
 	}
 	mock.lockDoGetProducer.RLock()
 	calls = mock.calls.DoGetProducer
