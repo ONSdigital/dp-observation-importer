@@ -58,7 +58,7 @@ func getDefaultConfig() *Config {
 		GraphDriverChoice:          "neo4j",
 		EnableGetGraphDimensionID:  true,
 		KafkaConfig: KafkaConfig{
-			Brokers:                  []string{"localhost:9092"},
+			Brokers:                  []string{"localhost:9092", "localhost:9093", "localhost:9094"},
 			Version:                  "1.0.2",
 			BatchSize:                100,
 			BatchWaitTime:            time.Millisecond * 200,

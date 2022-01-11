@@ -34,7 +34,7 @@ func TestSpec(t *testing.T) {
 				So(cfg.GraphDriverChoice, ShouldEqual, "neo4j")
 				So(cfg.EnableGetGraphDimensionID, ShouldBeTrue)
 
-				So(cfg.KafkaConfig.Brokers[0], ShouldEqual, "localhost:9092")
+				So(cfg.KafkaConfig.Brokers, ShouldResemble, []string{"localhost:9092", "localhost:9093", "localhost:9094"})
 				So(cfg.KafkaConfig.ObservationConsumerGroup, ShouldEqual, "observation-extracted")
 				So(cfg.KafkaConfig.ObservationConsumerTopic, ShouldEqual, "observation-extracted")
 				So(cfg.KafkaConfig.BatchSize, ShouldEqual, 100)
