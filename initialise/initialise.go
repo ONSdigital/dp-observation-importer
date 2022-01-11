@@ -88,13 +88,13 @@ func (e *ExternalServiceList) GetProducer(ctx context.Context, kafkaBrokers []st
 }
 
 // GetImportErrorReporter returns an ErrorImportReporter to send error reports to the import-reporter (only if ObservationsImportedErrProducer is available)
-func (e *ExternalServiceList) GetImportErrorReporter(ObservationsImportedErrProducer reporter.KafkaProducer, serviceName string) (errorReporter reporter.ImportErrorReporter, err error) {
+func (e *ExternalServiceList) GetImportErrorReporter(observationsImportedErrProducer reporter.KafkaProducer, serviceName string) (errorReporter reporter.ImportErrorReporter, err error) {
 	if !e.ObservationsImportedErrProducer {
 		return reporter.ImportErrorReporter{},
 			fmt.Errorf("cannot create ImportErrorReporter because kafka producer '%s' is not available", kafkaProducerNames[ObservationsImportedErr])
 	}
 
-	errorReporter, err = e.Init.DoGetImportErrorReporter(ObservationsImportedErrProducer, serviceName)
+	errorReporter, err = e.Init.DoGetImportErrorReporter(observationsImportedErrProducer, serviceName)
 	if err != nil {
 		return
 	}
@@ -140,8 +140,8 @@ func (i *Init) DoGetHealthCheck(cfg *config.Config, buildTime, gitCommit, versio
 	return hc, nil
 }
 
-func (i *Init) DoGetImportErrorReporter(ObservationsImportedErrProducer reporter.KafkaProducer, serviceName string) (errorReporter reporter.ImportErrorReporter, err error) {
-	errorReporter, err = reporter.NewImportErrorReporter(ObservationsImportedErrProducer, serviceName)
+func (i *Init) DoGetImportErrorReporter(observationsImportedErrProducer reporter.KafkaProducer, serviceName string) (errorReporter reporter.ImportErrorReporter, err error) {
+	errorReporter, err = reporter.NewImportErrorReporter(observationsImportedErrProducer, serviceName)
 	return
 }
 

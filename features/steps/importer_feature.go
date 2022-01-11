@@ -123,8 +123,8 @@ func (f *ImporterFeature) DoGetHealthCheck(cfg *config.Config, buildTime, gitCom
 	return hc, nil
 }
 
-func (f *ImporterFeature) DoGetImportErrorReporter(ObservationsImportedErrProducer reporter.KafkaProducer, serviceName string) (errorReporter reporter.ImportErrorReporter, err error) {
-	errorReporter, err = reporter.NewImportErrorReporter(ObservationsImportedErrProducer, serviceName)
+func (f *ImporterFeature) DoGetImportErrorReporter(observationsImportedErrProducer reporter.KafkaProducer, serviceName string) (errorReporter reporter.ImportErrorReporter, err error) {
+	errorReporter, err = reporter.NewImportErrorReporter(observationsImportedErrProducer, serviceName)
 	return
 }
 

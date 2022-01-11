@@ -152,7 +152,7 @@ func TestIDCache_GetIDsReturnError(t *testing.T) {
 	Convey("Given a valid instance id", t, func() {
 		data := &NodeResults{
 			Items: []Dimension{
-				Dimension{
+				{
 					DimensionName: "year",
 					Option:        "1997",
 					NodeID:        "123",
