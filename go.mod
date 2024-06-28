@@ -13,6 +13,9 @@ replace github.com/spf13/cobra => github.com/spf13/cobra v1.4.0
 // to avoid sonatype-2019-0890 # pkg:golang/github.com/pkg/sftp@v1.10.1
 replace github.com/pkg/sftp => github.com/pkg/sftp v1.13.4
 
+// [CVE-2023-48795] CWE-354: Improper Validation of Integrity Check Value
+replace golang.org/x/crypto => golang.org/x/crypto v0.17.0
+
 require (
 	github.com/ONSdigital/dp-api-clients-go/v2 v2.252.0
 	github.com/ONSdigital/dp-component-test v0.6.3
@@ -91,7 +94,7 @@ require (
 	golang.org/x/crypto v0.14.0 // indirect
 	golang.org/x/net v0.17.0 // indirect
 	golang.org/x/sync v0.1.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
+	golang.org/x/sys v0.15.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
